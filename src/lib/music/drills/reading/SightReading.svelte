@@ -43,7 +43,8 @@
   import { practice } from "#lib/music/practice.svelte.ts";
   import { nextRun } from "#lib/music/advance.svelte.ts";
   import { audio, getSetting, mic, putSetting, settings } from "#lib/music/runtime/index.ts";
-  import { clampRange, combineLanes, FOLLOWER_NAME, followerModeNotes, fretPosition, handLabel, kickGroups, KICK_MIDI, keyboardSpan, placeInPosition, positionRange, READING_TABS, soundingScore, stepWords, waitHeadline, type ReadingSetup } from "./reading";
+  import { m } from "@repo/i18n/messages.js";
+  import { clampRange, clefClause, combineLanes, FOLLOWER_NAME, followerModeNotes, fretPosition, handLabel, instrumentName, kickGroups, KICK_MIDI, keyboardSpan, keyLabel, placeInPosition, positionClause, positionRange, READING_TABS, soundingScore, stepWords, waitHeadline, type ReadingSetup } from "./reading";
   import { hitDrumKey } from "@repo/music-core/content/winds-pads";
   import SetupFields from "./SetupFields.svelte";
   import { readingLessons } from "@repo/music-core/lessons/reading";
@@ -84,7 +85,7 @@
   const transpose = $derived(-writtenOffset(instrument, settings.value, fretted ? tuning : null));
   const useMic = $derived(fretted && s.input === "mic");
   const entry = catalogEntry("reading")!;
-  const modeDef = entry.modes.find((m) => m.id === "sight-reading")!;
+  const modeDef = entry.modes.find((md) => md.id === "sight-reading")!;
   // The level's range on the clefs (or the notes asked for), inside what the instrument
   // reads: fretted instruments in the chosen hand position, the Aerophone in its written range.
   const position = $derived(fretted && tuning ? fretPosition(instrument, s.position) : undefined);
@@ -112,6 +113,8 @@
   const groups = $derived(scoreGroups(score));
   // A group in plain words: a note, or a note or chord when some notes start together.
   const words = $derived(stepWords(groups));
+  /** Some notes start together, so a step is a note or chord. */
+  const chords = $derived(!groups.every((g) => g.notes.length === 1));
   // Jazz lines are written straight and played swung: off-beat eighths land two thirds into the beat.
   const swing = $derived(!!readingLevel(levelId).swing);
   const feel = (b: number) => (swing ? swingBeat(b) : b);
@@ -164,7 +167,7 @@
       preview.stop();
       preview = null;
       resumeBeat = previewBeat ?? 0;
-      status = "Paused.";
+      status = m.music_drills_reading_sight_paused();
       return;
     }
     await audio.unlock();
@@ -180,7 +183,7 @@
       },
     });
     preview = h;
-    status = "Demo playing, not scored.";
+    status = m.music_drills_reading_sight_demo();
     void h.done.then(() => {
       if (preview !== h) return;
       preview = null;
@@ -237,7 +240,7 @@
     if (useMic && !(await mic.start())) {
       ctx.stopClock();
       phase = "ready";
-      status = mic.error || "The microphone couldn't start. Allow it in the browser, then press Start.";
+      status = mic.error || m.music_drills_reading_mic_error();
       return;
     }
     const octaveExact = instrument === "piano" || aero;
@@ -274,7 +277,7 @@
     });
     // Scored input starts at the downbeat (after any count-in).
     cap = capture(follower === "performance" ? ctx.downbeat - beatMs / 2 : performance.now(), (e) => e.kind === "noteon" && onNote(e));
-    status = follower === "wait" ? "Play what the cursor shows. It waits for you." : tapping ? `Tap the rhythm: any key, the Tap button or Space.${kick ? " Kick every beat: a kick pad or the Kick button." : ""}` : "Go.";
+    status = follower === "wait" ? m.music_drills_reading_sight_status_wait() : tapping ? (kick ? m.music_drills_reading_sight_status_tap_kick() : m.music_drills_reading_sight_status_tap()) : m.music_drills_reading_sight_go();
     loop();
   }
 
@@ -387,32 +390,34 @@
     summary = {
       headline: perf
         ? perf.correct
-          ? `Read and played in time: ${perf.matched} of ${perf.expected} notes.`
-          : `${perf.matched} of ${perf.expected} notes, ${perf.onTime} on time${perf.extra ? `, ${perf.extra} extra` : ""}.`
+          ? m.music_drills_reading_sight_perf_clean({ matched: perf.matched, expected: perf.expected })
+          : perf.extra
+            ? m.music_drills_reading_sight_perf_some_extra({ matched: perf.matched, expected: perf.expected, onTime: perf.onTime, extra: perf.extra })
+            : m.music_drills_reading_sight_perf_some({ matched: perf.matched, expected: perf.expected, onTime: perf.onTime })
         : waitHeadline(wait!, words),
       metric: pct(lanes.score),
-      metricLabel: perf ? "score" : "right first time",
+      metricLabel: perf ? m.music_drills_reading_sight_metric_score() : m.music_drills_reading_sight_metric_first(),
       delta: fin.delta,
       best: fin.best,
       clean: lanes.correct && follower === "performance" && mode === "check",
-      cleanMeans: follower === "performance" ? "every note right and in time" : "every note right first time",
+      cleanMeans: follower === "performance" ? m.music_drills_reading_sight_clean_perf() : m.music_drills_reading_sight_clean_wait(),
       xp: fin.xp,
       // Wait for me is guided whichever way the switch is set; the shell's sentence covers the rest.
       // Wait for me is practice whatever the toggle says: the cursor waited for you.
       mode: follower === "wait" ? "practice" : mode,
       rows: perf
         ? [
-            { label: "Notes matched", value: perf.pitchCompletion, text: `${perf.matched} of ${perf.expected}` },
-            { label: "On time", value: perf.matched ? perf.onTime / perf.matched : 0, text: `${perf.onTime} on time, ${perf.early} early, ${perf.late} late` },
-            { label: "Extra notes", text: String(perf.extra) },
-            { label: "Mean timing error", text: `${Math.round(perf.meanAbsErrorMs)} ms` },
-            ...(kr ? [{ label: "Kick on every beat", value: kr.score, text: `${kr.matched} of ${kr.expected}, ${kr.onTime} on time` }] : []),
+            { label: m.music_drills_reading_sight_row_matched(), value: perf.pitchCompletion, text: m.music_drills_reading_x_of_y({ n: perf.matched, total: perf.expected }) },
+            { label: m.music_drills_reading_sight_row_on_time(), value: perf.matched ? perf.onTime / perf.matched : 0, text: m.music_drills_reading_sight_row_on_time_text({ onTime: perf.onTime, early: perf.early, late: perf.late }) },
+            { label: m.music_drills_reading_sight_row_extra(), text: String(perf.extra) },
+            { label: m.music_drills_reading_sight_row_mean_error(), text: m.music_drills_reading_sight_ms({ ms: Math.round(perf.meanAbsErrorMs) }) },
+            ...(kr ? [{ label: m.music_drills_reading_sight_row_kick(), value: kr.score, text: m.music_drills_reading_sight_row_kick_text({ matched: kr.matched, expected: kr.expected, onTime: kr.onTime }) }] : []),
           ]
         : [
-            { label: `${words.one === "Note" ? "Notes" : "Notes and chords"} right first time`, value: wait!.total ? wait!.cleanGroups / wait!.total : 0, text: `${wait!.cleanGroups} of ${wait!.total}` },
-            { label: "Wrong notes", text: String(wait!.wrongNotes) },
+            { label: chords ? m.music_drills_reading_sight_row_first_groups() : m.music_drills_reading_sight_row_first_notes(), value: wait!.total ? wait!.cleanGroups / wait!.total : 0, text: m.music_drills_reading_x_of_y({ n: wait!.cleanGroups, total: wait!.total }) },
+            { label: m.music_drills_reading_sight_row_wrong(), text: String(wait!.wrongNotes) },
             // Wait for me waits for each note, so there is no beat to be on: say how to get timing graded.
-            { label: "Timing", notMeasured: true, text: `Not scored in ${FOLLOWER_NAME.wait}. Turn on the click to score timing.` },
+            { label: m.music_drills_reading_sight_row_timing(), notMeasured: true, text: m.music_drills_reading_sight_row_timing_text({ name: FOLLOWER_NAME.wait }) },
           ],
     };
     // The climb is its own advance; otherwise the next run by the shared rule, when something was played.
@@ -428,17 +433,17 @@
       }
       summary.headline = climb.over
         ? climb.best < 0
-          ? `Three strikes on ${here}. Start the climb a level lower, or slow the tempo.`
+          ? m.music_drills_reading_sight_climb_out_low({ here })
           : passed
-            ? `You passed the top level, ${here}. Nothing higher to climb.`
-            : `Three strikes. You reached ${rungs[climb.best].label}, level ${climb.best + 1} of ${rungs.length}.`
+            ? m.music_drills_reading_sight_climb_top({ here })
+            : m.music_drills_reading_sight_climb_out({ label: rungs[climb.best].label, n: climb.best + 1, total: rungs.length })
         : passed
-          ? `${pct(r.score)} on ${here}: up a level to ${rungs[climb.rung].label}.`
-          : `${pct(r.score)} on ${here}: strike ${climb.strikes} of ${CLIMB.strikes}. A new phrase at the same level.`;
+          ? m.music_drills_reading_sight_climb_up({ pct: pct(r.score), here, label: rungs[climb.rung].label })
+          : m.music_drills_reading_sight_climb_strike({ pct: pct(r.score), here, strikes: climb.strikes, max: CLIMB.strikes });
       summary.rows = [
         ...(summary.rows ?? []),
-        { label: "Climb", text: `level ${climb.rung + 1} of ${rungs.length}, ${climb.strikes} of ${CLIMB.strikes} strikes, ${climb.phrases} phrase${climb.phrases === 1 ? "" : "s"}` },
-        ...(climbBest >= 0 && rungs[climbBest] ? [{ label: "Best level on this instrument", text: `${climbBest + 1}, ${rungs[climbBest].label}` }] : []),
+        { label: m.music_drills_reading_sight_row_climb(), text: m.music_drills_reading_sight_row_climb_text({ rung: climb.rung + 1, total: rungs.length, strikes: climb.strikes, max: CLIMB.strikes, phrases: climb.phrases }) },
+        ...(climbBest >= 0 && rungs[climbBest] ? [{ label: m.music_drills_reading_sight_row_best(), text: m.music_drills_reading_sight_row_best_text({ n: climbBest + 1, label: rungs[climbBest].label }) }] : []),
       ];
     }
     status = summary.headline;
@@ -466,7 +471,7 @@
     kfs = null;
     live = null;
     phase = "ready";
-    status = "Stopped. Nothing saved.";
+    status = m.music_drills_reading_sight_stopped();
   }
 
   function practiceMissed() {
@@ -474,14 +479,14 @@
     override = { from: generated.id, score: practiceMissedScore(score, missed) };
     phase = "ready";
     summary = null;
-    status = `Loaded the ${missed.length === 1 ? `1 ${words.one.toLowerCase()}` : `${missed.length} ${words.many}`} you missed. Press Start.`;
+    status = chords ? m.music_drills_reading_sight_loaded_groups({ count: missed.length }) : m.music_drills_reading_sight_loaded_notes({ count: missed.length });
   }
   function newPhrase() {
     override = null;
     seed = (seed * 7 + 13) % 2 ** 31;
     phase = "ready";
     summary = null;
-    status = "A new phrase.";
+    status = m.music_drills_reading_sight_new_phrase_status();
   }
 
   onDestroy(() => {
@@ -541,7 +546,7 @@
     }, 1000);
     return () => clearInterval(t);
   });
-  const lookBlock = $derived(phase === "ready" && s.look && lookLeft > 0 ? `Look first, ${lookLeft} s: find the key, the meter and the hardest bar, and hum bar 1.` : null);
+  const lookBlock = $derived(phase === "ready" && s.look && lookLeft > 0 ? m.music_drills_reading_sight_look_block({ secs: lookLeft }) : null);
 
   const both = $derived(instrument === "piano" && score.voices.length > 1);
   const pianoMarks = $derived.by(() => {
@@ -576,17 +581,35 @@
   const hand = $derived(both ? handLabel(current ?? groups[0]) : null);
 
   const summaryLine = $derived<SetupClause[]>([
-    { text: `${climbing ? "Level climb from " : ""}${readingLevel(levelId).label}${!climbing && levelId === "primer" ? " level" : ""}`, focus: climbing ? "session" : "level" },
-    { text: key.name, focus: "key" },
-    { text: `${clefs.join(" and ")} clef`, focus: fretted || aero || climbing ? undefined : "clefs" },
-    { text: `${measures} bar${measures > 1 ? "s" : ""} of ${READING_METERS[meter].label}`, focus: climbing ? "meter" : "measures" },
-    ...(s.mask ? [{ text: `${s.mask} beats ahead`, focus: "mask" }] : []),
-    ...(position ? [{ text: `${position.label.toLowerCase()} position`, focus: "position" }] : []),
+    {
+      text: climbing
+        ? m.music_drills_reading_sight_climb_from({ level: readingLevel(levelId).label })
+        : levelId === "primer"
+          ? m.music_drills_reading_level_clause({ level: readingLevel(levelId).label })
+          : readingLevel(levelId).label,
+      focus: climbing ? "session" : "level",
+    },
+    { text: keyLabel(key.name), focus: "key" },
+    { text: clefClause(clefs), focus: fretted || aero || climbing ? undefined : "clefs" },
+    { text: m.music_drills_reading_sight_bars_of({ count: measures, meter: READING_METERS[meter].label }), focus: climbing ? "meter" : "measures" },
+    ...(s.mask ? [{ text: m.music_drills_reading_sight_beats_ahead({ count: s.mask }), focus: "mask" }] : []),
+    ...(position ? [{ text: positionClause(position.value), focus: "position" }] : []),
     // The follower by the same name as its choice and the mode note.
     follower === "wait"
       ? { text: FOLLOWER_NAME.wait, focus: "follower" }
-      : { text: `${tapping ? "tapping the rhythm" : FOLLOWER_NAME.performance} at ${bpm} BPM${swing ? ", swung" : ""}, ${strictness} timing`, focus: "strictness" },
-    ...(tapping ? (kick ? [{ text: "kick on every beat", focus: "kick" }] : []) : [{ text: `${instrument}${useMic ? " by microphone" : ""}`, focus: fretted ? "input" : undefined }]),
+      : {
+          text: (swing ? m.music_drills_reading_sight_at_bpm_swung : m.music_drills_reading_sight_at_bpm)({
+            follower: tapping ? m.music_drills_reading_sight_tapping() : FOLLOWER_NAME.performance,
+            bpm,
+            timing: strictness === "relaxed" ? m.music_drills_reading_sight_timing_relaxed() : strictness === "strict" ? m.music_drills_reading_sight_timing_strict() : m.music_drills_reading_sight_timing_normal(),
+          }),
+          focus: "strictness",
+        },
+    ...(tapping
+      ? kick
+        ? [{ text: m.music_drills_reading_sight_kick_clause(), focus: "kick" }]
+        : []
+      : [{ text: useMic ? m.music_drills_reading_sight_by_mic({ instrument: instrumentName(instrument) }) : instrumentName(instrument), focus: fretted ? "input" : undefined }]),
   ]);
   // From the same follower as the setup line, so one state always reads the same.
   const modeNotes = $derived(followerModeNotes(tapping ? "tap" : follower));
@@ -596,7 +619,7 @@
 
 <!-- The phrase again with every note graded, beside the breakdown: the marks the run left on the staff. -->
 {#snippet gradedStaff()}
-  <figure class="overflow-x-auto rounded-2xl" aria-label="The phrase, each note marked">
+  <figure class="overflow-x-auto rounded-2xl" aria-label={m.music_drills_reading_sight_figure_label()}>
     <Staff {score} groupStates={shownStates} played={shownPlayed} fill={measures <= 4} maxHeight={measures > 4 ? "24rem" : "14rem"} />
   </figure>
 {/snippet}
@@ -605,9 +628,9 @@
   listens
   checkRun={follower !== "wait"}
   lesson={{ lessons: readingLessons("sight-reading", clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { fifths: key.fifths, level: levelId, meter, measures, piano: instrument === "piano", grand: instrument === "piano" && clefs.length > 1 }) }}
-  title="Sight-reading"
+  title={m.music_drills_reading_sight_title()}
   hue="reading"
-  blurb="Read a short phrase and play it, at your own pace or in time with the click."
+  blurb={m.music_drills_reading_sight_blurb()}
   summary={summaryLine}
   tabs={READING_TABS}
   tab="sight-reading"
@@ -623,7 +646,7 @@
   demoPlaying={!!preview?.playing}
   onstart={start}
   onstop={stop}
-  cue={phase !== "running" || !live ? "" : tapping ? "Tap the rhythm" : follower === "wait" ? `Play ${words.one.toLowerCase()} ${Math.min(live.index + 1, groups.length)} of ${groups.length}` : "Play in time with the click"}
+  cue={phase !== "running" || !live ? "" : tapping ? m.music_drills_reading_sight_cue_tap() : follower === "wait" ? (chords ? m.music_drills_reading_sight_cue_group : m.music_drills_reading_sight_cue_note)({ n: Math.min(live.index + 1, groups.length), total: groups.length }) : m.music_drills_reading_sight_cue_click()}
 >
   {#snippet setup()}
     <SetupFields {cfg} activity="sight-reading" {fretted} oneLine={fretted || aero} {instrument} limits={fretted && tuning ? positionRange(tuning, [0, 12]) : limits} />
@@ -631,15 +654,15 @@
 
   {#snippet hud()}
     {#if climbing && climb && !climb.over}
-      <Stat label="Level" value={`${climb.rung + 1} of ${rungs.length}`} />
-      <Stat label="Strikes" value={`${climb.strikes} of ${CLIMB.strikes}`} />
+      <Stat label={m.music_drills_reading_sight_stat_level()} value={m.music_drills_reading_x_of_y({ n: climb.rung + 1, total: rungs.length })} />
+      <Stat label={m.music_drills_reading_sight_stat_strikes()} value={m.music_drills_reading_x_of_y({ n: climb.strikes, total: CLIMB.strikes })} />
     {/if}
     {#if phase === "running" && live}
-      <Stat label={tapping ? "Tap" : words.one} value="{Math.min(live.index + 1, groups.length)} of {groups.length}" />
-      {#if hand}<Stat label="Now" value={hand} />{/if}
-      {#if mode === "practice" && current}<Stat label="Next" value={current.notes.map((n) => noteName(n.midi)).join(" + ")} />{/if}
+      <Stat label={tapping ? m.music_drills_reading_sight_tap() : words.one} value={m.music_drills_reading_x_of_y({ n: Math.min(live.index + 1, groups.length), total: groups.length })} />
+      {#if hand}<Stat label={m.music_drills_reading_sight_stat_now()} value={hand} />{/if}
+      {#if mode === "practice" && current}<Stat label={m.music_drills_reading_sight_stat_next()} value={current.notes.map((n) => noteName(n.midi)).join(" + ")} />{/if}
     {:else if hand && phase === "ready"}
-      <Stat label="First" value={hand} />
+      <Stat label={m.music_drills_reading_sight_stat_first()} value={hand} />
     {/if}
   {/snippet}
 
@@ -663,12 +686,12 @@
     </div>
     <div class="mt-3 flex flex-wrap items-center gap-2">
       {#if fretted && tabTuning}
-        <button type="button" class={btnStage} aria-pressed={showTab} aria-controls="sight-tab" onclick={() => (showTab = !showTab)}>{showTab ? "Hide tab" : "Show tab"}</button>
-        {#if !showTab}<span class="text-sm text-ws-stage-soft">Tab stays hidden so you read the staff.</span>{/if}
+        <button type="button" class={btnStage} aria-pressed={showTab} aria-controls="sight-tab" onclick={() => (showTab = !showTab)}>{showTab ? m.music_drills_reading_sight_hide_tab() : m.music_drills_reading_sight_show_tab()}</button>
+        {#if !showTab}<span class="text-sm text-ws-stage-soft">{m.music_drills_reading_sight_tab_hidden()}</span>{/if}
       {/if}
       {#if phase === "ready"}
         <!-- Outlined, so it reads as a button on the stage, beside the staff it changes. -->
-        <button type="button" class="{btnStage} border-2 border-ws-stage-ink/40 bg-transparent" onclick={newPhrase}>New phrase</button>
+        <button type="button" class="{btnStage} border-2 border-ws-stage-ink/40 bg-transparent" onclick={newPhrase}>{m.music_drills_reading_sight_new_phrase()}</button>
       {/if}
     </div>
     {#if fretted && tabTuning && showTab}
@@ -685,7 +708,7 @@
             <button
               type="button"
               class="tap kick"
-              aria-label="Kick"
+              aria-label={m.music_drills_reading_sight_kick()}
               disabled={phase !== "running" && phase !== "countin"}
               onpointerdown={(e) => {
                 if (e.button > 0) return;
@@ -699,10 +722,10 @@
                 }
               }}
             >
-              <span class="font-display text-2xl font-bold">Kick</span>
-              <span class="text-sm opacity-80">every beat</span>
+              <span class="font-display text-2xl font-bold">{m.music_drills_reading_sight_kick()}</span>
+              <span class="text-sm opacity-80">{m.music_drills_reading_sight_every_beat()}</span>
             </button>
-            <p class="text-center text-sm text-ws-stage-soft">A kick pad (MIDI 36) counts too.</p>
+            <p class="text-center text-sm text-ws-stage-soft">{m.music_drills_reading_sight_kick_pad_note()}</p>
           </div>
         {/if}
         <div class="flex flex-col items-center gap-2">
@@ -710,7 +733,7 @@
             type="button"
             class="tap"
             class:pressed
-            aria-label="Tap"
+            aria-label={m.music_drills_reading_sight_tap()}
             aria-keyshortcuts="Space"
             disabled={phase !== "running" && phase !== "countin"}
             onpointerdown={(e) => {
@@ -725,23 +748,23 @@
               }
             }}
           >
-            <span class="font-display text-2xl font-bold">Tap</span>
-            <span class="text-sm opacity-80">or Space</span>
+            <span class="font-display text-2xl font-bold">{m.music_drills_reading_sight_tap()}</span>
+            <span class="text-sm opacity-80">{m.music_drills_reading_sight_or_space()}</span>
           </button>
-          <p class="text-center text-sm text-ws-stage-soft">Any MIDI key or pad counts too. Only the rhythm is scored.</p>
+          <p class="text-center text-sm text-ws-stage-soft">{m.music_drills_reading_sight_tap_note()}</p>
         </div>
         </div>
       {:else if useMic}
         <div class="rounded-2xl bg-ws-stage-ink/8 p-4">
-          <p class="text-sm text-ws-stage-soft">The microphone listens while the run is on. Notes are scored by name, in any octave.</p>
-          <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : "No pitch yet"}</p>
+          <p class="text-sm text-ws-stage-soft">{m.music_drills_reading_sight_mic_note()}</p>
+          <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : m.music_drills_reading_no_pitch()}</p>
         </div>
       {:else if fretted && tuning}
-        <Fretboard openStrings={tuning.openStrings} from={fretFrom} to={fretTo} marks={fretMarks} {flashes} label="{instrument} fretboard" />
+        <Fretboard openStrings={tuning.openStrings} from={fretFrom} to={fretTo} marks={fretMarks} {flashes} label={m.music_drills_reading_fretboard_label({ instrument: instrumentName(instrument) })} />
       {:else if aero}
         <InstrumentStage instrument="aerophone" line={allSounding} marks={pianoMarks} {flashes} />
       {:else}
-        <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
+        <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} label={m.music_drills_reading_piano_label({ low: noteName(low), high: noteName(high) })} />
       {/if}
     </div>
   {/snippet}
@@ -751,10 +774,10 @@
       <Results {summary} figure={gradedStaff}>
         {#snippet actions()}
           {#if climbing && climb}
-            {#if climb.over}<button type="button" class={btn} onclick={climbAgain}>Climb again</button>{:else}<button type="button" class={btn} onclick={nextPhrase}>Next phrase</button>{/if}
+            {#if climb.over}<button type="button" class={btn} onclick={climbAgain}>{m.music_drills_reading_sight_climb_again()}</button>{:else}<button type="button" class={btn} onclick={nextPhrase}>{m.music_drills_reading_sight_next_phrase()}</button>{/if}
           {/if}
-          {#if missed.length && !climbing}<button type="button" class={btn} onclick={practiceMissed}>Again: the notes you missed ({missed.length})</button>{/if}
-          <button type="button" class={btn} onclick={newPhrase}>New phrase</button>
+          {#if missed.length && !climbing}<button type="button" class={btn} onclick={practiceMissed}>{m.music_drills_reading_retry_missed({ count: missed.length })}</button>{/if}
+          <button type="button" class={btn} onclick={newPhrase}>{m.music_drills_reading_sight_new_phrase()}</button>
         {/snippet}
       </Results>
     {/if}

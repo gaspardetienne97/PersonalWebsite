@@ -6,6 +6,8 @@
   // each sung note against what the recording sounds there. What you played or
   // sang can be saved as a lick and drilled in Phrases in any key.
   import { onDestroy, onMount } from "svelte";
+  import { m } from "@repo/i18n/messages.js";
+  import { intlLocale } from "@repo/i18n/format";
   import Upload from "@lucide/svelte/icons/upload";
   import Play from "@lucide/svelte/icons/play";
   import Pause from "@lucide/svelte/icons/pause";
@@ -36,7 +38,14 @@
   const mode = $derived(s.mode === "home" || s.mode === "sing" ? s.mode : "learn");
   /** Sing along: the tune (the head) or its roots. */
   const part = $derived<SingPart>(s.part === "roots" ? "roots" : "head");
-  const PART_NAME: Record<SingPart, string> = { head: "the tune", roots: "the roots" };
+  const PART_NAME: Record<SingPart, string> = {
+    get head() {
+      return m.music_drills_byear_part_tune();
+    },
+    get roots() {
+      return m.music_drills_byear_part_roots();
+    },
+  };
 
   let phase = $state<Phase>("ready");
   let status = $state("");
@@ -78,7 +87,7 @@
     const [tracks, takes] = await Promise.all([listTracks().catch(() => []), db.audioTakes.orderBy("createdAt").reverse().toArray()]);
     sources = [
       ...tracks.map((t) => ({ value: `track:${t.id}`, label: t.name })),
-      ...takes.map((t) => ({ value: `take:${t.id}`, label: `Recorded take, ${new Date(t.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` })),
+      ...takes.map((t) => ({ value: `take:${t.id}`, label: m.music_drills_byear_recorded_take({ date: new Date(t.createdAt).toLocaleString(intlLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) }) })),
     ];
     const tick = () => {
       if (player) {
@@ -101,7 +110,7 @@
       await audio.unlock();
       const [kind, id] = source.split(":");
       const blob = await getBinary(kind === "take" ? takeKey(id) : trackKey(id));
-      if (!blob) throw new Error("That recording's file is missing from this browser. Import it again.");
+      if (!blob) throw new Error(m.music_drills_byear_missing_file());
       player?.dispose();
       player = await audio.earPlayer(blob);
       player.set({ rate: Number(s.speed), semitones: Number(s.pitch) });
@@ -110,7 +119,7 @@
       loop = null;
       sections = await getSetting<{ at: number; name: string }[]>(sectionKey(source), []);
       loaded = source;
-      status = `Loaded ${sourceTitle || "the recording"}: ${clock(duration)}.`;
+      status = sourceTitle ? m.music_drills_byear_loaded({ name: sourceTitle, length: clock(duration) }) : m.music_drills_byear_loaded_unnamed({ length: clock(duration) });
       return true;
     } catch (e) {
       status = (e as Error).message;
@@ -149,7 +158,7 @@
   function setLoop(next: { a: number; b: number } | null) {
     loop = next && next.b - next.a >= 0.2 ? next : null;
     player?.set(loop ? { loop: true, a: loop.a, b: loop.b } : { loop: false });
-    status = loop ? `Looping ${clock(loop.a)} to ${clock(loop.b)}.` : "Loop off: plays through.";
+    status = loop ? m.music_drills_byear_looping({ a: clock(loop.a), b: clock(loop.b) }) : m.music_drills_byear_loop_off();
   }
   const setA = () => setLoop({ a: pos, b: loop && loop.b > pos ? loop.b : Math.min(duration, pos + 4) });
   const setB = () => setLoop({ a: loop && loop.a < pos ? loop.a : Math.max(0, pos - 4), b: pos });
@@ -167,11 +176,22 @@
   // Sections
 
   const SECTION_NAMES = ["Intro", "Verse", "Chorus", "Bridge", "Solo", "A", "B", "Change", "Outro"];
+  /** The names are saved with the marks, in English: shown in the current language. */
+  const SECTION_LABEL: Record<string, () => string> = {
+    Intro: m.music_drills_byear_section_intro,
+    Verse: m.music_drills_byear_section_verse,
+    Chorus: m.music_drills_byear_section_chorus,
+    Bridge: m.music_drills_byear_section_bridge,
+    Solo: m.music_drills_byear_section_solo,
+    Change: m.music_drills_byear_section_change,
+    Outro: m.music_drills_byear_section_outro,
+  };
+  const sectionLabel = (name: string) => SECTION_LABEL[name]?.() ?? name;
   async function mark(name: string) {
     if (!loaded) return;
     sections = [...sections.filter((x) => Math.abs(x.at - pos) > 0.25), { at: pos, name }].sort((a, b) => a.at - b.at);
     await putSetting(sectionKey(loaded), sections);
-    status = `${name} marked at ${clock(pos)}.`;
+    status = m.music_drills_byear_marked({ name: sectionLabel(name), time: clock(pos) });
   }
   async function unmark(at: number) {
     sections = sections.filter((x) => x.at !== at);
@@ -215,12 +235,12 @@
     summary = null;
     if (!(await load())) {
       phase = "ready";
-      status = status || "Pick or import a recording first.";
+      status = status || m.music_drills_byear_pick_first();
       return;
     }
     if (mode === "sing" && !(await mic.start())) {
       phase = "ready";
-      status = mic.error || "The microphone didn't start. Allow it in the browser to sing along.";
+      status = mic.error || m.music_drills_byear_mic_failed();
       return;
     }
     t0 = performance.now();
@@ -238,12 +258,12 @@
     player!.play(loop ? loop.a : pos);
     status =
       mode === "home"
-        ? "Listen. Play or sing the tonic, the note that sounds like home, or pick it below."
+        ? m.music_drills_byear_status_home()
         : mode === "sing"
-          ? `Sing ${PART_NAME[part]} with the recording. Headphones keep the recording out of the microphone.`
+          ? m.music_drills_byear_status_sing({ part: PART_NAME[part] })
           : loop
-          ? "Looping. Play the part along with it. Your notes show over the loop."
-          : "Playing. Start loop and End loop mark a stretch to repeat. Your notes show over the recording.";
+          ? m.music_drills_byear_status_looping()
+          : m.music_drills_byear_status_playing();
   }
 
   function stop() {
@@ -252,7 +272,7 @@
     player?.pause();
     if (mode === "home" && !homeAnswered) {
       phase = "ready";
-      status = "Stopped before an answer. Nothing saved.";
+      status = m.music_drills_byear_stopped_early();
       return;
     }
     if (mode === "sing") {
@@ -260,7 +280,7 @@
       return void finishSing();
     }
     phase = "results";
-    status = played.length ? `${played.length} notes played. Did you get the part?` : "Nothing was played. Rate it anyway, or start again.";
+    status = played.length ? m.music_drills_byear_notes_played_ask({ count: played.length }) : m.music_drills_byear_nothing_played();
   }
 
   /** The key the whole recording points to: home belongs to the song, not to the stretch looped. */
@@ -289,30 +309,30 @@
       params: { mode: "home", recording: sourceName, from: Math.round(loop?.a ?? 0), to: Math.round(loop?.b ?? duration) },
     });
     await run.attempt({ promptId: `home-${loaded}`, correct: right, partialCredit: right ? 1 : 0, source: notes.length ? (notes[0].source ?? "click") : "click", target: FLAT_NAMES[tonics[0]], response: FLAT_NAMES[answer] });
-    const fin = await run.finish({ score: right ? 1 : 0, correct: right, headline: right ? `The tonic is ${FLAT_NAMES[answer]}` : `Heard ${FLAT_NAMES[answer]}, the tonic is ${FLAT_NAMES[tonics[0]]}` });
+    const fin = await run.finish({ score: right ? 1 : 0, correct: right, headline: right ? m.music_drills_byear_home_run_right({ note: FLAT_NAMES[answer] }) : m.music_drills_byear_home_run_wrong({ answer: FLAT_NAMES[answer], tonic: FLAT_NAMES[tonics[0]] }) });
     summary = {
-      headline: right ? `Right: the tonic is ${FLAT_NAMES[answer]}.` : `You picked ${FLAT_NAMES[answer]}. The tonic sounds like ${FLAT_NAMES[tonics[0]]}.`,
+      headline: right ? m.music_drills_byear_home_right({ note: FLAT_NAMES[answer] }) : m.music_drills_byear_home_wrong({ answer: FLAT_NAMES[answer], tonic: FLAT_NAMES[tonics[0]] }),
       metric: FLAT_NAMES[answer],
-      metricLabel: right ? "is the tonic" : `the tonic is ${FLAT_NAMES[tonics[0]]}`,
+      metricLabel: right ? m.music_drills_byear_home_metric_right() : m.music_drills_byear_home_metric_wrong({ tonic: FLAT_NAMES[tonics[0]] }),
       score: right ? 1 : 0,
       clean: right,
-      cleanMeans: "the tonic named",
+      cleanMeans: m.music_drills_byear_home_clean_means(),
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
-      next: right ? { label: "Learn a part", href: "/music/by-ear?mode=learn", reason: "loop a stretch of this recording and play it back" } : undefined,
+      next: right ? { label: m.music_drills_byear_mode_learn(), href: "/music/by-ear?mode=learn", reason: m.music_drills_byear_home_next_reason() } : undefined,
     };
     cap?.stop();
     cap = null;
     player?.pause();
     phase = "results";
-    status = right ? `Right: ${FLAT_NAMES[answer]} is the tonic.` : `${FLAT_NAMES[answer]} isn't the tonic here. The recording points to ${keyName(ranked[0])}.`;
+    status = right ? m.music_drills_byear_home_status_right({ note: FLAT_NAMES[answer] }) : m.music_drills_byear_home_status_wrong({ answer: FLAT_NAMES[answer], key: keyName(ranked[0]) });
   }
   /** Grade what was sung against the recording, and record it as a judged run. */
   async function finishSing() {
     phase = "results";
     if (sung.length < MIN_SUNG) {
-      status = !sung.length ? NOT_HEARD : `Only ${sung.length} sung notes were heard: sing at least ${MIN_SUNG} with the recording. Nothing saved.`;
+      status = !sung.length ? NOT_HEARD : m.music_drills_byear_sing_too_few({ count: sung.length, min: MIN_SUNG });
       return;
     }
     const b = player!.buffer;
@@ -331,31 +351,31 @@
       params: { mode: "sing", part, recording: sourceName, from: Math.round(loop?.a ?? 0), to: Math.round(loop?.b ?? duration), speed: Number(s.speed), tune: 50 },
     });
     await run.attempt({ promptId: `sing-${part}-${loaded}`, correct: r.correct, partialCredit: r.score, source: "audio", target: part, response: sung.map((n) => n.midi) });
-    const fin = await run.finish({ score: r.score, correct: r.correct, headline: `${r.right} of ${r.total} sung notes with the recording` });
+    const fin = await run.finish({ score: r.score, correct: r.correct, headline: m.music_drills_byear_sing_run({ right: r.right, total: r.total }) });
     summary = {
-      headline: `${r.right} of ${r.total} sung notes with the recording.`,
+      headline: m.music_drills_byear_sing_headline({ right: r.right, total: r.total }),
       metric: pct(r.score),
-      metricLabel: `sung with the recording, 75% passes`,
+      metricLabel: m.music_drills_byear_sing_metric(),
       clean: r.right === r.total,
-      cleanMeans: "every sung note with the recording",
+      cleanMeans: m.music_drills_byear_sing_clean_means(),
       delta: fin.delta,
       best: fin.best,
       xp: fin.xp,
-      next: r.correct && part === "head" ? { label: "Sing the roots", href: "/music/by-ear?mode=sing&part=roots", reason: "the bass note under each chord" } : undefined,
+      next: r.correct && part === "head" ? { label: m.music_drills_byear_sing_next_label(), href: "/music/by-ear?mode=sing&part=roots", reason: m.music_drills_byear_sing_next_reason() } : undefined,
     };
-    status = `${r.right} of ${r.total} sung notes matched the recording${r.inTune < r.total ? `; ${r.total - r.inTune} were more than 50 cents out` : ""}.`;
+    status = r.inTune < r.total ? m.music_drills_byear_sing_matched_out({ right: r.right, total: r.total, out: r.total - r.inTune }) : m.music_drills_byear_sing_matched({ right: r.right, total: r.total });
   }
 
   /** Save what was played or sung as a lick, at the tempo its notes sit on. */
   async function saveLick() {
     const line = played.slice(0, 32);
     const { bpm } = estimateTempo(line.map((n) => ({ midi: n.midi, start: n.at, duration: 0.2, amplitude: 1 })));
-    const id = await saveUserLick({ title: `${sourceName || "Recording"} at ${clock(line[0].at)}`, from: "Learn by ear", bpm, notes: secondsToBeats(line, bpm) });
-    savedLick = id ? "Saved. Find it in Phrases under Your licks, and take it through the keys." : "Nothing to save yet.";
+    const id = await saveUserLick({ title: m.music_drills_byear_lick_title({ name: sourceName || m.music_drills_byear_lick_default_name(), time: clock(line[0].at) }), from: "Learn by ear", bpm, notes: secondsToBeats(line, bpm) });
+    savedLick = id ? m.music_drills_byear_lick_saved() : m.music_drills_byear_lick_nothing();
     status = savedLick;
   }
 
-  const keyName = (k: KeyGuess) => `${FLAT_NAMES[k.tonicPc]} ${k.minor ? "minor" : "major"}`;
+  const keyName = (k: KeyGuess) => (k.minor ? m.music_drills_ear_visual_key_minor : m.music_drills_ear_visual_key_major)({ note: FLAT_NAMES[k.tonicPc] });
   /** Results: hear a home note as its key's chord (minor when the recording's key is), to compare two homes. */
   const hearHome = (tonicPc: number) => {
     const minor = !!home?.ranked.find((k) => k.tonicPc === tonicPc)?.minor;
@@ -383,8 +403,8 @@
         sections: sections.length,
       },
     });
-    await run.finish({ score: got ? 1 : 0, correct: got, rated: true, headline: got ? "Got the part by ear" : "Still learning the part" });
-    status = got ? "Saved: you rated it got. Try it at a faster speed next." : "Saved as still learning. Loop a shorter stretch or slow it down.";
+    await run.finish({ score: got ? 1 : 0, correct: got, rated: true, headline: got ? m.music_drills_byear_rate_run_got() : m.music_drills_byear_rate_run_learning() });
+    status = got ? m.music_drills_byear_rate_status_got() : m.music_drills_byear_rate_status_learning();
   }
 
   onDestroy(() => {
@@ -418,28 +438,28 @@
     { value: "0.9", label: "90%" },
     { value: "1", label: "100%" },
   ];
-  const PITCHES = [-2, -1, 0, 1, 2].map((n) => ({ value: String(n), label: n === 0 ? "As recorded" : `${n > 0 ? "+" : "−"}${Math.abs(n)}` }));
+  const PITCHES = [-2, -1, 0, 1, 2].map((n) => ({ value: String(n), label: n === 0 ? m.music_drills_byear_as_recorded() : `${n > 0 ? "+" : "−"}${Math.abs(n)}` }));
   const lastNotes = $derived(played.slice(-16));
   const summaryLine = $derived([
-    { text: mode === "home" ? "Find the tonic" : mode === "sing" ? `Sing ${PART_NAME[part]}` : "Learn a part", focus: "mode" },
+    { text: mode === "home" ? m.music_drills_byear_mode_home() : mode === "sing" ? m.music_drills_byear_summary_sing({ part: PART_NAME[part] }) : m.music_drills_byear_mode_learn(), focus: "mode" },
     // Quoted: it is the recording's own title (a file name), not one of the app's presets.
-    { text: sourceTitle ? `from “${sourceTitle}”` : "no recording yet", focus: "source" },
-    { text: `${Math.round(Number(s.speed) * 100)}% speed`, focus: "speed" },
-    ...(s.pitch !== "0" ? [{ text: `${s.pitch} semitones`, focus: "pitch" }] : []),
+    { text: sourceTitle ? m.music_drills_byear_summary_from({ title: sourceTitle }) : m.music_drills_byear_summary_no_recording(), focus: "source" },
+    { text: m.music_drills_byear_summary_speed({ pct: Math.round(Number(s.speed) * 100) }), focus: "speed" },
+    ...(s.pitch !== "0" ? [{ text: m.music_drills_ear_visual_semitones_fallback({ n: s.pitch }), focus: "pitch" }] : []),
   ]);
 </script>
 
-<svelte:head><title>Learn by ear | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_drills_byear_title()} | Woodshed</title></svelte:head>
 
 <DrillShell
   lesson={mode === "home" ? { lessons: [findHomeLesson()] } : null}
-  title="Learn by ear"
+  title={m.music_drills_byear_title()}
   hue="ear"
-  blurb="Loop a stretch of a recording, slow it down at the same pitch, and play the part back."
+  blurb={m.music_drills_byear_blurb()}
   summary={summaryLine}
   checkable={false}
-  blocked={s.source ? null : "Pick or import a recording first."}
-  unblock={{ label: "Import a recording", run: importFile }}
+  blocked={s.source ? null : m.music_drills_byear_pick_first()}
+  unblock={{ label: m.music_drills_byear_import_recording(), run: importFile }}
   bind:phase
   bind:status
   onstart={start}
@@ -448,52 +468,52 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       <Choice
-        label="What to do"
+        label={m.music_drills_byear_what_to_do()}
         setupKey="mode"
         options={[
-          { value: "learn", label: "Learn a part", hint: "Loop, slow down, mark sections, play it back. You rate the run." },
-          { value: "home", label: "Find the tonic", hint: "Name the tonic, the home note the music rests on. Scored against the recording's key." },
-          { value: "sing", label: "Sing along", hint: "Sing the tune, or its roots, with the recording. Each sung note is scored against what the recording sounds then." },
+          { value: "learn", label: m.music_drills_byear_mode_learn(), hint: m.music_drills_byear_mode_learn_hint() },
+          { value: "home", label: m.music_drills_byear_mode_home(), hint: m.music_drills_byear_mode_home_hint() },
+          { value: "sing", label: m.music_drills_byear_mode_sing(), hint: m.music_drills_byear_mode_sing_hint() },
         ]}
         value={mode}
         onchange={(v) => cfg.set({ mode: v })}
       />
       <div class="flex flex-col gap-1 text-sm" data-setup="source">
-        <span class="font-medium">Recording</span>
+        <span class="font-medium">{m.music_drills_byear_recording()}</span>
         <div class="flex flex-wrap items-center gap-2">
-          <Picker class="w-auto min-w-48" label="Recording" value={s.source} placeholder="Pick a recording" options={sources.map((o) => ({ ...o, label: titled(o.label) }))} onchange={(v) => pick(v)} />
+          <Picker class="w-auto min-w-48" label={m.music_drills_byear_recording()} value={s.source} placeholder={m.music_drills_byear_pick_recording()} options={sources.map((o) => ({ ...o, label: titled(o.label) }))} onchange={(v) => pick(v)} />
           <label class="{btn} cursor-pointer focus-within:outline-2">
-            <Upload class="size-4" aria-hidden="true" />Import
-            <input class="sr-only" type="file" accept="audio/*" aria-label="Import a recording" onchange={(e) => addFile(e.currentTarget.files?.[0])} />
+            <Upload class="size-4" aria-hidden="true" />{m.music_drills_byear_import()}
+            <input class="sr-only" type="file" accept="audio/*" aria-label={m.music_drills_byear_import_recording()} onchange={(e) => addFile(e.currentTarget.files?.[0])} />
           </label>
         </div>
-        <span class="text-ws-soft">Files you own, your backing tracks and your takes from Record. They stay in this browser.</span>
+        <span class="text-ws-soft">{m.music_drills_byear_sources_hint()}</span>
         {#if importError}<p role="alert" class="font-medium text-destructive">{importError}</p>{/if}
       </div>
       {#if mode === "sing"}
         <Choice
-          label="Sing"
+          label={m.music_drills_byear_sing_label()}
           setupKey="part"
           options={[
-            { value: "head", label: "The tune", hint: "The head: the melody, in any octave." },
-            { value: "roots", label: "The roots", hint: "Each chord's root, the bass note, in any octave." },
+            { value: "head", label: m.music_drills_byear_tune_label(), hint: m.music_drills_byear_tune_hint() },
+            { value: "roots", label: m.music_drills_byear_roots_label(), hint: m.music_drills_byear_roots_hint() },
           ]}
           value={part}
           onchange={(v) => cfg.set({ part: v })}
         />
       {/if}
-      <Choice label="Speed" setupKey="speed" options={SPEEDS} value={s.speed} onchange={setSpeed} />
-      <Choice label="Pitch" setupKey="pitch" options={PITCHES} value={s.pitch} onchange={setPitch} />
+      <Choice label={m.music_drills_byear_speed()} setupKey="speed" options={SPEEDS} value={s.speed} onchange={setSpeed} />
+      <Choice label={m.music_drills_byear_pitch()} setupKey="pitch" options={PITCHES} value={s.pitch} onchange={setPitch} />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Below 100% the pitch stays where it is (granular time stretch, a little grainy). A pitch change keeps the speed.</p>
+    <p class="mt-3 text-sm text-ws-soft">{m.music_drills_byear_stretch_note()}</p>
   {/snippet}
 
   {#snippet hud()}
     <!-- On results the position, loop and speed sit in the result card instead. -->
     {#if loaded && phase !== "results"}
-      <Stat label="Position" value="{clock(pos)} of {clock(duration)}" />
-      {#if loop}<Stat label="Loop" value="{clock(loop.a)} to {clock(loop.b)}" />{/if}
-      <Stat label="Speed" value="{Math.round(Number(s.speed) * 100)}%" />
+      <Stat label={m.music_drills_byear_position()} value={m.music_drills_byear_position_value({ pos: clock(pos), length: clock(duration) })} />
+      {#if loop}<Stat label={m.music_drills_byear_loop()} value={m.music_drills_byear_range({ a: clock(loop.a), b: clock(loop.b) })} />{/if}
+      <Stat label={m.music_drills_byear_speed()} value="{Math.round(Number(s.speed) * 100)}%" />
     {/if}
   {/snippet}
 
@@ -502,74 +522,74 @@
       <!-- Import is the primary in Start's place; the file input it opens lives here. -->
       <div class="flex flex-col items-center gap-3 py-6 text-center">
         <Upload class="size-8 text-ws-stage-soft" aria-hidden="true" />
-        <p class="font-display text-xl font-semibold">Pick a recording to learn from.</p>
-        <p class="text-ws-stage-soft">Import a file you own{sources.length ? ", or pick one you have: a take from Record or a backing track" : ". It stays in this browser"}.</p>
+        <p class="font-display text-xl font-semibold">{m.music_drills_byear_empty_title()}</p>
+        <p class="text-ws-stage-soft">{sources.length ? m.music_drills_byear_empty_with_sources() : m.music_drills_byear_empty_no_sources()}</p>
         {#if sources.length}
-          <Picker class="w-auto min-w-56" label="Recording" value={s.source} placeholder="Pick a recording" options={sources.map((o) => ({ ...o, label: titled(o.label) }))} onchange={(v) => pick(v)} />
+          <Picker class="w-auto min-w-56" label={m.music_drills_byear_recording()} value={s.source} placeholder={m.music_drills_byear_pick_recording()} options={sources.map((o) => ({ ...o, label: titled(o.label) }))} onchange={(v) => pick(v)} />
         {/if}
-        <input bind:this={fileInput} class="sr-only" type="file" accept="audio/*" aria-label="Import a recording file" tabindex="-1" onchange={(e) => onFile(e.currentTarget)} oncancel={() => (picked?.(), (picked = null))} />
+        <input bind:this={fileInput} class="sr-only" type="file" accept="audio/*" aria-label={m.music_drills_byear_import_file_aria()} tabindex="-1" onchange={(e) => onFile(e.currentTarget)} oncancel={() => (picked?.(), (picked = null))} />
         {#if importError}<p role="alert" class="font-medium text-destructive">{importError}</p>{/if}
       </div>
     {:else}
       <div class="flex flex-col gap-3" data-loaded={loaded ? "yes" : "no"}>
         <div class="flex flex-wrap items-center gap-2">
           <button type="button" class={btnStage} onclick={toggle} disabled={loading}>
-            {#if playing}<Pause class="size-4" aria-hidden="true" />Pause{:else}<Play class="size-4" aria-hidden="true" />{loaded ? "Play" : loading ? "Loading…" : "Load and play"}{/if}
+            {#if playing}<Pause class="size-4" aria-hidden="true" />{m.music_drills_byear_pause()}{:else}<Play class="size-4" aria-hidden="true" />{loaded ? m.music_drills_byear_play() : loading ? m.music_drills_byear_loading() : m.music_drills_byear_load_and_play()}{/if}
           </button>
-          <button type="button" class={btnStage} disabled={!loaded} onclick={() => player?.seek(pos - 5)}>Back 5 s</button>
-          <button type="button" class={btnStage} disabled={!loaded} onclick={setA}>Start loop</button>
-          <button type="button" class={btnStage} disabled={!loaded} onclick={setB}>End loop</button>
-          {#if loop}<button type="button" class={btnStage} onclick={() => setLoop(null)}>Loop off</button>{/if}
+          <button type="button" class={btnStage} disabled={!loaded} onclick={() => player?.seek(pos - 5)}>{m.music_drills_byear_back_5()}</button>
+          <button type="button" class={btnStage} disabled={!loaded} onclick={setA}>{m.music_drills_byear_start_loop()}</button>
+          <button type="button" class={btnStage} disabled={!loaded} onclick={setB}>{m.music_drills_byear_end_loop()}</button>
+          {#if loop}<button type="button" class={btnStage} onclick={() => setLoop(null)}>{m.music_drills_byear_loop_off_button()}</button>{/if}
         </div>
 
         {#if loaded}
           <!-- Click to move the playhead; arrow keys skip 5 seconds. -->
-          <svg class="wave w-full" viewBox="0 0 {W} {H}" preserveAspectRatio="none" role="slider" tabindex="0" aria-label="Position in the recording" aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(pos)} aria-valuetext={clock(pos)} onclick={seekAt} onkeydown={seekKey}>
+          <svg class="wave w-full" viewBox="0 0 {W} {H}" preserveAspectRatio="none" role="slider" tabindex="0" aria-label={m.music_drills_byear_position_aria()} aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(pos)} aria-valuetext={clock(pos)} onclick={seekAt} onkeydown={seekKey}>
             {#if loop}<rect class="loop" x={x(loop.a)} y="0" width={Math.max(1, x(loop.b) - x(loop.a))} height={H} />{/if}
             {#each env as v, i (i)}
               <rect class="bar" x={(i / env.length) * W} y={H / 2 - (v * H) / 2} width={Math.max(0.6, W / env.length - 0.3)} height={Math.max(0.5, v * H)} />
             {/each}
-            {#each sections as m (m.at)}<line class="mark" x1={x(m.at)} x2={x(m.at)} y1="0" y2={H} />{/each}
+            {#each sections as sec (sec.at)}<line class="mark" x1={x(sec.at)} x2={x(sec.at)} y1="0" y2={H} />{/each}
             {#each played as n, i (i)}<circle class="note" cx={x(n.at)} cy={yOf(n.midi)} r="2.2" opacity={0.25 + (0.75 * (i + 1)) / played.length} />{/each}
             <line class="head" x1={x(pos)} x2={x(pos)} y1="0" y2={H} />
           </svg>
 
-          <div class="flex flex-col gap-1.5" role="group" aria-label="Sections">
+          <div class="flex flex-col gap-1.5" role="group" aria-label={m.music_drills_byear_sections()}>
             <div class="flex flex-wrap items-center gap-1.5">
-              <span class="text-sm text-ws-stage-soft">Mark here:</span>
+              <span class="text-sm text-ws-stage-soft">{m.music_drills_byear_mark_here()}</span>
               {#each SECTION_NAMES as name (name)}
-                <button type="button" class="chip" onclick={() => mark(name)}>{name}</button>
+                <button type="button" class="chip" onclick={() => mark(name)}>{sectionLabel(name)}</button>
               {/each}
             </div>
             {#if sections.length}
-              <ol class="flex flex-wrap gap-1.5" aria-label="Marked sections">
-                {#each sections as m, i (m.at)}
+              <ol class="flex flex-wrap gap-1.5" aria-label={m.music_drills_byear_marked_sections()}>
+                {#each sections as sec, i (sec.at)}
                   <li class="flex items-center rounded-full border border-ws-stage-ink/25">
-                    <button type="button" class="px-3 py-1.5 text-sm" onclick={() => loopSection(i)} aria-label="Loop {m.name} at {clock(m.at)}">{m.name} <span class="tnum text-ws-stage-soft">{clock(m.at)}</span></button>
-                    <button type="button" class="px-2 py-1.5 text-sm text-ws-stage-soft" onclick={() => unmark(m.at)} aria-label="Remove {m.name} at {clock(m.at)}">✕</button>
+                    <button type="button" class="px-3 py-1.5 text-sm" onclick={() => loopSection(i)} aria-label={m.music_drills_byear_loop_section({ name: sectionLabel(sec.name), time: clock(sec.at) })}>{sectionLabel(sec.name)} <span class="tnum text-ws-stage-soft">{clock(sec.at)}</span></button>
+                    <button type="button" class="px-2 py-1.5 text-sm text-ws-stage-soft" onclick={() => unmark(sec.at)} aria-label={m.music_drills_byear_remove_section({ name: sectionLabel(sec.name), time: clock(sec.at) })}>✕</button>
                   </li>
                 {/each}
               </ol>
-              <p class="text-sm text-ws-stage-soft">{sections.length} {sections.length === 1 ? "mark" : "marks"}. Tap one to loop it up to the next.</p>
+              <p class="text-sm text-ws-stage-soft">{m.music_drills_byear_marks_count({ count: sections.length })}</p>
             {/if}
           </div>
         {/if}
 
         {#if phase === "running" && mode === "home"}
-          <div role="group" aria-label="Tonic" class="grid grid-cols-6 gap-2 sm:grid-cols-12" data-dock="answers">
+          <div role="group" aria-label={m.music_drills_byear_tonic()} class="grid grid-cols-6 gap-2 sm:grid-cols-12" data-dock="answers">
             {#each FLAT_NAMES as name, i (i)}
               <button type="button" class="choice min-h-12 rounded-xl font-display text-lg font-semibold" onclick={() => answerHome(i)}>{name}</button>
             {/each}
           </div>
         {:else if mode === "sing" && phase !== "results"}
           <p class="text-sm" aria-live="polite">
-            <span class="text-ws-stage-soft">{mic.pitch ? `Hearing ${noteName(mic.pitch.midi, "flat")}.` : "No pitch yet."} You sang:</span>
+            <span class="text-ws-stage-soft">{mic.pitch ? m.music_drills_byear_hearing({ note: noteName(mic.pitch.midi, "flat") }) : m.music_drills_byear_no_pitch()}</span>
             <span class="tnum font-medium [word-spacing:0.4rem]">{lastNotes.length ? lastNotes.map((n) => noteName(n.midi, "flat")).join(" ") : "nothing yet"}</span>
           </p>
         {:else if mode === "learn" && phase !== "results"}
           <div data-dock="instrument"><InstrumentStage line={[48, 84]} {flashes} interactive={phase === "running"} /></div>
           <p class="text-sm" aria-live="polite">
-            <span class="text-ws-stage-soft">You played:</span>
+            <span class="text-ws-stage-soft">{m.music_drills_byear_you_played()}</span>
             <span class="tnum font-medium [word-spacing:0.4rem]">{lastNotes.length ? lastNotes.map((n) => noteName(n.midi, "flat")).join(" ") : "nothing yet"}</span>
           </p>
         {/if}
@@ -582,36 +602,36 @@
       <Results summary={silentRun()} />
     {:else}
     <!-- A judged run gets the score and the next step every drill shows, on a phone too; the detail follows. -->
-    <div class="flex flex-col gap-3" role="group" aria-label="This run">
+    <div class="flex flex-col gap-3" role="group" aria-label={m.music_drills_byear_this_run()}>
     {#if summary}<Results {summary} />{/if}
     <article class="{panel} flex flex-col gap-3">
-      {#if loaded}<p class="text-sm text-ws-soft">{loop ? `Loop ${clock(loop.a)} to ${clock(loop.b)}` : `Whole recording, ${clock(duration)}`}, at {Math.round(Number(s.speed) * 100)}% speed.</p>{/if}
+      {#if loaded}<p class="text-sm text-ws-soft">{loop ? m.music_drills_byear_result_loop({ a: clock(loop.a), b: clock(loop.b), pct: Math.round(Number(s.speed) * 100) }) : m.music_drills_byear_result_whole({ length: clock(duration), pct: Math.round(Number(s.speed) * 100) })}</p>{/if}
       {#if mode === "home" && home}
         {#if !home.tonics.includes(home.answer)}
           <!-- A miss becomes a comparison: the two homes, each as its chord. -->
           <div class="flex flex-wrap gap-2">
-            <button type="button" class={btn} onclick={() => hearHome(home!.tonics[0])}><Play class="size-4" aria-hidden="true" />Hear {FLAT_NAMES[home.tonics[0]]}</button>
-            <button type="button" class={btn} onclick={() => hearHome(home!.answer)}><Play class="size-4" aria-hidden="true" />Hear {FLAT_NAMES[home.answer]}</button>
+            <button type="button" class={btn} onclick={() => hearHome(home!.tonics[0])}><Play class="size-4" aria-hidden="true" />{m.music_drills_byear_hear_note({ note: FLAT_NAMES[home.tonics[0]] })}</button>
+            <button type="button" class={btn} onclick={() => hearHome(home!.answer)}><Play class="size-4" aria-hidden="true" />{m.music_drills_byear_hear_note({ note: FLAT_NAMES[home.answer] })}</button>
           </div>
         {/if}
         <p class="text-sm text-ws-soft">
-          The recording's notes point to {keyName(home.ranked[0])}{home.tonics.length > 1 ? `, with ${keyName(home.ranked.find((k) => k.tonicPc === home!.tonics[1] && k.minor !== home!.ranked[0].minor) ?? home.ranked[1])} close behind, so either tonic counts` : ""}.
-          Woodshed works the key out from the whole recording. A song that changes key or sits long away from the tonic can fool it.
+          {home.tonics.length > 1 ? m.music_drills_byear_points_to_two({ key: keyName(home.ranked[0]), other: keyName(home.ranked.find((k) => k.tonicPc === home!.tonics[1] && k.minor !== home!.ranked[0].minor) ?? home.ranked[1]) }) : m.music_drills_byear_points_to({ key: keyName(home.ranked[0]) })}
+          {m.music_drills_byear_key_caveat()}
         </p>
       {:else if mode === "sing"}
         {#if sing}
           <p class="text-sm text-ws-soft">
-            {sing.correct ? `That passes: ${PART_NAME[part]} in tune with the recording.` : `75% passes. ${sing.total - sing.inTune} notes were more than 50 cents out. The rest missed what the recording sounds there.`}
-            A note counts when its pitch class sounds strongly in the recording at that moment{part === "roots" ? ", in the bass" : ""}, in any octave.
+            {sing.correct ? m.music_drills_byear_sing_passes({ part: PART_NAME[part] }) : m.music_drills_byear_sing_fails({ count: sing.total - sing.inTune })}
+            {part === "roots" ? m.music_drills_byear_sing_counts_bass() : m.music_drills_byear_sing_counts()}
           </p>
           <p class="text-sm">{sing.notes.slice(-24).map((n) => `${noteName(n.midi, "flat")}${n.ok ? "" : "?"}`).join(" ")}</p>
         {:else}
-          <p class="font-display text-2xl font-semibold">Too few notes to score.</p>
+          <p class="font-display text-2xl font-semibold">{m.music_drills_byear_too_few()}</p>
         {/if}
-        {#if played.length >= 4}<button type="button" class="{btn} self-start" onclick={saveLick} disabled={!!savedLick}>Save as a lick</button>{/if}
+        {#if played.length >= 4}<button type="button" class="{btn} self-start" onclick={saveLick} disabled={!!savedLick}>{m.music_drills_byear_save_lick()}</button>{/if}
         {#if savedLick}<p class="text-sm text-ws-soft" role="status">{savedLick}</p>{/if}
       {:else if mode === "learn"}
-        <p class="font-display text-2xl font-semibold">{played.length} notes played{loop ? ` over ${clock(loop.a)} to ${clock(loop.b)}` : ""} at {Math.round(Number(s.speed) * 100)}%.</p>
+        <p class="font-display text-2xl font-semibold">{loop ? m.music_drills_byear_learn_played_loop({ count: played.length, a: clock(loop.a), b: clock(loop.b), pct: Math.round(Number(s.speed) * 100) }) : m.music_drills_byear_learn_played({ count: played.length, pct: Math.round(Number(s.speed) * 100) })}</p>
         {#if played.length}<p class="text-sm">{played.slice(-32).map((n) => noteName(n.midi, "flat")).join(" ")}</p>{/if}
         {#if rated === null}
           <!-- What you played on the keys beside the judgement, so you rate what you can see. -->
@@ -622,26 +642,25 @@
               </div>
             {/if}
             <div class="flex flex-col gap-2">
-              <p class="text-sm text-ws-soft">Woodshed can't hear the part inside the recording, so you rate it: could you play it with the recording?</p>
+              <p class="text-sm text-ws-soft">{m.music_drills_byear_rate_prompt()}</p>
               <div class="flex flex-wrap gap-2">
-                <button type="button" class="{btnPrimary} min-h-12 px-6 text-base" onclick={() => rate(true)}>I got it</button>
-                <button type="button" class="{btn} min-h-12 px-6 text-base" onclick={() => rate(false)}>Not yet</button>
+                <button type="button" class="{btnPrimary} min-h-12 px-6 text-base" onclick={() => rate(true)}>{m.music_drills_byear_got_it()}</button>
+                <button type="button" class="{btn} min-h-12 px-6 text-base" onclick={() => rate(false)}>{m.music_drills_byear_not_yet()}</button>
               </div>
             </div>
           </div>
         {:else}
-          <p class="text-sm text-ws-soft">Saved as {rated ? "got it" : "still learning"}, self-rated, in your journal.</p>
+          <p class="text-sm text-ws-soft">{rated ? m.music_drills_byear_saved_got() : m.music_drills_byear_saved_learning()}</p>
           <!-- What to do next, the way a judged run says it. -->
           <p class="text-sm">
-            Next up:
-            {#if rated}<a class="font-semibold underline underline-offset-4" href="/music/by-ear?mode=sing">sing along with it</a>, so the recording scores you.{:else}loop a shorter stretch, or slow it to 75%.{/if}
+            {#if rated}{@html m.music_drills_byear_next_sing({ link: `<a class="font-semibold underline underline-offset-4" href="/music/by-ear?mode=sing">${m.music_drills_byear_next_sing_link()}</a>` })}{:else}{m.music_drills_byear_next_slower()}{/if}
           </p>
         {/if}
-        {#if played.length >= 4}<button type="button" class="{btn} self-start" onclick={saveLick} disabled={!!savedLick}>Save as a lick</button>{/if}
+        {#if played.length >= 4}<button type="button" class="{btn} self-start" onclick={saveLick} disabled={!!savedLick}>{m.music_drills_byear_save_lick()}</button>{/if}
         {#if savedLick}<p class="text-sm text-ws-soft" role="status">{savedLick}</p>{/if}
       {/if}
       <!-- The looper waits behind this: the recording, its loop and its marks. -->
-      <button type="button" class="{btn} self-start" onclick={() => (phase = "ready")}>Loop this part</button>
+      <button type="button" class="{btn} self-start" onclick={() => (phase = "ready")}>{m.music_drills_byear_loop_this_part()}</button>
     </article>
     </div>
     {/if}

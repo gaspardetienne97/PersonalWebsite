@@ -5,6 +5,7 @@
   // answers; in a level with no chromatic degree the chromatic ones are left out. Answered states
   // carry a glyph and words, never colour alone.
   import { SCALE_DEGREES, degreeLabel } from "@repo/music-core/content/ear";
+  import { m } from "@repo/i18n/messages.js";
   import { DEGREE_ROLE } from "./degrees";
 
   interface Props {
@@ -26,16 +27,21 @@
   const chromatic = (l: string) => /^[b#]/.test(l);
   const shown = $derived(available.some(chromatic) ? SCALE_DEGREES : SCALE_DEGREES.filter((d) => !chromatic(d.label) || available.includes(d.label)));
   /** Evenly round the wheel by order, so no two buttons crowd (3 and 4, 7 and 1 are a half step apart). */
+  /** The button's name: the degree, its role, whether it is in the set, and its answered state. */
+  const degreeAria = (label: string, open: boolean, state: string | null) => {
+    const base = (open ? m.music_drills_ear_wheel_degree : m.music_drills_ear_wheel_degree_off)({ degree: degreeLabel(label, "degree"), role: DEGREE_ROLE[label] });
+    return state === "expected" ? m.music_drills_ear_wheel_the_answer({ label: base }) : state === "answered" ? m.music_drills_ear_wheel_your_answer({ label: base }) : base;
+  };
   const pos = (i: number) => {
     const a = (i / shown.length) * 2 * Math.PI - Math.PI / 2;
     return { left: 50 + R * Math.cos(a), top: 50 + R * Math.sin(a) };
   };
 </script>
 
-<div class="wheel" role="group" aria-label="Scale degrees">
+<div class="wheel" role="group" aria-label={m.music_drills_ear_wheel_label()}>
   <div class="hub" aria-hidden="true">
     <span class="font-display text-lg font-semibold">{center}</span>
-    <span class="text-sm text-ws-stage-soft">tonic</span>
+    <span class="text-sm text-ws-stage-soft">{m.music_drills_ear_wheel_tonic()}</span>
   </div>
   {#each shown as d, i (d.label)}
     {@const p = pos(i)}
@@ -51,7 +57,7 @@
       style:left="{p.left}%"
       style:top="{p.top}%"
       disabled={disabled || !open || !onpick}
-      aria-label="{degreeLabel(d.label, 'degree')}, {DEGREE_ROLE[d.label]}{!open ? ', not in this set' : ''}{state === 'expected' ? ', the answer' : state === 'answered' ? ', your answer' : ''}"
+      aria-label={degreeAria(d.label, open, state)}
       onclick={() => onpick?.(d.label)}
     >
       <span class="text-base font-semibold leading-none">{labels === "solfege" ? d.solfege : d.label}</span>

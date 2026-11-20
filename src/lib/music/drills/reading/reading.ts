@@ -5,6 +5,7 @@ import type { Score, ScoreGroup, ScoreNote, ScoreVoice } from "@repo/music-core"
 import type { FlashcardPrompt } from "@repo/music-core/content/reading";
 import type { Tuning } from "@repo/music-core/data/index";
 import { pc } from "@repo/music-core";
+import { m } from "@repo/i18n/messages.js";
 
 /** The card's notes on its clef; a four-part chord across the grand staff, split at middle C. */
 function cardVoices(p: FlashcardPrompt, notes: ScoreNote[]): ScoreVoice[] {
@@ -21,13 +22,13 @@ function cardVoices(p: FlashcardPrompt, notes: ScoreNote[]): ScoreVoice[] {
 export function flashcardScore(p: FlashcardPrompt, keyFifths = 0): Score {
   return {
     id: p.id,
-    title: "Flashcard",
+    title: m.music_drills_reading_flashcard_title(),
     bpm: 60,
     meter: { beats: 4, beatUnit: 4 },
     keyFifths,
     voices: cardVoices(
       p,
-      p.midi.map((m) => ({ midi: m, startBeat: 0, durationBeats: 4 })),
+      p.midi.map((midi) => ({ midi, startBeat: 0, durationBeats: 4 })),
     ),
     lengthBeats: 4,
     source: { kind: "generated" },
@@ -40,9 +41,9 @@ export function flashcardScore(p: FlashcardPrompt, keyFifths = 0): Score {
  * A named answer (no octave) is placed in the octave nearest the expected note.
  */
 export function comparisonScore(p: FlashcardPrompt, submitted: number[], keyFifths = 0): Score {
-  const near = (m: number) => {
+  const near = (midi: number) => {
     const target = p.midi[0];
-    const base = target - pc(target) + pc(m);
+    const base = target - pc(target) + pc(midi);
     return [base - 12, base, base + 12].reduce((a, b) =>
       Math.abs(b - target) < Math.abs(a - target) ? b : a,
     );
@@ -53,8 +54,8 @@ export function comparisonScore(p: FlashcardPrompt, submitted: number[], keyFift
     // One bar of 8/4 (the card draws no time signature): two stemless whole notes on one line.
     meter: { beats: 8, beatUnit: 4 },
     voices: cardVoices(p, [
-      ...p.midi.map((m) => ({ midi: m, startBeat: 0, durationBeats: 4 })),
-      ...submitted.map((m) => ({ midi: near(m), startBeat: 4, durationBeats: 4 })),
+      ...p.midi.map((midi) => ({ midi, startBeat: 0, durationBeats: 4 })),
+      ...submitted.map((midi) => ({ midi: near(midi), startBeat: 4, durationBeats: 4 })),
     ]),
     lengthBeats: 8,
   };
@@ -91,15 +92,77 @@ export const FRET_POSITIONS: Record<
   { value: string; label: string; frets: [number, number] }[]
 > = {
   guitar: [
-    { value: "open", label: "Open", frets: [0, 5] },
-    { value: "2", label: "Second", frets: [2, 7] },
-    { value: "5", label: "Fifth", frets: [4, 9] },
+    {
+      value: "open",
+      get label() {
+        return m.music_drills_reading_position_open();
+      },
+      frets: [0, 5],
+    },
+    {
+      value: "2",
+      get label() {
+        return m.music_drills_reading_position_second();
+      },
+      frets: [2, 7],
+    },
+    {
+      value: "5",
+      get label() {
+        return m.music_drills_reading_position_fifth();
+      },
+      frets: [4, 9],
+    },
   ],
   ukulele: [
-    { value: "open", label: "Open", frets: [0, 3] },
-    { value: "up", label: "Up the neck", frets: [0, 7] },
+    {
+      value: "open",
+      get label() {
+        return m.music_drills_reading_position_open();
+      },
+      frets: [0, 3],
+    },
+    {
+      value: "up",
+      get label() {
+        return m.music_drills_reading_position_up();
+      },
+      frets: [0, 7],
+    },
   ],
 };
+
+/** A fret position in the setup line ("second position"), by its value. */
+export function positionClause(value: string): string {
+  if (value === "2") return m.music_drills_reading_position_second_clause();
+  if (value === "5") return m.music_drills_reading_position_fifth_clause();
+  if (value === "up") return m.music_drills_reading_position_up_clause();
+  return m.music_drills_reading_position_open_clause();
+}
+
+/** The reading instruments' names in running text ("your guitar"). */
+export function instrumentName(instrument: string): string {
+  if (instrument === "piano") return m.music_drills_reading_instrument_piano();
+  if (instrument === "guitar") return m.music_drills_reading_instrument_guitar();
+  if (instrument === "ukulele") return m.music_drills_reading_instrument_ukulele();
+  if (instrument === "aerophone") return m.music_drills_reading_instrument_aerophone();
+  return instrument;
+}
+
+/** The clefs in the setup line: "treble clef", "bass clef" or both. */
+export function clefClause(clefs: readonly string[]): string {
+  if (clefs.length > 1) return m.music_drills_reading_clef_both_clause();
+  if (clefs[0] === "bass") return m.music_drills_reading_clef_bass_clause();
+  return m.music_drills_reading_clef_treble_clause();
+}
+
+/** A key's name as shown ("C major"); the stored name stays as it is. */
+export function keyLabel(name: string): string {
+  const [note, quality] = name.split(" ");
+  if (quality === "major") return m.music_drills_reading_key_major({ note });
+  if (quality === "minor") return m.music_drills_reading_key_minor({ note });
+  return name;
+}
 export const fretPosition = (instrument: string, value: string) =>
   FRET_POSITIONS[instrument]?.find((p) => p.value === value) ?? FRET_POSITIONS[instrument]?.[0];
 
@@ -165,16 +228,26 @@ export function keyboardSpan(sounding: readonly number[]): [number, number] {
 export function handLabel(g: ScoreGroup | undefined): string | null {
   if (!g) return null;
   const ids = new Set(g.notes.map((n) => n.voiceId));
-  if (ids.has("rh") && ids.has("lh")) return "Both hands";
-  if (ids.has("lh")) return "Left hand";
-  if (ids.has("rh")) return "Right hand";
+  if (ids.has("rh") && ids.has("lh")) return m.music_drills_reading_hand_both();
+  if (ids.has("lh")) return m.music_drills_reading_hand_left();
+  if (ids.has("rh")) return m.music_drills_reading_hand_right();
   return null;
 }
 
 /** The two reading exercises, as the shell's tab row. */
 export const READING_TABS = [
-  { id: "flashcards", label: "Flashcards" },
-  { id: "sight-reading", label: "Sight-reading" },
+  {
+    id: "flashcards",
+    get label() {
+      return m.music_drills_reading_tab_flashcards();
+    },
+  },
+  {
+    id: "sight-reading",
+    get label() {
+      return m.music_drills_reading_tab_sight();
+    },
+  },
 ] as const;
 
 /**
@@ -241,8 +314,11 @@ export function combineLanes(
  */
 export function stepWords(groups: readonly ScoreGroup[]): { one: string; many: string } {
   return groups.every((g) => g.notes.length === 1)
-    ? { one: "Note", many: "notes" }
-    : { one: "Note or chord", many: "notes and chords" };
+    ? { one: m.music_drills_reading_step_note(), many: m.music_drills_reading_step_notes() }
+    : {
+        one: m.music_drills_reading_step_note_or_chord(),
+        many: m.music_drills_reading_step_notes_and_chords(),
+      };
 }
 
 /** The wait-mode result in those words: how many steps were played with no wrong note first. */
@@ -250,16 +326,30 @@ export function waitHeadline(
   r: { cleanGroups: number; total: number; wrongNotes: number },
   words: { many: string },
 ): string {
-  if (r.cleanGroups === r.total) return `All ${r.total} ${words.many} right first time.`;
-  return `${r.cleanGroups} of ${r.total} ${words.many} right first time, ${r.wrongNotes} wrong note${r.wrongNotes === 1 ? "" : "s"} on the way.`;
+  // The words are stepWords' own: notes alone, or notes and chords.
+  const notes = words.many === m.music_drills_reading_step_notes();
+  if (r.cleanGroups === r.total)
+    return notes
+      ? m.music_drills_reading_wait_all_notes({ total: r.total })
+      : m.music_drills_reading_wait_all_groups({ total: r.total });
+  const v = { clean: r.cleanGroups, total: r.total, wrong: r.wrongNotes };
+  return notes
+    ? m.music_drills_reading_wait_some_notes(v)
+    : m.music_drills_reading_wait_some_groups(v);
 }
 
 export type Follower = "wait" | "performance" | "tap";
 /** The follower's one name, used by the Follower choice, the setup line and the mode note alike. */
 export const FOLLOWER_NAME: Record<Follower, string> = {
-  wait: "Wait for me",
-  performance: "Keep time",
-  tap: "Tap the rhythm",
+  get wait() {
+    return m.music_drills_reading_follower_wait();
+  },
+  get performance() {
+    return m.music_drills_reading_follower_performance();
+  },
+  get tap() {
+    return m.music_drills_reading_follower_tap();
+  },
 };
 
 /**
@@ -268,19 +358,20 @@ export const FOLLOWER_NAME: Record<Follower, string> = {
  */
 export function followerModeNotes(f: Follower): { practice: string; check: string } {
   // One short line each (it sits under the Practice and Check switch).
+  const name = FOLLOWER_NAME[f];
   if (f === "wait")
     return {
-      practice: "Wait for me: notes lit, the cursor waits. Practice only.",
-      check: "Wait for me: nothing lit, but it waits, so it doesn't count.",
+      practice: m.music_drills_reading_mode_wait_practice({ name }),
+      check: m.music_drills_reading_mode_wait_check({ name }),
     };
   if (f === "tap")
     return {
-      practice: "Tap the rhythm: hints shown, so it doesn't count.",
-      check: "Tap the rhythm: no hints. This run counts.",
+      practice: m.music_drills_reading_mode_tap_practice({ name }),
+      check: m.music_drills_reading_mode_tap_check({ name }),
     };
   return {
-    practice: "Keep time: notes lit, so it doesn't count.",
-    check: "Keep time: nothing lit. This run counts.",
+    practice: m.music_drills_reading_mode_perf_practice({ name }),
+    check: m.music_drills_reading_mode_perf_check({ name }),
   };
 }
 

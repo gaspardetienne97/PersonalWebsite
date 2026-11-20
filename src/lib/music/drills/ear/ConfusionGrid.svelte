@@ -4,6 +4,7 @@
   // shaded by how often. Tapping a square plays the two items back to back. On a
   // phone the mix-ups are a list of pairs, each with its own play button.
   import { confusionCells, OTHER_ANSWER as OTHER, times, type AnswerRecord } from "./session";
+  import { m } from "@repo/i18n/messages.js";
   import Play from "@lucide/svelte/icons/play";
 
   let {
@@ -26,7 +27,16 @@
   const rows = $derived(cells.rows);
   const cols = $derived(cells.cols);
   const count = (a: string, b: string) => cells.count(a, b);
-  const label = (t: string) => (t === OTHER ? "Something else" : name(t));
+  /** Labels are app text, but escape them anyway before they go through {@html}. */
+  const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const label = (t: string) => (t === OTHER ? m.music_drills_ear_grid_other() : name(t));
+  const isNamed = (r: string, c: string) => !!named && named.expected === r && named.answered === c;
+  /** A square's name: what was played and answered, how often, and what tapping it plays. */
+  const cellAria = (r: string, c: string, n: number) => {
+    const cell = n ? m.music_drills_ear_grid_cell_count({ played: label(r), answered: label(c), times: times(n) }) : m.music_drills_ear_grid_cell_never({ played: label(r), answered: label(c) });
+    const withNamed = isNamed(r, c) ? m.music_drills_ear_grid_cell_named({ cell }) : cell;
+    return r === c || c === OTHER ? m.music_drills_ear_grid_cell_play_it({ cell: withNamed }) : m.music_drills_ear_grid_cell_play_both({ cell: withNamed });
+  };
   /** The mix-ups, most often first: what a phone lists. */
   const pairs = $derived(
     rows
@@ -38,18 +48,18 @@
 <ul class="mt-3 grid gap-2 sm:hidden">
   {#each pairs as p (p.r + p.c)}
     <li class="flex items-center justify-between gap-3 rounded-xl border border-ws-line px-3 py-1.5">
-      <span><span class="font-semibold">{label(p.r)}</span> heard as <span class="font-semibold">{label(p.c)}</span>, {times(p.n)}</span>
-      <button type="button" class="pair-play" aria-label="Play {label(p.r)}{p.c === OTHER ? '' : `, then ${label(p.c)}`}" onclick={() => onplay(p.r, p.c)}><Play class="size-4" aria-hidden="true" /></button>
+      <span>{@html m.music_drills_ear_grid_heard_as({ played: `<span class="font-semibold">${esc(label(p.r))}</span>`, answered: `<span class="font-semibold">${esc(label(p.c))}</span>`, times: esc(times(p.n)) })}</span>
+      <button type="button" class="pair-play" aria-label={p.c === OTHER ? m.music_drills_ear_grid_play_one({ played: label(p.r) }) : m.music_drills_ear_grid_play_pair({ played: label(p.r), answered: label(p.c) })} onclick={() => onplay(p.r, p.c)}><Play class="size-4" aria-hidden="true" /></button>
     </li>
   {/each}
 </ul>
 
 <div class="grid-wrap mt-3 overflow-x-auto max-sm:hidden">
-  <p class="mb-1 text-sm text-ws-soft">Rows: the one played. Columns: what you answered.</p>
+  <p class="mb-1 text-sm text-ws-soft">{m.music_drills_ear_grid_hint()}</p>
   <table class="text-sm">
     <thead>
       <tr>
-        <th scope="col" class="corner text-left align-bottom text-sm font-normal text-ws-soft">Played, then<br />you answered</th>
+        <th scope="col" class="corner text-left align-bottom text-sm font-normal text-ws-soft">{m.music_drills_ear_grid_corner_played()}<br />{m.music_drills_ear_grid_corner_answered()}</th>
         {#each cols as c (c)}
           <th scope="col" class="col-h align-bottom font-medium"><span>{label(c)}</span></th>
         {/each}
@@ -67,9 +77,9 @@
                 type="button"
                 class="cell tnum font-semibold"
                 data-kind={!n ? "empty" : r === c ? "right" : "wrong"}
-                data-named={named && named.expected === r && named.answered === c ? "" : undefined}
+                data-named={isNamed(r, c) ? "" : undefined}
                 style:--heat="{n ? Math.round(18 + (n / total) * 52) : 0}%"
-                aria-label="Played {label(r)}, you said {label(c)}{n ? `, ${times(n)}` : ', never'}{named && named.expected === r && named.answered === c ? ', the mix-up named above' : ''}. Play {r === c || c === OTHER ? 'it' : 'both'}."
+                aria-label={cellAria(r, c, n)}
                 onclick={() => onplay(r, c)}
                 >{#if n}<span aria-hidden="true" class="glyph">{r === c ? "✓" : "✕"}</span>{n}{/if}</button
               >

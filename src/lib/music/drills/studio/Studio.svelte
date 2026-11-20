@@ -54,9 +54,10 @@
   import { barBeats, scoreGroups as viewGroupsOf, voiceSides, type BeatRange } from "#lib/music/notation/groups.ts";
   import { barsText, durationText, scoreFacts, songSections, type Song } from "#lib/music/hubs/library/songs.ts";
   import StudioScore, { type View } from "./StudioScore.svelte";
-  import { buildPass, continuity, defaultParts, firstSlip, fitToRange, gradeBalance, gradeExpression, gradeVibrato, gradedDrums, hideBefore, isFirstRun, melodyVoice, noStopVerdict, passMarks, passSequence, planPasses, segmentAt, SIGHT_LOOK_S, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, TAP_MIDI, TAP_VOICE, tapScore, toScoreBeat, tuningRange, voiceChoices, type Continuity, type ExpressionResult, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
+  import { buildPass, continuity, defaultParts, firstSlip, fitToRange, gradeBalance, gradeExpression, gradeVibrato, gradedDrums, hideBefore, isFirstRun, melodyVoice, noStopVerdict, passMarks, passSequence, planPasses, segmentAt, segmentLabel, SIGHT_LOOK_S, SPOT, spotAfter, spotRange, startSpot, statesByBeat, statesFor, TAP_MIDI, TAP_VOICE, tapScore, toScoreBeat, tuningRange, voiceChoices, type Continuity, type ExpressionResult, type Pass, type RangeMode, type SectionOrder, type SpotDrill } from "./studio";
   import Picker from "#lib/music/components/Picker.svelte";
   import { stripUnused } from "#lib/music/components/BenchStrip.svelte";
+  import { m } from "@repo/i18n/messages.js";
 
   let { song }: { song: Song } = $props();
   // The page keys this component by song id, so reading the prop once is safe.
@@ -133,11 +134,11 @@
 
   // On guitar and ukulele, the note highway too.
   const VIEWS = $derived([
-    { id: "staff", label: "Staff" },
-    { id: "tab", label: "Tab" },
-    { id: "fingering", label: "Fingering" },
-    { id: "waterfall", label: "Falling notes" },
-    ...(["guitar", "ukulele"].includes(settings.value.activeInstrument) ? [{ id: "highway", label: "Highway" }] : []),
+    { id: "staff", label: m.music_drills_studio_view_staff() },
+    { id: "tab", label: m.music_drills_studio_view_tab() },
+    { id: "fingering", label: m.music_drills_studio_view_fingering() },
+    { id: "waterfall", label: m.music_drills_studio_view_waterfall() },
+    ...(["guitar", "ukulele"].includes(settings.value.activeInstrument) ? [{ id: "highway", label: m.music_drills_studio_view_highway() }] : []),
   ]);
   const view = $derived((VIEWS.find((v) => v.id === page.url.searchParams.get("view"))?.id ?? "staff") as View);
 
@@ -156,9 +157,10 @@
   const written = $derived(fretted ? writtenOffset(tuning.instrument, settings.value, tuning) : writtenOffset(settings.value.activeInstrument, settings.value));
   const fitNote = $derived.by(() => {
     const inst = tuning.instrument === "ukulele" ? "ukulele" : "guitar";
-    const moved = fitted.shift ? `Moved ${fitted.shift > 0 ? "up" : "down"} ${Math.abs(fitted.shift) / 12 === 1 ? "an octave" : `${Math.abs(fitted.shift) / 12} octaves`}` : "";
-    const folded = fitted.folded ? `${fitted.folded} note${fitted.folded === 1 ? "" : "s"} folded by an octave` : "";
-    return `${[moved, folded].filter(Boolean).join(", ").replace(/^./, (c) => c.toUpperCase())} to fit the ${inst} (${tuning.name}).`;
+    const moved = fitted.shift ? (fitted.shift > 0 ? m.music_drills_studio_fit_moved_up : m.music_drills_studio_fit_moved_down)({ count: Math.abs(fitted.shift) / 12 }) : "";
+    const folded = fitted.folded ? m.music_drills_studio_fit_folded({ count: fitted.folded }) : "";
+    const change = [moved, folded].filter(Boolean).join(", ").replace(/^./, (c) => c.toUpperCase());
+    return (inst === "ukulele" ? m.music_drills_studio_fit_note_ukulele : m.music_drills_studio_fit_note_guitar)({ change, tuning: tuning.name });
   });
 
   const plans = $derived(planPasses(played, sections, { mode: s.range as RangeMode, picked: pickedSections, order: s.order as SectionOrder, custom }));
@@ -278,7 +280,7 @@
     previewPass = pass;
     const h = audio.playSequence(notes);
     preview = h;
-    status = `Playing ${pass.label.toLowerCase()} at ${bpm} BPM. Not scored.`;
+    status = m.music_drills_studio_preview_status({ range: segmentLabel(pass.label).toLowerCase(), bpm });
     void h.done.then(() => {
       if (preview === h) stopPreview();
     });
@@ -286,7 +288,7 @@
 
   function metronomeToSong() {
     settings.update({ bpm });
-    status = `The metronome is at ${bpm} BPM, the song's tempo.`;
+    status = m.music_drills_studio_metronome_set({ bpm });
   }
 
   function exportMidi() {
@@ -297,7 +299,7 @@
     a.download = `${song.title.replace(/[^\w\- ]+/g, "").trim() || "song"}.mid`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    status = `Exported ${a.download} at ${bpm} BPM.`;
+    status = m.music_drills_studio_exported({ file: a.download, bpm });
   }
 
   // ---- Running --------------------------------------------------------
@@ -361,7 +363,7 @@
     startAt = 0;
     now = performance.now();
     lookEnds = now + SIGHT_LOOK_S * 1000;
-    status = `Look for ${SIGHT_LOOK_S} seconds: the key, the meter, the rhythms and the hardest bar. Then one pass in time, without stopping.${first ? "" : " You've played this song here before, so it won't count as a sight-read."}`;
+    status = `${m.music_drills_studio_look_status({ seconds: SIGHT_LOOK_S })}${first ? "" : m.music_drills_studio_look_played_before()}`;
     timers.push(setTimeout(endLook, SIGHT_LOOK_S * 1000));
   }
 
@@ -380,7 +382,7 @@
       fstate = waitStart(pass.groups, octaveExact);
       startAt = performance.now();
       phase = "running";
-      status = `Wait mode: play ${pass.label.toLowerCase()} at your own pace. Woodshed waits for each note.${memory === "look" ? " The notes are hidden: play from memory." : ""}`;
+      status = `${m.music_drills_studio_wait_status({ range: segmentLabel(pass.label).toLowerCase() })}${memory === "look" ? m.music_drills_studio_hidden_memory() : ""}`;
       cap = capture(startAt, onInput);
       void tick().then(() => document.getElementById("studio-run")?.focus());
       return;
@@ -401,7 +403,12 @@
     startAt = downbeat;
     fstate = performanceStart(pass.groups, { bpm, startAt: downbeat, strictness: s.strictness as "relaxed" | "normal" | "strict", octaveExact, sections: pass.sections });
     phase = "countin";
-    status = `${sightRead ? "Sight-read: one pass, keep going through any slip" : noStop ? "No-stop run: keep going through any slip" : `Take ${item.take + 1} of ${takes}`}${passes.length > 1 ? `, ${pass.label}` : ""}.${tap ? " Tap the rhythm: any key, pad or MIDI note, or Space." : ""} Count-in: ${bars} bar${bars > 1 ? "s" : ""}.`;
+    const head = sightRead ? m.music_drills_studio_head_sight() : noStop ? m.music_drills_studio_head_nostop() : m.music_drills_studio_head_take({ n: item.take + 1, total: takes });
+    status = m.music_drills_studio_countin_status({
+      head: passes.length > 1 ? m.music_drills_studio_head_pass({ head, pass: segmentLabel(pass.label) }) : head,
+      tap: tap ? m.music_drills_studio_tap_hint() : "",
+      count: bars,
+    });
     if (partner)
       partnerSeq = audio.playSequence(
         passSequence(
@@ -421,7 +428,7 @@
       setTimeout(() => {
         if (phase === "countin") {
           phase = "running";
-          status = "Go.";
+          status = m.music_drills_studio_go();
         }
       }, downbeat - performance.now()),
       setTimeout(endTake, downbeat - performance.now() + pass.lengthBeats * beatMs + 350),
@@ -437,7 +444,7 @@
       const expected = liveState(fstate, performance.now()).expected;
       const hit = expected.some((m) => (octaveExact ? m === ev.midi : pc(m) === pc(ev.midi)));
       flashes.add(tap ? raw.midi : ev.midi, hit ? "correct" : "wrong");
-      if (!tap && !drums) lastMiss = hit || !expected.length ? "" : `Played ${noteName(ev.midi + written)}, expected ${expected.map((m) => noteName(m + written)).join(" ")}`;
+      if (!tap && !drums) lastMiss = hit || !expected.length ? "" : m.music_drills_studio_last_miss({ played: noteName(ev.midi + written), expected: expected.map((x) => noteName(x + written)).join(" ") });
     }
     fstate = followerInput(fstate, ev);
     if (fstate.mode === "wait" && fstate.index >= fstate.groups.length) endTake();
@@ -452,12 +459,13 @@
     bench.beat = 0;
     const item = queue[qi];
     const result = followerResult(fstate);
+    // The label stays English: it is part of the stored prompt id. takeName shows it.
     const label = `${passes.length > 1 ? `${active.label}, ` : ""}take ${item.take + 1}`;
     done = [...done, { ...item, label, result, state: fstate, notes: cap?.notes ?? [], controls: cap?.controls ?? [], startAt }];
     cap = null;
     qi += 1;
     if (qi < queue.length) {
-      status = `${label.replace(/^./, (c) => c.toUpperCase())}: ${pct(result.score)}. Next take after the count-in.`;
+      status = m.music_drills_studio_take_done({ take: takeName(item), score: pct(result.score) });
       timers.push(setTimeout(beginTake, 600));
     } else void finish();
   }
@@ -476,12 +484,15 @@
     fstate = null;
     active = null;
     phase = "ready";
-    status = "Stopped. Nothing saved.";
-    if (spot) endSpot("Stopped the loop. Your range and tempo are back.");
+    status = m.music_drills_studio_stopped();
+    if (spot) endSpot(m.music_drills_studio_loop_stopped());
   }
 
   // ---- Results --------------------------------------------------------
   const isPerf = (r: PerformanceResult | WaitResult): r is PerformanceResult => "matched" in r;
+  /** A take as shown: "Take 2", or "Verse, take 2" when the run has several passes. */
+  const takeName = (d: { pass: number; take: number }) =>
+    (passes.length > 1 ? m.music_drills_studio_pass_take({ pass: segmentLabel(passes[d.pass].label), n: d.take + 1 }) : m.music_drills_studio_take_lower({ n: d.take + 1 })).replace(/^./, (c) => c.toUpperCase());
   const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
   interface Row {
@@ -568,12 +579,12 @@
     const bestIdx = extras.reduce((b, x, i) => (x.score > extras[b].score ? i : b), 0);
 
     takeRows = all.map((d, i) => ({
-      label: d.label.replace(/^./, (c) => c.toUpperCase()),
+      label: takeName(d),
       score: extras[i].score,
       best: all.length > 1 && i === bestIdx,
       detail: isPerf(d.result)
-        ? `${d.result.matched} of ${d.result.expected} notes, ${Math.round(d.result.meanAbsErrorMs)} ms off, ${d.result.early} early, ${d.result.onTime} on time, ${d.result.late} late, ${d.result.missed} missed, ${d.result.extra} extra`
-        : `${(d.result as WaitResult).cleanGroups} of ${(d.result as WaitResult).total} notes or chords right first time, ${(d.result as WaitResult).wrongNotes} wrong note${(d.result as WaitResult).wrongNotes === 1 ? "" : "s"}`,
+        ? m.music_drills_studio_detail_perf({ matched: d.result.matched, expected: d.result.expected, ms: Math.round(d.result.meanAbsErrorMs), early: d.result.early, onTime: d.result.onTime, late: d.result.late, missed: d.result.missed, extra: d.result.extra })
+        : m.music_drills_studio_detail_wait({ clean: (d.result as WaitResult).cleanGroups, total: (d.result as WaitResult).total, wrong: (d.result as WaitResult).wrongNotes }),
     }));
     sectionRows = tallySections(all);
 
@@ -582,7 +593,11 @@
     const fin = await run!.finish({
       score: mean,
       correct: extras.every((x) => x.correct),
-      headline: `${pct(mean)} at ${bpm} BPM, ${sightRead ? "sight-read" : noStop ? "no-stop" : perfMode ? "performance" : "wait"}${tap ? ", rhythm tapped" : ""}`,
+      headline: (tap ? m.music_drills_studio_run_headline_tapped : m.music_drills_studio_run_headline)({
+        score: pct(mean),
+        bpm,
+        mode: sightRead ? m.music_drills_studio_mode_sight_lower() : noStop ? m.music_drills_studio_mode_nostop_lower() : perfMode ? m.music_drills_studio_mode_perf_lower() : m.music_drills_studio_mode_wait_lower(),
+      }),
       params: {
         takesPlayed: all.length,
         ...(conts.length ? { continuity: Math.round(Math.min(...conts.map((c) => c.share)) * 100) / 100, kept: extras.every((x) => x.kept) } : {}),
@@ -605,25 +620,25 @@
       summary = {
         headline:
           best.correct
-            ? `Clean take at ${bpm} BPM: ${pct(best.score)} on your best take.`
+            ? m.music_drills_studio_clean_take({ bpm, score: pct(best.score) })
             : best.pitchCompletion < 0.7
-              ? `You found ${best.matched} of ${best.expected} notes on your best take. Try Wait mode or 8 BPM slower.`
-              : `The notes are there. Timing drifted ${Math.round(best.meanAbsErrorMs)} ms on average. Same tempo again.`,
+              ? m.music_drills_studio_found_some({ matched: best.matched, expected: best.expected })
+              : m.music_drills_studio_drifted({ ms: Math.round(best.meanAbsErrorMs) }),
         metric: pct(agg.meanScore),
-        metricLabel: perf.length > 1 ? `mean of ${perf.length} takes` : "score",
+        metricLabel: perf.length > 1 ? m.music_drills_studio_mean_of_takes({ count: perf.length }) : m.music_drills_studio_score(),
         delta: fin.delta,
         best: fin.best,
         clean: perf.every((r) => r.correct),
         xp: fin.xp,
-        assistance: "Song runs go in your journal. They don't change your skill scores.",
+        assistance: m.music_drills_studio_assistance_song(),
         rows: [
-          { label: "Notes matched", value: expected ? matched / expected : 0, text: `${matched} of ${expected}` },
+          { label: m.music_drills_studio_row_notes_matched(), value: expected ? matched / expected : 0, text: m.music_drills_studio_of({ a: matched, b: expected }) },
           // The same share as the row above, so it only earns a line when it names what was listened for.
-          ...(tap || drums ? [{ label: tap ? "Taps found" : "Drums found", value: expected ? matched / expected : 0 }] : []),
-          { label: "Timing error (mean)", text: matched ? `${Math.round(errMs)} ms` : "No notes matched" },
-          { label: "Best take", text: `Take ${agg.bestIndex + 1}, ${pct(best.score)}` },
-          { label: "Early / on time / late", text: `${sum(perf.map((r) => r.early))} / ${sum(perf.map((r) => r.onTime))} / ${sum(perf.map((r) => r.late))}` },
-          { label: "Missed / extra", text: `${sum(perf.map((r) => r.missed))} / ${sum(perf.map((r) => r.extra))}` },
+          ...(tap || drums ? [{ label: tap ? m.music_drills_studio_row_taps_found() : m.music_drills_studio_row_drums_found(), value: expected ? matched / expected : 0 }] : []),
+          { label: m.music_drills_studio_row_timing_error(), text: matched ? `${Math.round(errMs)} ms` : m.music_drills_studio_no_notes_matched() },
+          { label: m.music_drills_studio_best_take(), text: m.music_drills_studio_take_score({ n: agg.bestIndex + 1, score: pct(best.score) }) },
+          { label: m.music_drills_studio_row_early_late(), text: `${sum(perf.map((r) => r.early))} / ${sum(perf.map((r) => r.onTime))} / ${sum(perf.map((r) => r.late))}` },
+          { label: m.music_drills_studio_row_missed_extra(), text: `${sum(perf.map((r) => r.missed))} / ${sum(perf.map((r) => r.extra))}` },
           ...extraRows(extras),
         ],
       };
@@ -631,17 +646,17 @@
       if (noStop && x.cont) {
         const c = x.cont;
         summary.headline = x.kept
-          ? `Kept going to the end: every bar played, ${pct(x.score)}.`
+          ? m.music_drills_studio_kept_end({ score: pct(x.score) })
           : c.longestGapBeats > 1
-            ? `Stopped for ${c.longestGapBeats % 1 ? c.longestGapBeats.toFixed(1) : c.longestGapBeats} beats at ${barsOf({ startBeat: c.gapAt ?? 0, endBeat: (c.gapAt ?? 0) + 0.01 })}. After a slip, come back in on the next beat.`
-            : `${c.barsPlayed} of ${c.bars} bars played. Keep going through every bar.`;
+            ? m.music_drills_studio_stopped_for({ beats: c.longestGapBeats % 1 ? c.longestGapBeats.toFixed(1) : c.longestGapBeats, where: barsOf({ startBeat: c.gapAt ?? 0, endBeat: (c.gapAt ?? 0) + 0.01 }) })
+            : m.music_drills_studio_bars_played_head({ played: c.barsPlayed, bars: c.bars });
       } else if (grade !== "notes" && x.measure !== null && x.measure < 0.8)
         summary.headline =
           grade === "balance"
-            ? `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}. The melody came out above the accompaniment on ${pct(x.measure)} of its notes. Play the top note with more weight and the rest lighter.`
+            ? m.music_drills_studio_hl_balance({ notes: pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0), share: pct(x.measure) })
             : grade === "vibrato"
-            ? `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}. Vibrato on ${pct(x.measure)} of the held notes. Pulse the bite 4 to 5 times a second on every long note.`
-            : `Notes ${pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0)}. ${pct(x.measure)} of the dynamics and breaths came out. Make the changes bigger than feels natural.`;
+            ? m.music_drills_studio_hl_vibrato({ notes: pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0), share: pct(x.measure) })
+            : m.music_drills_studio_hl_dynamics({ notes: pct(isPerf(all[bestIdx].result) ? all[bestIdx].result.score : 0), share: pct(x.measure) });
     } else {
       const w = all.map((d) => d.result as WaitResult);
       const clean = sum(w.map((r) => r.cleanGroups));
@@ -650,20 +665,20 @@
       summary = {
         headline:
           clean === total
-            ? "Every note found with no wrong ones. Try it in Performance mode."
-            : `${clean} of ${total} right first time, ${wrong} wrong note${wrong === 1 ? "" : "s"}.`,
+            ? m.music_drills_studio_all_found()
+            : m.music_drills_studio_wait_head({ clean, total, wrong }),
         metric: pct(mean),
-        metricLabel: "right first time",
+        metricLabel: m.music_drills_studio_right_first_time_lower(),
         delta: fin.delta,
         best: fin.best,
         clean: clean === total,
         xp: fin.xp,
-        assistance: "Wait mode never times you. For a timing score, pick Performance in Setup. Song runs go in your journal and don't change your skill scores.",
+        assistance: m.music_drills_studio_assistance_wait(),
         rows: [
           // Non-breaking spaces, so "14 of 15" never splits across two lines in the narrow stat column.
-          { label: "Right first time", value: total ? clean / total : 0, text: `${clean}\u00a0of\u00a0${total}` },
-          { label: drums ? "Drums found" : "Notes found", value: total ? sum(w.map((r) => r.completed)) / total : 0 },
-          { label: "Wrong notes", text: String(wrong) },
+          { label: m.music_drills_studio_row_right_first_time(), value: total ? clean / total : 0, text: m.music_drills_studio_of_nbsp({ a: clean, b: total }) },
+          { label: drums ? m.music_drills_studio_row_drums_found() : m.music_drills_studio_row_notes_found(), value: total ? sum(w.map((r) => r.completed)) / total : 0 },
+          { label: m.music_drills_studio_row_wrong_notes(), text: String(wrong) },
         ],
       };
     }
@@ -680,11 +695,11 @@
         },
       );
     if (spot) summary.headline = spotTake(all);
-    if (sightRead) summary.headline += runFirst ? " Your first run of this song: it counts as a sight-read." : " Not your first run of this song, so it doesn't count as a sight-read.";
+    if (sightRead) summary.headline += runFirst ? m.music_drills_studio_sight_counts() : m.music_drills_studio_sight_not_counted();
     // Bar by bar: a take at 90% or better hides one more bar next time.
     if (memory === "bars" && Math.max(...extras.map((x) => x.score)) >= 0.9 && memBars * barLen < played.lengthBeats - 1e-6) {
       memBars += 1;
-      summary.headline += ` Next run hides bars 1 to ${memBars}.`;
+      summary.headline += m.music_drills_studio_memory_next({ n: memBars });
     }
     await settle(all);
   }
@@ -706,23 +721,23 @@
     const rows: NonNullable<RunSummary["rows"]> = [];
     if (best.cont) {
       const c = best.cont;
-      rows.push({ label: "Kept going (bars played)", value: c.share, text: `${c.barsPlayed} of ${c.bars}, longest slip ${c.longestGapBeats % 1 ? c.longestGapBeats.toFixed(1) : c.longestGapBeats} beat${c.longestGapBeats === 1 ? "" : "s"}` });
+      rows.push({ label: m.music_drills_studio_row_kept(), value: c.share, text: m.music_drills_studio_kept_text({ played: c.barsPlayed, bars: c.bars, beats: c.longestGapBeats % 1 ? c.longestGapBeats.toFixed(1) : c.longestGapBeats, count: c.longestGapBeats }) });
     }
     if (grade === "dynamics" && best.expr) {
       const e = best.expr;
       rows.push(
         e.score === null
-          ? { label: `Dynamics and breaths (${e.unmeasured ?? "nothing marked in this range"})`, notMeasured: true }
-          : { label: "Dynamics and breaths as marked", value: e.score, text: `${e.dynamics.right} of ${e.dynamics.total} changes, ${e.breaths.right} of ${e.breaths.total} breaths` },
+          ? { label: m.music_drills_studio_dyn_unmeasured({ reason: e.unmeasured ?? m.music_drills_studio_nothing_marked() }), notMeasured: true }
+          : { label: m.music_drills_studio_dyn_row(), value: e.score, text: m.music_drills_studio_dyn_text({ dr: e.dynamics.right, dt: e.dynamics.total, br: e.breaths.right, bt: e.breaths.total }) },
       );
     }
     if (grade === "balance" && best.bal) {
       const b = best.bal;
-      rows.push(b.share === null ? { label: "Melody balance (needs MIDI velocity and notes struck together)", notMeasured: true } : { label: "Melody louder than the notes under it", value: b.share, text: `${b.right} of ${b.total}` });
+      rows.push(b.share === null ? { label: m.music_drills_studio_bal_unmeasured(), notMeasured: true } : { label: m.music_drills_studio_bal_row(), value: b.share, text: m.music_drills_studio_of({ a: b.right, b: b.total }) });
     }
     if (grade === "vibrato" && best.vib) {
       const v = best.vib;
-      rows.push(v.share === null ? { label: "Vibrato on held notes (no bite arrived as pitch bend)", notMeasured: true } : { label: "Vibrato on held notes, 4 to 5 a second", value: v.share, text: `${v.withVibrato} of ${v.held}` });
+      rows.push(v.share === null ? { label: m.music_drills_studio_vib_unmeasured(), notMeasured: true } : { label: m.music_drills_studio_vib_row(), value: v.share, text: m.music_drills_studio_of({ a: v.withVibrato, b: v.held }) });
     }
     return rows;
   }
@@ -746,7 +761,7 @@
         }
       }
     }
-    return [...acc].filter(([, a]) => a.total).map(([label, a]) => ({ label, value: a.hit / a.total, text: `${a.hit} of ${a.total}` }));
+    return [...acc].filter(([, a]) => a.total).map(([label, a]) => ({ label: segmentLabel(label), value: a.hit / a.total, text: m.music_drills_studio_of({ a: a.hit, b: a.total }) }));
   }
 
   // ---- Fix the trouble spot ---------------------------------------------
@@ -758,7 +773,7 @@
   const barsOf = (r: BeatRange) => {
     const a = Math.floor(r.startBeat / barLen + 1e-6) + 1;
     const b = Math.ceil(r.endBeat / barLen - 1e-6);
-    return a === b ? `bar ${a}` : `bars ${a} to ${b}`;
+    return a === b ? m.music_drills_studio_bar_n({ n: a }) : m.music_drills_studio_bars_range({ a, b });
   };
   /** Where the last take first went wrong, as a loop to fix. */
   const trouble = $derived.by(() => {
@@ -798,16 +813,16 @@
     spot = next;
     let line: string;
     if (next.stage === "done") {
-      line = `Fixed: ${barsOf(next.range)} clean ${SPOT.clean} times running at ${next.targetBpm} BPM.`;
+      line = m.music_drills_studio_spot_fixed({ where: barsOf(next.range), count: SPOT.clean, bpm: next.targetBpm });
       endSpot();
       return line;
     }
-    if (!clean) line = `Not clean yet: ${barsOf(next.range)} again at ${next.bpm} BPM.`;
-    else if (next.stage !== was.stage) line = next.stage === "tempo" ? `${SPOT.clean} clean in a row. Back to full tempo, ${next.bpm} BPM.` : `Clean at full tempo. The loop widens to ${barsOf(next.range)}.`;
-    else line = `Clean ${next.streak} of ${SPOT.clean} at ${next.bpm} BPM.`;
+    if (!clean) line = m.music_drills_studio_spot_not_clean({ where: barsOf(next.range), bpm: next.bpm });
+    else if (next.stage !== was.stage) line = next.stage === "tempo" ? m.music_drills_studio_spot_clean_row({ count: SPOT.clean, bpm: next.bpm }) : m.music_drills_studio_spot_clean_full({ where: barsOf(next.range) });
+    else line = m.music_drills_studio_spot_streak({ streak: next.streak, count: SPOT.clean, bpm: next.bpm });
     applySpot(next);
     timers.push(setTimeout(() => void start(), 1500));
-    return `${line} The next try starts in a moment.`;
+    return m.music_drills_studio_spot_next({ line });
   }
 
   /** The results card holds the next run, so Again steps back to secondary. */
@@ -867,41 +882,54 @@
   function pickRange(r: BeatRange) {
     setup.set({ rangeStart: r.startBeat, rangeEnd: r.endBeat });
     const bars = Math.round((r.endBeat - r.startBeat) / barLen);
-    status = `Custom range set: ${bars >= 1 ? `${bars} bar${bars === 1 ? "" : "s"}` : "a few notes"} from bar ${Math.floor(r.startBeat / barLen) + 1}.`;
+    status = m.music_drills_studio_range_set({ what: bars >= 1 ? m.music_drills_studio_bars_count({ count: bars }) : m.music_drills_studio_few_notes(), n: Math.floor(r.startBeat / barLen) + 1 });
   }
 
   const rangeSummary = $derived(
-    s.range === "custom" ? (custom ? `bars ${Math.floor(custom.startBeat / barLen) + 1} to ${Math.ceil(custom.endBeat / barLen)}` : "custom range (not set yet)") : s.range === "sections" && pickedSections.length ? `${pickedSections.length} section${pickedSections.length > 1 ? "s" : ""}${pickedSections.length > 1 ? (s.order === "per-section" ? ", one at a time" : ", in sequence") : ""}` : "whole score",
+    s.range === "custom"
+      ? custom
+        ? m.music_drills_studio_bars_range({ a: Math.floor(custom.startBeat / barLen) + 1, b: Math.ceil(custom.endBeat / barLen) })
+        : m.music_drills_studio_sum_custom_unset()
+      : s.range === "sections" && pickedSections.length
+        ? pickedSections.length > 1
+          ? (s.order === "per-section" ? m.music_drills_studio_sum_sections_each : m.music_drills_studio_sum_sections_sequence)({ count: pickedSections.length })
+          : m.music_drills_studio_sum_sections({ count: pickedSections.length })
+        : m.music_drills_studio_sum_whole_score(),
   );
+  /** Part names joined "A and B and C", as the setup line reads them. */
+  const and = (names: string[]) => (names.length ? names.reduce((a, b) => m.music_drills_studio_and({ a, b })) : "");
   const MAJOR_BY_FIFTHS = ["Cb", "Gb", "Db", "Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#"];
   const MINOR_BY_FIFTHS = ["Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#", "G#", "D#", "A#"];
   /** The song's key moved by `t` semitones, when the score names its key. */
   const keyAt = (t: number) => {
     if (score.keyFifths === undefined) return "";
     const f = transposeFifths(score.keyFifths, t);
-    return score.keyMode === "minor" ? `${MINOR_BY_FIFTHS[f + 7]} minor` : `${MAJOR_BY_FIFTHS[f + 7]} major`;
+    return score.keyMode === "minor" ? m.music_drills_studio_key_minor({ key: MINOR_BY_FIFTHS[f + 7] }) : m.music_drills_studio_key_major({ key: MAJOR_BY_FIFTHS[f + 7] });
   };
-  const transposeLabel = (t: number) => (t ? `${t > 0 ? "Up" : "Down"} ${Math.abs(t)}${keyAt(t) ? `, ${keyAt(t)}` : ""}` : `As written${keyAt(0) ? `, ${keyAt(0)}` : ""}`);
+  const transposeLabel = (t: number) =>
+    t
+      ? `${(t > 0 ? m.music_drills_studio_tr_up : m.music_drills_studio_tr_down)({ n: Math.abs(t) })}${keyAt(t) ? `, ${keyAt(t)}` : ""}`
+      : `${m.music_drills_studio_as_written()}${keyAt(0) ? `, ${keyAt(0)}` : ""}`;
   const marksText = $derived(
     [
-      score.dynamics?.length ? `${score.dynamics.length} dynamic${score.dynamics.length === 1 ? "" : "s"}` : "",
-      score.hairpins?.length ? `${score.hairpins.length} hairpin${score.hairpins.length === 1 ? "" : "s"}` : "",
-      score.breaths?.length ? `${score.breaths.length} breath mark${score.breaths.length === 1 ? "" : "s"}` : "",
+      score.dynamics?.length ? m.music_drills_studio_dynamics_count({ count: score.dynamics.length }) : "",
+      score.hairpins?.length ? m.music_drills_studio_hairpins_count({ count: score.hairpins.length }) : "",
+      score.breaths?.length ? m.music_drills_studio_breaths_count({ count: score.breaths.length }) : "",
     ]
       .filter(Boolean)
       .join(", "),
   );
   const summaryLine = $derived(
     [
-      sightRead ? "Sight-read" : noStop ? "No-stop run" : perfMode ? `Performance, ${takes} take${takes > 1 ? "s" : ""}` : "Wait mode",
+      sightRead ? m.music_drills_studio_mode_sight() : noStop ? m.music_drills_studio_sum_nostop() : perfMode ? m.music_drills_studio_sum_perf({ count: takes }) : m.music_drills_studio_sum_wait(),
       rangeSummary,
       `${bpm} BPM`,
-      picked.length === choices.length ? "all voices" : choices.filter((c) => picked.includes(c.id)).map((c) => c.label).join(" and "),
-      ...(transpose ? [`${transpose > 0 ? "up" : "down"} ${Math.abs(transpose)} semitone${Math.abs(transpose) === 1 ? "" : "s"}${keyAt(transpose) ? ` (${keyAt(transpose)})` : ""}`] : []),
-      ...(memory === "look" ? ["from memory"] : memory === "bars" ? [`from memory, bars 1 to ${memBars} hidden`] : []),
-      ...(grade === "dynamics" ? ["dynamics and breaths scored"] : grade === "vibrato" ? ["vibrato scored"] : grade === "balance" ? ["melody balance scored"] : []),
-      ...(tap ? ["tapping the rhythm"] : []),
-      ...(partner ? [`Woodshed plays ${others.map((c) => c.label).join(" and ")}`] : []),
+      picked.length === choices.length ? m.music_drills_studio_all_voices() : and(choices.filter((c) => picked.includes(c.id)).map((c) => c.label)),
+      ...(transpose ? [`${(transpose > 0 ? m.music_drills_studio_sum_up : m.music_drills_studio_sum_down)({ count: Math.abs(transpose) })}${keyAt(transpose) ? ` (${keyAt(transpose)})` : ""}`] : []),
+      ...(memory === "look" ? [m.music_drills_studio_sum_memory()] : memory === "bars" ? [m.music_drills_studio_sum_memory_bars({ n: memBars })] : []),
+      ...(grade === "dynamics" ? [m.music_drills_studio_sum_dynamics()] : grade === "vibrato" ? [m.music_drills_studio_sum_vibrato()] : grade === "balance" ? [m.music_drills_studio_sum_balance()] : []),
+      ...(tap ? [m.music_drills_studio_sum_tapping()] : []),
+      ...(partner ? [m.music_drills_studio_sum_partner({ parts: and(others.map((c) => c.label)) })] : []),
     ].join(", "),
   );
   const progress = $derived(ls && fstate ? Math.min(1, ls.index / Math.max(1, fstate.groups.length)) : 0);
@@ -923,68 +951,68 @@
   {#if !live}
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div class="min-w-0">
-        <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/library"><ArrowLeft class="size-4" aria-hidden="true" />Back to your songs</a>
+        <a class="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-instr-ink hover:bg-instr-wash" href="/music/library"><ArrowLeft class="size-4" aria-hidden="true" />{m.music_drills_studio_back_songs()}</a>
         <h1 id="studio-title" class="font-display text-3xl font-semibold tracking-tight sm:text-4xl">{song.title}</h1>
         <p class="mt-1 text-ws-soft max-sm:text-sm">
-          {song.composer ? `${song.composer}. ` : ""}{barsText(facts.bars)} in {facts.meter}{facts.key ? `, ${facts.key}` : ""}, written at {score.bpm} BPM ({durationText(facts.seconds)}).
+          {song.composer ? `${song.composer}. ` : ""}{m.music_drills_studio_facts({ bars: barsText(facts.bars), meter: facts.meter, key: facts.key ? `, ${facts.key}` : "", bpm: score.bpm, duration: durationText(facts.seconds) })}
         </p>
       </div>
     </header>
 
   {:else}
-    <h1 id="studio-run" tabindex="-1" class="sr-only">{song.title}, running</h1>
+    <h1 id="studio-run" tabindex="-1" class="sr-only">{m.music_drills_studio_running({ title: song.title })}</h1>
   {/if}
 
   <!-- Transport and practice actions: above the score. -->
   <div class="flex flex-wrap items-center gap-2">
     {#if live}
-      <button type="button" class="{btnPrimary} min-h-12 px-6" onclick={stop}><Square class="size-4" aria-hidden="true" />Stop <kbd class="text-[13px] opacity-70">Esc</kbd></button>
-      {#if phase === "look"}<button type="button" class={btn} onclick={endLook}><Play class="size-4" aria-hidden="true" />Ready, count me in</button>{/if}
+      <button type="button" class="{btnPrimary} min-h-12 px-6" onclick={stop}><Square class="size-4" aria-hidden="true" />{m.music_drills_studio_stop()} <kbd class="text-[13px] opacity-70">Esc</kbd></button>
+      {#if phase === "look"}<button type="button" class={btn} onclick={endLook}><Play class="size-4" aria-hidden="true" />{m.music_drills_studio_ready_count_in()}</button>{/if}
       <p class="min-w-0 flex-1 truncate font-display text-lg font-semibold">{song.title}</p>
     {:else}
       <!-- After a run with a slip, the loop on the slipped bars is the useful next step, so it leads and Again steps back. -->
       {#if fixable}
-        <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" onclick={fixSpot}><Repeat class="size-5" aria-hidden="true" />Fix the trouble spot, {barsOf(trouble!.range)}</button>
+        <button type="button" class="{btnPrimary} min-h-12 px-6 font-display text-base" onclick={fixSpot}><Repeat class="size-5" aria-hidden="true" />{m.music_drills_studio_fix_spot({ where: barsOf(trouble!.range) })}</button>
       {/if}
       <button type="button" class="{offersNext || fixable ? btn : `${btnPrimary} min-h-12 px-6 font-display text-base`}" onclick={start}>
-        <Play class="size-5" aria-hidden="true" />{phase === "results" ? "Again" : sightRead ? "Start sight-reading" : noStop ? "Start no-stop run" : perfMode ? "Start performance" : "Start"}
+        <Play class="size-5" aria-hidden="true" />{phase === "results" ? m.music_drills_studio_again() : sightRead ? m.music_drills_studio_start_sight() : noStop ? m.music_drills_studio_start_nostop() : perfMode ? m.music_drills_studio_start_perf() : m.music_drills_studio_start()}
       </button>
       <button type="button" class={btn} aria-pressed={!!preview?.playing} disabled={unseen} onclick={togglePreview}>
-        {#if preview?.playing}<Square class="size-4" aria-hidden="true" />Stop demo{:else}<Headphones class="size-4" aria-hidden="true" />Hear it{/if}
+        {#if preview?.playing}<Square class="size-4" aria-hidden="true" />{m.music_drills_studio_stop_demo()}{:else}<Headphones class="size-4" aria-hidden="true" />{m.music_drills_studio_hear_it()}{/if}
       </button>
       <!-- Editing, export and the metronome are not part of playing along: one menu. -->
       <Menu.Root>
-        <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full border border-ws-line bg-ws-surface hover:bg-ws-raised" aria-label="Song options"><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
+        <Menu.Trigger class="grid size-11 shrink-0 place-items-center rounded-full border border-ws-line bg-ws-surface hover:bg-ws-raised" aria-label={m.music_drills_studio_song_options()}><Dots class="size-5" aria-hidden="true" /></Menu.Trigger>
         <Menu.Content align="start" class="w-60">
-          <Menu.Item onSelect={() => goto(`/music/songs/${song.id}/edit`)}><Pencil class="size-4" aria-hidden="true" />Edit in the Song editor</Menu.Item>
-          <Menu.Item onSelect={exportMidi}><Download class="size-4" aria-hidden="true" />Export MIDI</Menu.Item>
+          <Menu.Item onSelect={() => goto(`/music/songs/${song.id}/edit`)}><Pencil class="size-4" aria-hidden="true" />{m.music_drills_studio_edit_song()}</Menu.Item>
+          <Menu.Item onSelect={exportMidi}><Download class="size-4" aria-hidden="true" />{m.music_drills_studio_export_midi()}</Menu.Item>
           <Menu.Item disabled={settings.value.bpm === bpm} onSelect={metronomeToSong}>
-            <Timer class="size-4" aria-hidden="true" />{settings.value.bpm === bpm ? `Metronome at ${bpm} BPM` : `Set metronome to ${bpm} BPM`}
+            <Timer class="size-4" aria-hidden="true" />{settings.value.bpm === bpm ? m.music_drills_studio_metronome_at({ bpm }) : m.music_drills_studio_metronome_to({ bpm })}
           </Menu.Item>
         </Menu.Content>
       </Menu.Root>
       <!-- What Start will run, in one line beside it; Setup opens the rest. -->
       <div class="flex min-w-0 flex-1 basis-64 items-center gap-x-2 rounded-full border border-ws-line bg-ws-surface py-0.5 pr-1 pl-4">
-        <p class="min-w-0 flex-1 text-sm sm:truncate"><span class="sr-only">Setup:</span> <span class="font-medium">{summaryLine}</span></p>
+        <p class="min-w-0 flex-1 text-sm sm:truncate"><span class="sr-only">{m.music_drills_studio_setup_colon()}</span> <span class="font-medium">{summaryLine}</span></p>
         <button
           type="button"
           class="flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-medium text-instr-ink hover:bg-instr-wash"
           aria-expanded={setupOpen}
           aria-controls="studio-setup"
-          title="Space starts, Esc stops"
+          title={m.music_drills_studio_keys_title()}
           onclick={() => (setupOpen = !setupOpen)}
         >
-          <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? "Hide setup" : "Setup"}
+          <Settings2 class="size-4" aria-hidden="true" />{setupOpen ? m.music_drills_studio_hide_setup() : m.music_drills_studio_setup()}
         </button>
       </div>
     {/if}
-    {#if live && !drums}<div class="ml-auto"><HubTabs param="view" tabs={VIEWS} label="Notation view" /></div>{/if}
+    {#if live && !drums}<div class="ml-auto"><HubTabs param="view" tabs={VIEWS} label={m.music_drills_studio_notation_view()} /></div>{/if}
   </div>
 
   {#if !live && setupOpen}
     <div id="studio-setup" class="grid gap-5 rounded-xl border border-ws-line bg-ws-surface p-4 md:grid-cols-2">
       <div class="flex min-w-0 flex-col gap-1 text-sm md:col-span-2" role="group" aria-labelledby="voices-l">
-        <span id="voices-l" class="font-medium">{score.source?.kind === "musicxml" ? "Parts" : "Voices"}</span>
+        <span id="voices-l" class="font-medium">{score.source?.kind === "musicxml" ? m.music_drills_studio_parts() : m.music_drills_studio_voices()}</span>
         <div class="flex flex-wrap gap-1.5">
           {#each choices as c (c.id)}
             {@const on = picked.includes(c.id)}
@@ -997,65 +1025,65 @@
             >
           {/each}
         </div>
-        {#if choices.length > 1}<span class="text-ws-soft">At least one stays on.{mixed ? " Drums and the other parts are practised one kind at a time." : ""}</span>{/if}
+        {#if choices.length > 1}<span class="text-ws-soft">{m.music_drills_studio_one_stays_on()}{mixed ? m.music_drills_studio_one_kind() : ""}</span>{/if}
       </div>
 
       <div class="flex min-w-0 flex-col gap-3">
         <Choice
-          label="Range"
+          label={m.music_drills_studio_range()}
           options={[
-            { value: "whole", label: "Whole song" },
-            { value: "sections", label: "Sections" },
-            { value: "custom", label: "Custom" },
+            { value: "whole", label: m.music_drills_studio_whole_song() },
+            { value: "sections", label: m.music_drills_studio_sections() },
+            { value: "custom", label: m.music_drills_studio_custom() },
           ]}
           value={s.range}
           onchange={(v) => setup.set({ range: v })}
         />
         {#if s.range === "sections"}
           <div class="flex min-w-0 flex-col gap-1 text-sm" role="group" aria-labelledby="sections-l">
-            <span id="sections-l" class="font-medium">Sections</span>
+            <span id="sections-l" class="font-medium">{m.music_drills_studio_sections()}</span>
             <div class="flex flex-wrap gap-1.5">
               {#each sections as sec, i (sec.label + i)}
                 {@const on = pickedSections.includes(i)}
                 <button type="button" class="min-h-11 rounded-lg border px-3 text-sm {on ? 'border-transparent bg-instr-strong font-semibold text-on-instr' : 'border-ws-line hover:bg-ws-raised'}" aria-pressed={on} onclick={() => toggleSection(i)}>{sec.label}</button>
               {/each}
             </div>
-            {#if !pickedSections.length}<span class="text-ws-soft">None picked yet: the whole song plays.</span>{/if}
+            {#if !pickedSections.length}<span class="text-ws-soft">{m.music_drills_studio_none_picked()}</span>{/if}
           </div>
           <Choice
-            label="Order"
+            label={m.music_drills_studio_order()}
             options={[
-              { value: "sequence", label: "In sequence" },
-              { value: "per-section", label: "One at a time" },
+              { value: "sequence", label: m.music_drills_studio_in_sequence() },
+              { value: "per-section", label: m.music_drills_studio_one_at_a_time() },
             ]}
             value={s.order}
             onchange={(v) => setup.set({ order: v })}
           />
         {:else if s.range === "custom"}
           <Choice
-            label="Snap to"
+            label={m.music_drills_studio_snap_to()}
             options={[
-              { value: "bar", label: "Measure" },
-              { value: "group", label: "Note group" },
+              { value: "bar", label: m.music_drills_studio_measure() },
+              { value: "group", label: m.music_drills_studio_note_group() },
             ]}
             value={s.snap}
             onchange={(v) => setup.set({ snap: v })}
           />
           <p class="text-sm text-ws-soft">
-            {drums ? "The drum grid can't mark a range yet. Pick Sections instead." : view === "staff" || view === "tab" ? "Tap where the range starts on the notation below, then where it ends. Drag the Start and End handles to adjust." : "Switch to Staff or Tab to mark the range."}
-            {#if custom}<button type="button" class="ml-1 font-medium text-instr-ink underline underline-offset-4" onclick={() => setup.set({ rangeStart: -1, rangeEnd: -1 })}>Clear the range</button>{/if}
+            {drums ? m.music_drills_studio_range_drums() : view === "staff" || view === "tab" ? m.music_drills_studio_range_tap() : m.music_drills_studio_range_switch()}
+            {#if custom}<button type="button" class="ml-1 font-medium text-instr-ink underline underline-offset-4" onclick={() => setup.set({ rangeStart: -1, rangeEnd: -1 })}>{m.music_drills_studio_clear_range()}</button>{/if}
           </p>
         {/if}
       </div>
 
       <div class="grid min-w-0 gap-3 sm:grid-cols-2">
         <Choice
-          label="Mode"
+          label={m.music_drills_studio_mode()}
           options={[
-            { value: "wait", label: "Wait" },
-            { value: "performance", label: "Performance" },
-            { value: "no-stop", label: "No-stop" },
-            { value: "sight-read", label: "Sight-read" },
+            { value: "wait", label: m.music_drills_studio_mode_wait() },
+            { value: "performance", label: m.music_drills_studio_mode_perf() },
+            { value: "no-stop", label: m.music_drills_studio_mode_nostop() },
+            { value: "sight-read", label: m.music_drills_studio_mode_sight() },
           ]}
           value={s.mode}
           onchange={(v) => setup.set({ mode: v })}
@@ -1065,83 +1093,83 @@
           <input class="tnum min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" type="number" min="20" max="300" value={bpm} onchange={(e) => setup.set({ bpm: clamp(Number(e.currentTarget.value) || score.bpm, 20, 300) })} />
         </label>
         <Choice
-          label="Strictness"
+          label={m.music_drills_studio_strictness()}
           options={[
-            { value: "relaxed", label: "Relaxed" },
-            { value: "normal", label: "Normal" },
-            { value: "strict", label: "Strict" },
+            { value: "relaxed", label: m.music_drills_studio_relaxed() },
+            { value: "normal", label: m.music_drills_studio_normal() },
+            { value: "strict", label: m.music_drills_studio_strict() },
           ]}
           value={s.strictness}
           disabled={!perfMode}
           onchange={(v) => setup.set({ strictness: v })}
         />
         <Choice
-          label="Count-in"
+          label={m.music_drills_studio_count_in()}
           options={[
-            { value: 0, label: "Off" },
-            { value: 1, label: "1 bar" },
-            { value: 2, label: "2 bars" },
+            { value: 0, label: m.music_drills_studio_off() },
+            { value: 1, label: m.music_drills_studio_bars_count({ count: 1 }) },
+            { value: 2, label: m.music_drills_studio_bars_count({ count: 2 }) },
           ]}
           value={settings.value.countInBars}
           onchange={(v) => settings.update({ countInBars: v as 0 | 1 | 2 })}
         />
-        <Choice label="Takes" options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={takes} disabled={!perfMode || noStop} onchange={(v) => setup.set({ takes: v })} />
-        <p class="self-end text-sm text-ws-soft">{sightRead ? `Sight-read: ${SIGHT_LOOK_S} seconds to look, then one pass in time that keeps going through any slip. Only a song's first run counts as a sight-read${firstRun ? ". This is this song's first." : ", and you've played this song here before."}` : noStop ? "No-stop is one take in time: keep going through any slip. It's scored on what you played and how many bars you kept going through." : perfMode ? "Performance keeps time. A count-in of at least one bar always plays." : "Wait mode is one take and never rushes you. Strictness and takes apply to Performance."}</p>
+        <Choice label={m.music_drills_studio_takes()} options={[1, 2, 4, 8].map((n) => ({ value: n, label: String(n) }))} value={takes} disabled={!perfMode || noStop} onchange={(v) => setup.set({ takes: v })} />
+        <p class="self-end text-sm text-ws-soft">{sightRead ? (firstRun ? m.music_drills_studio_hint_sight_first : m.music_drills_studio_hint_sight_played)({ seconds: SIGHT_LOOK_S }) : noStop ? m.music_drills_studio_hint_nostop() : perfMode ? m.music_drills_studio_hint_perf() : m.music_drills_studio_hint_wait()}</p>
       </div>
 
       <div class="grid min-w-0 gap-3 sm:grid-cols-2 md:col-span-2">
         <Choice
-          label="From memory"
+          label={m.music_drills_studio_from_memory()}
           options={[
-            { value: "off", label: "Off" },
-            { value: "look", label: "After a look" },
-            { value: "bars", label: "Bar by bar" },
+            { value: "off", label: m.music_drills_studio_off() },
+            { value: "look", label: m.music_drills_studio_after_look() },
+            { value: "bars", label: m.music_drills_studio_bar_by_bar() },
           ]}
           value={memory}
           onchange={(v) => setup.set({ memory: v })}
         />
-        <Choice label="Key" select options={[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map((t) => ({ value: t, label: transposeLabel(t) }))} value={transpose} onchange={(v) => setup.set({ transpose: v })} />
+        <Choice label={m.music_drills_studio_key()} select options={[-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map((t) => ({ value: t, label: transposeLabel(t) }))} value={transpose} onchange={(v) => setup.set({ transpose: v })} />
         <Choice
-          label="Also score"
+          label={m.music_drills_studio_also_score()}
           options={[
-            { value: "notes", label: "Notes only" },
-            { value: "dynamics", label: "Dynamics and breaths" },
+            { value: "notes", label: m.music_drills_studio_notes_only() },
+            { value: "dynamics", label: m.music_drills_studio_dynamics_breaths() },
             { value: "vibrato", label: "Vibrato" },
-            { value: "balance", label: "Melody balance" },
+            { value: "balance", label: m.music_drills_studio_melody_balance() },
           ]}
           value={grade === "notes" ? s.grade : grade}
           disabled={!perfMode}
           onchange={(v) => setup.set({ grade: v })}
         />
         <p class="self-end text-sm text-ws-soft">
-          {memory === "look" ? "Look at the notation as long as you like. It hides when the run starts and comes back with the results." : memory === "bars" ? `The first ${memBars === 1 ? "bar hides" : `${memBars} bars hide`} during the run. A take at 90% hides one more.` : ""}
-          {s.grade === "dynamics" && !hasMarks ? "This song has no dynamics or breath marks to score." : s.grade === "dynamics" ? `Marked: ${marksText}. Scored loosely from breath (CC 2) or MIDI velocity: louder where it says louder, a break where it says breathe.` : s.grade === "vibrato" ? "Held notes of a beat or more should pulse 4 to 5 times a second, read from the bite (pitch bend)." : hasMarks ? `The song marks ${marksText}. They show on the staff.` : ""}
-          {s.grade === "balance" ? "The melody (the top note of the highest part) should sound louder than the notes struck with it, read from MIDI velocity." : ""}
-          {!perfMode && s.grade !== "notes" ? " Scoring dynamics, vibrato or balance needs a mode that keeps time." : ""}
+          {memory === "look" ? m.music_drills_studio_hint_memory_look() : memory === "bars" ? m.music_drills_studio_hint_memory_bars({ count: memBars }) : ""}
+          {s.grade === "dynamics" && !hasMarks ? m.music_drills_studio_hint_no_marks() : s.grade === "dynamics" ? m.music_drills_studio_hint_dynamics({ marks: marksText }) : s.grade === "vibrato" ? m.music_drills_studio_hint_vibrato() : hasMarks ? m.music_drills_studio_hint_marks({ marks: marksText }) : ""}
+          {s.grade === "balance" ? m.music_drills_studio_hint_balance() : ""}
+          {!perfMode && s.grade !== "notes" ? m.music_drills_studio_hint_needs_timed() : ""}
         </p>
         <Choice
-          label="Play"
+          label={m.music_drills_studio_play()}
           options={[
-            { value: "notes", label: "The notes" },
-            { value: "tap", label: "Tap the rhythm" },
+            { value: "notes", label: m.music_drills_studio_the_notes() },
+            { value: "tap", label: m.music_drills_studio_tap_rhythm() },
           ]}
           value={tap ? "tap" : "notes"}
           disabled={!perfMode}
           onchange={(v) => setup.set({ tap: v === "tap" })}
         />
         <Choice
-          label="Duet partner"
+          label={m.music_drills_studio_duet_partner()}
           options={[
-            { value: "off", label: "Off" },
-            { value: "on", label: "Plays the other parts" },
+            { value: "off", label: m.music_drills_studio_off() },
+            { value: "on", label: m.music_drills_studio_plays_others() },
           ]}
           value={partner ? "on" : "off"}
           disabled={!perfMode || !others.length}
           onchange={(v) => setup.set({ partner: v === "on" })}
         />
         <p class="self-end text-sm text-ws-soft md:col-span-2">
-          {tap ? "Tap each note's rhythm with any key, pad or MIDI note, or Space. Only the timing is scored." : ""}
-          {!others.length ? "Turn a part off above and the partner can play it." : partner ? `Woodshed plays ${others.map((c) => c.label).join(" and ")} in time with you. With the microphone, use headphones.` : "In a mode that keeps time, Woodshed can play the parts you turn off."}
+          {tap ? m.music_drills_studio_hint_tap() : ""}
+          {!others.length ? m.music_drills_studio_hint_partner_off() : partner ? m.music_drills_studio_hint_partner_on({ parts: and(others.map((c) => c.label)) }) : m.music_drills_studio_hint_partner_can()}
         </p>
       </div>
     </div>
@@ -1149,38 +1177,38 @@
 
   {#if phase === "results" && summary}
     <div class="results-enter flex flex-col gap-4">
-      <h2 id="studio-results" tabindex="-1" class="sr-only">Results</h2>
+      <h2 id="studio-results" tabindex="-1" class="sr-only">{m.music_drills_studio_results()}</h2>
       <Results {summary}>
         {#snippet actions()}
           {#if spot}
-            <button type="button" class={btn} onclick={() => endSpot("Ended the loop. Your range and tempo are back.")}>End the loop</button>
+            <button type="button" class={btn} onclick={() => endSpot(m.music_drills_studio_loop_ended())}>{m.music_drills_studio_end_loop()}</button>
           {/if}
         {/snippet}
       </Results>
       <div class="grid gap-4 lg:grid-cols-2">
         <div class="rounded-2xl border border-ws-line bg-ws-surface p-4">
-          <h3 class="font-semibold">Takes</h3>
-          <ul class="mt-2 divide-y divide-ws-line" aria-label="Per-take results">
+          <h3 class="font-semibold">{m.music_drills_studio_takes()}</h3>
+          <ul class="mt-2 divide-y divide-ws-line" aria-label={m.music_drills_studio_per_take()}>
             {#each takeRows as r (r.label)}
               <li class="flex items-baseline gap-3 py-2 text-sm">
-                <span class="min-w-0 flex-1"><span class="font-medium">{r.label}</span>{#if r.best}<span class="ml-2 rounded-full bg-instr-wash px-2 py-0.5 text-[13px] font-semibold text-instr-ink">Best take</span>{/if}<span class="block text-ws-soft">{r.detail}</span></span>
+                <span class="min-w-0 flex-1"><span class="font-medium">{r.label}</span>{#if r.best}<span class="ml-2 rounded-full bg-instr-wash px-2 py-0.5 text-[13px] font-semibold text-instr-ink">{m.music_drills_studio_best_take()}</span>{/if}<span class="block text-ws-soft">{r.detail}</span></span>
                 <span class="tnum font-display text-xl font-semibold">{pct(r.score)}</span>
               </li>
             {/each}
           </ul>
         </div>
         <div class="rounded-2xl border border-ws-line bg-ws-surface p-4">
-          <h3 class="font-semibold">Sections</h3>
+          <h3 class="font-semibold">{m.music_drills_studio_sections()}</h3>
           {#if sectionRows.length}
-            <ul class="mt-2 divide-y divide-ws-line" aria-label="Per-section results">
+            <ul class="mt-2 divide-y divide-ws-line" aria-label={m.music_drills_studio_per_section()}>
               {#each sectionRows as r (r.label)}
                 <li class="py-2 text-sm">
-                  <div class="flex items-baseline justify-between gap-3"><span class="font-medium">{r.label}</span><span class="tnum text-ws-soft">{r.text} {perfMode ? "notes" : "right first time"}</span></div>
+                  <div class="flex items-baseline justify-between gap-3"><span class="font-medium">{r.label}</span><span class="tnum text-ws-soft">{(perfMode ? m.music_drills_studio_sec_notes : m.music_drills_studio_sec_right_first)({ text: r.text })}</span></div>
                   <div class="mt-1 h-1.5 rounded-full bg-ws-raised"><div class="h-full rounded-full {r.value >= 0.67 ? 'bg-success' : r.value >= 0.34 ? 'bg-warn' : 'bg-destructive'}" style:width="{Math.max(2, r.value * 100)}%"></div></div>
                 </li>
               {/each}
             </ul>
-          {:else}<p class="mt-2 text-sm text-ws-soft">This range has no sections to split.</p>{/if}
+          {:else}<p class="mt-2 text-sm text-ws-soft">{m.music_drills_studio_no_sections()}</p>{/if}
         </div>
       </div>
     </div>
@@ -1191,51 +1219,51 @@
       <!-- How the score is drawn belongs with the score, not with Start. -->
       <div class="mb-3 flex flex-wrap items-center justify-end gap-2">
         {#if mixed}
-          <button type="button" class={btn} aria-pressed={drums} onclick={() => (picked = partsOf(!drums))}><Drum class="size-4" aria-hidden="true" />{drums ? "Play the other parts" : "Play the drums"}</button>
+          <button type="button" class={btn} aria-pressed={drums} onclick={() => (picked = partsOf(!drums))}><Drum class="size-4" aria-hidden="true" />{drums ? m.music_drills_studio_play_others() : m.music_drills_studio_play_drums()}</button>
         {/if}
-        {#if !drums}<HubTabs param="view" tabs={VIEWS} label="Notation view" class="max-sm:flex-nowrap max-sm:whitespace-nowrap max-sm:[&>a]:px-2.5" />{/if}
+        {#if !drums}<HubTabs param="view" tabs={VIEWS} label={m.music_drills_studio_notation_view()} class="max-sm:flex-nowrap max-sm:whitespace-nowrap max-sm:[&>a]:px-2.5" />{/if}
       </div>
     {/if}
     {#if live}
       <!-- Progress in a neutral ink, so the wanted key (in the instrument hue) never reads as part of it. -->
-      <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/10" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
+      <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-ws-stage-ink/10" role="progressbar" aria-label={m.music_drills_studio_run_progress()} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
         <div class="h-full rounded-full bg-ws-stage-ink/70" style:width="{progress * 100}%"></div>
       </div>
       <!-- The run's readout in stage ink: the stage is dark in both themes. -->
       <div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-base">
-        {#if phase === "look"}{@render stat("Look", `${lookLeft} s`)}{:else}{@render stat(perfMode ? "Take" : "Mode", perfMode ? `${(queue[qi]?.take ?? 0) + 1} of ${takes}` : "Wait")}{/if}
-        {#if ls && fstate}{@render stat("Note", `${Math.min(ls.index + 1, fstate.groups.length)} of ${fstate.groups.length}`)}{/if}
-        {#if ls?.expected.length && memory === "off" && !tap}{@render stat("Next", ls.expected.map((m) => (drums ? (GROOVE_VOICES.find((v) => v.midi === m)?.name ?? "") : noteName(m + written))).join(drums ? ", " : " "))}{/if}
+        {#if phase === "look"}{@render stat(m.music_drills_studio_stat_look(), `${lookLeft} s`)}{:else}{@render stat(perfMode ? m.music_drills_studio_stat_take() : m.music_drills_studio_mode(), perfMode ? m.music_drills_studio_of({ a: (queue[qi]?.take ?? 0) + 1, b: takes }) : m.music_drills_studio_mode_wait())}{/if}
+        {#if ls && fstate}{@render stat(m.music_drills_studio_stat_note(), m.music_drills_studio_of({ a: Math.min(ls.index + 1, fstate.groups.length), b: fstate.groups.length }))}{/if}
+        {#if ls?.expected.length && memory === "off" && !tap}{@render stat(m.music_drills_studio_next(), ls.expected.map((x) => (drums ? (GROOVE_VOICES.find((v) => v.midi === x)?.name ?? "") : noteName(x + written))).join(drums ? ", " : " "))}{/if}
         {@render stat("Tempo", `${bpm} BPM`)}
-        {#if spot}{@render stat(`Loop, ${barsOf(spot.range)}`, `${spot.streak} of ${SPOT.clean} clean`)}{/if}
+        {#if spot}{@render stat(m.music_drills_studio_stat_loop({ where: barsOf(spot.range) }), m.music_drills_studio_stat_clean({ streak: spot.streak, count: SPOT.clean }))}{/if}
       </div>
       {#if lastMiss && memory === "off"}<p class="mb-2 flex items-center gap-2 text-base font-semibold text-destructive" aria-live="polite"><CircleX class="size-5 shrink-0" aria-hidden="true" />{lastMiss}</p>{/if}
     {:else if preview?.playing}
-      <p class="mb-2 text-sm text-ws-stage-soft">Demo playing, not scored. The cursor follows the sound.</p>
+      <p class="mb-2 text-sm text-ws-stage-soft">{m.music_drills_studio_demo_playing()}</p>
     {/if}
     {#if staffFailed && view === "staff"}
       <p class="mb-3 rounded-xl bg-ws-stage-ink/10 p-3 text-sm">
-        The staff can't draw this song. <a class="font-semibold underline underline-offset-4" href="?view=waterfall">Open Falling notes</a>, which shows every note.
+        {@html m.music_drills_studio_staff_failed({ link: `<a class="font-semibold underline underline-offset-4" href="?view=waterfall">${m.music_drills_studio_open_falling()}</a>` })}
       </p>
     {/if}
     {#if (view === "tab" || fretted) && !live}
       <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
         <div class="flex items-center gap-2">
-          <span class="font-medium">Tuning</span>
-          <Picker class="w-auto" tone="stage" label="Tuning" value={tuning.id} options={TUNING_LIST.map((t) => ({ value: t.id, label: `${t.instrument === "guitar" ? "Guitar" : "Ukulele"}, ${t.name}` }))} onchange={(v) => setup.set({ tuning: v })} />
+          <span class="font-medium">{m.music_drills_studio_tuning()}</span>
+          <Picker class="w-auto" tone="stage" label={m.music_drills_studio_tuning()} value={tuning.id} options={TUNING_LIST.map((t) => ({ value: t.id, label: (t.instrument === "guitar" ? m.music_drills_studio_tuning_guitar : m.music_drills_studio_tuning_ukulele)({ name: t.name }) }))} onchange={(v) => setup.set({ tuning: v })} />
         </div>
         {#if fitted.score !== score}
           <p class="min-w-0 flex-1 text-ws-stage-soft" data-fit>
-            {s.fit === "auto" ? fitNote : `As written: some notes are out of the ${tuning.instrument === "ukulele" ? "ukulele" : "guitar"}'s range.`}
-            <button type="button" class="ml-1 font-semibold text-ws-stage-ink underline underline-offset-4" onclick={() => setup.set({ fit: s.fit === "auto" ? "written" : "auto" })}>{s.fit === "auto" ? "Show as written" : "Fit to the instrument"}</button>
+            {s.fit === "auto" ? fitNote : tuning.instrument === "ukulele" ? m.music_drills_studio_out_of_range_ukulele() : m.music_drills_studio_out_of_range_guitar()}
+            <button type="button" class="ml-1 font-semibold text-ws-stage-ink underline underline-offset-4" onclick={() => setup.set({ fit: s.fit === "auto" ? "written" : "auto" })}>{s.fit === "auto" ? m.music_drills_studio_show_written() : m.music_drills_studio_fit_instrument()}</button>
           </p>
         {/if}
       </div>
     {/if}
     {#if view === "fingering" && settings.value.activeInstrument !== "aerophone" && !live}
-      <p class="mb-2 text-sm text-ws-stage-soft">Aerophone fingerings for the top line of the selected voices.</p>
+      <p class="mb-2 text-sm text-ws-stage-soft">{m.music_drills_studio_aero_fingerings()}</p>
     {/if}
-    {#if live && memory === "look"}<p class="mb-2 text-sm text-ws-stage-soft">From memory: the notes are hidden until the results.</p>{/if}
+    {#if live && memory === "look"}<p class="mb-2 text-sm text-ws-stage-soft">{m.music_drills_studio_memory_hidden()}</p>{/if}
     <StudioScore
       score={played}
       hide={hideBeat}
@@ -1258,13 +1286,13 @@
       onfallback={(r) => (staffFailed = r)}
     />
     {#if unseen}
-      <p class="mt-3 text-sm text-ws-stage-soft">The notes stay hidden until you start: then {SIGHT_LOOK_S} seconds to look, and one pass in time.</p>
+      <p class="mt-3 text-sm text-ws-stage-soft">{m.music_drills_studio_unseen({ seconds: SIGHT_LOOK_S })}</p>
     {:else if !live && phase !== "results"}
       {#if drums}
-        <p class="mt-3 text-sm text-ws-stage-soft">Play it on the MPC pads, any MIDI pads, or the on-screen pads with the top bar set to MPC pads. Scored by drum: any hat counts for a hat, kick and snare must be exact.</p>
+        <p class="mt-3 text-sm text-ws-stage-soft">{m.music_drills_studio_drums_hint()}</p>
       {:else}
         <!-- A phone leaves this out so the staff and keys end above the tab bar; the strip names the input. -->
-        <p class="mt-3 text-sm text-ws-stage-soft max-sm:hidden">Playing on {INSTRUMENT_LABEL[settings.value.activeInstrument]}{octaveExact ? "" : ", and octaves don't count against you through the microphone"}. MIDI, the on-screen keys and your computer keyboard all work.</p>
+        <p class="mt-3 text-sm text-ws-stage-soft max-sm:hidden">{(octaveExact ? m.music_drills_studio_playing_on : m.music_drills_studio_playing_on_mic)({ instrument: INSTRUMENT_LABEL[settings.value.activeInstrument] })}</p>
       {/if}
     {/if}
   </div>

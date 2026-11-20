@@ -1,4 +1,5 @@
 import { error } from "@sveltejs/kit";
+import { m } from "@repo/i18n/messages.js";
 import { catalogEntry } from "@repo/music-core/content/catalog";
 import { CHANGES_MODES, type ChangesMode } from "#lib/music/drills/changes/modes.ts";
 
@@ -15,6 +16,6 @@ const MODES = {
 
 export async function load({ params }) {
   const mode = CHANGES_MODES.find((m) => m === params.drill);
-  if (!mode) error(404, "No such way to play over changes");
+  if (!mode) error(404, m.music_drills_changes_not_found());
   return { mode, title: catalogEntry(mode)!.title, Mode: (await MODES[mode]()).default };
 }

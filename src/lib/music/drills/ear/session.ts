@@ -49,6 +49,7 @@ import {
   skillSummaries,
   type SkillSummary,
 } from "@repo/music-core/progress/analytics";
+import { m } from "@repo/i18n/messages.js";
 import {
   buildQueue,
   EAR_DRILLS,
@@ -523,22 +524,53 @@ export function retryPrompts(events: ScoringEvent[], kinds: EarKind[], rand: Ran
 // ---------------------------------------------------------------------------
 // Labels
 
+/** Each drill's name, in the current language (getters, so they read the locale when shown). */
 export const KIND_LABEL: Record<EarKind, string> = {
-  interval: "Intervals",
-  "interval-compare": "Interval comparison",
-  "chord-quality": "Chord qualities",
-  cadence: "Cadences",
-  "chord-function": "Chords in a key",
-  scale: "Scales and modes",
-  inversion: "Inversions",
-  "bass-line": "Bass lines",
-  "pitch-compare": "Fine pitch",
-  "error-detect": "Spot the wrong note",
-  progression: "Progressions",
-  "key-change": "Key changes",
-  loop: "Song loops",
-  "scale-degree": "Scale degrees",
-  "melody-dictation": "Melody dictation",
+  get interval() {
+    return m.music_drills_ear_kind_interval();
+  },
+  get "interval-compare"() {
+    return m.music_drills_ear_kind_interval_compare();
+  },
+  get "chord-quality"() {
+    return m.music_drills_ear_kind_chord_quality();
+  },
+  get cadence() {
+    return m.music_drills_ear_kind_cadence();
+  },
+  get "chord-function"() {
+    return m.music_drills_ear_kind_chord_function();
+  },
+  get scale() {
+    return m.music_drills_ear_kind_scale();
+  },
+  get inversion() {
+    return m.music_drills_ear_kind_inversion();
+  },
+  get "bass-line"() {
+    return m.music_drills_ear_kind_bass_line();
+  },
+  get "pitch-compare"() {
+    return m.music_drills_ear_kind_pitch_compare();
+  },
+  get "error-detect"() {
+    return m.music_drills_ear_kind_error_detect();
+  },
+  get progression() {
+    return m.music_drills_ear_kind_progression();
+  },
+  get "key-change"() {
+    return m.music_drills_ear_kind_key_change();
+  },
+  get loop() {
+    return m.music_drills_ear_kind_loop();
+  },
+  get "scale-degree"() {
+    return m.music_drills_ear_kind_scale_degree();
+  },
+  get "melody-dictation"() {
+    return m.music_drills_ear_kind_melody_dictation();
+  },
 };
 
 export function tokenLabel(
@@ -549,19 +581,33 @@ export function tokenLabel(
   if (kind === "interval") return EAR_INTERVALS.find((i) => i.token === token)?.name ?? token;
   if (kind === "interval-compare")
     return token === "first"
-      ? "The first is bigger"
+      ? m.music_drills_ear_compare_first_bigger()
       : token === "second"
-        ? "The second is bigger"
-        : "They're the same size";
+        ? m.music_drills_ear_compare_second_bigger()
+        : m.music_drills_ear_compare_same_size();
   if (kind === "chord-quality") return QUALITIES.find((q) => q.token === token)?.label ?? token;
   if (kind === "cadence") {
     const c = CADENCES.find((x) => x.token === token);
-    return c ? `${c.label} (${c.romanProgression.join(" to ")})` : token;
+    return c
+      ? m.music_drills_ear_cadence_label({
+          label: c.label,
+          chords: c.romanProgression.reduce((from, to) =>
+            m.music_drills_ear_chord_to({ from, to }),
+          ),
+        })
+      : token;
   }
   if (kind === "chord-function") return functionLabel(token);
-  if (kind === "error-detect") return token === "none" ? "No wrong note" : `Note ${token}`;
+  if (kind === "error-detect")
+    return token === "none"
+      ? m.music_drills_ear_no_wrong_note()
+      : m.music_drills_ear_note_n({ n: token });
   if (kind === "pitch-compare")
-    return token === "higher" ? "Higher" : token === "lower" ? "Lower" : "In tune";
+    return token === "higher"
+      ? m.music_drills_ear_pitch_higher()
+      : token === "lower"
+        ? m.music_drills_ear_pitch_lower()
+        : m.music_drills_ear_pitch_in_tune();
   if (kind === "bass-line") return token.split(" ").join(", ");
   if (kind === "inversion") return EAR_INVERSIONS.find((x) => x.token === token)?.name ?? token;
   if (kind === "scale") return EAR_SCALES.find((x) => x.token === token)?.name ?? token;
@@ -569,7 +615,10 @@ export function tokenLabel(
   if (kind === "loop") return token.split(" ").map(numeralLabel).join(", ");
   if (kind === "key-change") {
     const [dest, ...chords] = token.split(" ");
-    return `${keyChangeLabel(dest).toLowerCase()}, by ${chords.map(numeralLabel).join(", ")}`;
+    return m.music_drills_ear_key_change_label({
+      change: keyChangeLabel(dest).toLowerCase(),
+      chords: chords.map(numeralLabel).join(", "),
+    });
   }
   if (kind === "scale-degree" && SCALE_DEGREES.some((d) => d.label === token))
     return degreeLabel(token, labels);
@@ -585,7 +634,11 @@ export function tokenLabel(
 export function shortLabel(kind: EarKind | string, token: string, labels: LabelMode = "degree") {
   if (kind === "interval") return token;
   if (kind === "interval-compare")
-    return token === "same" ? "Same" : token === "first" ? "First" : "Second";
+    return token === "same"
+      ? m.music_drills_ear_compare_same_short()
+      : token === "first"
+        ? m.music_drills_ear_compare_first_short()
+        : m.music_drills_ear_compare_second_short();
   if (kind === "cadence") return CADENCES.find((x) => x.token === token)?.label ?? token;
   return tokenLabel(kind, token, labels);
 }
@@ -624,9 +677,14 @@ export function setLadder(picked: string[], ladder: string[], phrase: (t: string
       : undefined;
   const steps = [
     ...(drop
-      ? [{ label: `without ${phrase(drop)}`, tokens: picked.filter((t) => t !== drop) }]
+      ? [
+          {
+            label: m.music_drills_ear_ladder_without({ item: phrase(drop) }),
+            tokens: picked.filter((t) => t !== drop),
+          },
+        ]
       : []),
-    { label: "this set", tokens: picked },
+    { label: m.music_drills_ear_ladder_this_set(), tokens: picked },
     ...(add ? [{ label: phrase(add), tokens: [...picked, add] }] : []),
   ];
   return { steps, step: drop ? 1 : 0 };
@@ -676,7 +734,12 @@ export function confusions(records: AnswerRecord[]) {
 }
 
 /** A count in words: "once", "twice", "3 times". */
-export const times = (n: number) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
+export const times = (n: number) =>
+  n === 1
+    ? m.music_drills_ear_times_once()
+    : n === 2
+      ? m.music_drills_ear_times_twice()
+      : m.music_drills_ear_times_n({ n });
 
 /**
  * What a clean run means, from the rule that applies: with a next-run ladder the advance rule
@@ -684,5 +747,5 @@ export const times = (n: number) => (n === 1 ? "once" : n === 2 ? "twice" : `${n
  */
 export const cleanMeansFor = (ladder: boolean, asked: number) =>
   ladder
-    ? `${Math.ceil(0.9 * asked)} of ${asked} right or better`
-    : "every answer right, in a Check run";
+    ? m.music_drills_ear_clean_ladder({ right: Math.ceil(0.9 * asked), asked })
+    : m.music_drills_ear_clean_check();

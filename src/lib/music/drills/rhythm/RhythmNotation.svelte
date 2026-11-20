@@ -5,6 +5,7 @@
   // (shape and colour say early, on time, late, extra or in a rest; a missed
   // note gets a hollow ring where its tap should have been).
   import { onMount } from "svelte";
+  import { m } from "@repo/i18n/messages.js";
   import type { RhythmPatternDef } from "@repo/music-core/data/index";
   import { loadVexFlow, NotationError, type Layout } from "#lib/music/notation/engrave.ts";
   import type { GroupState } from "#lib/music/notation/NotationFrame.svelte";
@@ -36,9 +37,9 @@
   function fail(e: unknown) {
     layout = null;
     host?.replaceChildren();
-    onfallback?.(e instanceof NotationError ? e.message : `the engraver stopped (${(e as Error)?.message ?? e})`);
+    onfallback?.(e instanceof NotationError ? e.message : m.music_drills_rhythm_notation_stopped({ error: String((e as Error)?.message ?? e) }));
   }
-  onMount(() => void loadVexFlow().then((m) => (VF = m), fail));
+  onMount(() => void loadVexFlow().then((mod) => (VF = mod), fail));
 
   $effect(() => {
     if (!VF || !host || width < 40) return;
@@ -69,9 +70,9 @@
 
 <div class="rn" data-testid="rhythm-notation">
   {#if line?.swing}
-    <p class="swing">Swing: the eighths are written even and played long-short.</p>
+    <p class="swing">{m.music_drills_rhythm_notation_swing()}</p>
   {/if}
-  <div class="paper" role="img" aria-label={label} title="A rhythm staff: one line, no pitches. The two bars at its start mark it." bind:clientWidth={width}>
+  <div class="paper" role="img" aria-label={label} title={m.music_drills_rhythm_notation_title()} bind:clientWidth={width}>
     <div class="canvas" style:height={layout ? `${layout.height}px` : undefined}>
       <div class="host" bind:this={host} aria-hidden="true"></div>
       {#each counts as c (c.beat)}

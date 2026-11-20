@@ -23,6 +23,7 @@
   import Piano from "#lib/music/components/Piano.svelte";
   import type { CellMarks, Flashes } from "#lib/music/components/feedback.svelte.ts";
   import { MediaQuery } from "svelte/reactivity";
+  import { m } from "@repo/i18n/messages.js";
 
   let {
     score,
@@ -139,7 +140,7 @@
       </div>
     </div>
     <!-- The keys you play: at the bottom of a phone screen while live; short keys before Start on a phone, so the staff and keys fit above the tab bar. -->
-    <div data-dock="answers"><Piano {low} {high} {marks} {flashes} label="Piano keyboard" compact={!compact && !wide.current} /></div>
+    <div data-dock="answers"><Piano {low} {high} {marks} {flashes} label={m.music_drills_studio_piano_keyboard()} compact={!compact && !wide.current} /></div>
   {/if}
 </div>
 

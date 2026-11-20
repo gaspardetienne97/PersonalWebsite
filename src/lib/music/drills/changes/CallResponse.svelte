@@ -40,6 +40,7 @@
   import { audio, settings, type SequenceHandle, type SequenceNote } from "#lib/music/runtime/index.ts";
   import { backingNotes } from "#lib/music/drills/jam/backing.ts";
   import { pairNotes, saveTake } from "#lib/music/takes.ts";
+  import { m } from "@repo/i18n/messages.js";
 
   const TEMPO = { min: 50, max: 160 };
   const cfg = new DrillSetup("call-response", { mode: "echo", groove: "blues", bars: "1" });
@@ -166,7 +167,7 @@
     verdict = {
       // In the call is not yet right (order and time are judged as the turn ends): a neutral mark, not a tick.
       kind: callMode === "echo" ? (good ? "in" : "wrong") : good ? "right" : "wrong",
-      text: callMode === "echo" ? `${name}${good ? " is in the call" : " isn't in the call"}` : `${name}${good ? ", a chord tone" : ", off the chord"}`,
+      text: (callMode === "echo" ? (good ? m.music_drills_callresponse_in_call : m.music_drills_callresponse_not_in_call) : good ? m.music_drills_callresponse_chord_tone : m.music_drills_callresponse_off_chord)({ name }),
       key: (verdict?.key ?? 0) + 1,
     };
   }
@@ -185,9 +186,9 @@
       const r = gradePhrase({ events, notes, beatMs, startAt: answerStart(k) });
       // The same match and window gradePhrase uses: a note out of the window is early or late by its sign.
       const tol = Math.min(180, beatMs / 4);
-      const m = matchEvents(events, notes);
+      const matched = matchEvents(events, notes);
       events.forEach((ev, i) => {
-        const x = m[i];
+        const x = matched[i];
         if (!x?.right || x.at === null) return void timing.missed++;
         const err = x.at - (answerStart(k) + ev.startBeat * beatMs);
         if (Math.abs(err) <= tol) timing.onTime++;
@@ -196,15 +197,15 @@
       });
       score = (r.matched + r.onTime) / (2 * r.total);
       correct = r.matched === r.total && r.onTime >= 0.75 * r.total;
-      text = `${r.matched} of ${r.total} notes, ${r.onTime} in time`;
+      text = m.music_drills_callresponse_echo_text({ matched: r.matched, total: r.total, onTime: r.onTime });
     } else {
       const r = gradeAnswer({ notes, groove, downbeat, startAt: answerStart(k), beatMs });
       ({ score, correct } = r);
-      text = !r.notes ? "No answer" : `${r.landed ? "Landed on a chord tone" : "Ended off the chord"}, ${pct(r.inTime)} in time`;
+      text = !r.notes ? m.music_drills_callresponse_no_answer() : (r.landed ? m.music_drills_callresponse_landed : m.music_drills_callresponse_ended_off)({ pct: pct(r.inTime) });
     }
     turns = [...turns, { score, correct, text }];
     await run.attempt({ promptId: `turn-${k}`, correct, partialCredit: score, source: runSource(notes), target: calls[k].map((n) => noteName(n.midi, "flat")).join(" "), response: notes.map((n) => noteName(n.midi, "flat")).join(" ") });
-    status = mode === "practice" ? `Turn ${k + 1}: ${text}.` : `Answer ${k + 1} saved.`;
+    status = mode === "practice" ? m.music_drills_callresponse_status_turn({ n: k + 1, text }) : m.music_drills_callresponse_status_saved({ n: k + 1 });
     if (k === CALL_TURNS - 1) await finish();
   }
 
@@ -231,7 +232,7 @@
     cap = null;
     phase = "results";
     if (!turns.length) {
-      status = "Stopped before the first answer. Nothing saved.";
+      status = m.music_drills_callresponse_stopped();
       return;
     }
     const right = turns.filter((t) => t.correct).length;
@@ -255,23 +256,23 @@
     const goal = 120;
     const advance = await nextRun(
       `ear.call-response.${callMode}.${groove.id}`,
-      { bpm, tempo: { min: TEMPO.min, goal, max: TEMPO.max }, steps: [{ label: "One-bar calls" }, { label: "Two-bar calls" }], step: bars - 1 },
+      { bpm, tempo: { min: TEMPO.min, goal, max: TEMPO.max }, steps: [{ label: m.music_drills_callresponse_step_one() }, { label: m.music_drills_callresponse_step_two() }], step: bars - 1 },
       { score, correct: right === turns.length },
       tempoAnd((i) => cfg.set({ bars: String(i + 1) })),
     );
     // Played past the goal: say the tempo played and the goal in one breath, not "clean at the goal".
-    if (bpm > goal && advance.reason.startsWith("clean at the goal")) advance.reason = `clean at ${bpm} BPM, past the ${goal} goal`;
+    if (bpm > goal && advance.reason.startsWith("clean at the goal")) advance.reason = m.music_drills_callresponse_reason_past_goal({ bpm, goal });
     summary = {
-      headline: `${right} of ${turns.length} ${callMode === "echo" ? "calls echoed" : "answers landed in time"} at ${bpm} BPM.${all.length ? " Take saved in Record." : ""}`,
+      headline: `${(callMode === "echo" ? m.music_drills_callresponse_h_echo : m.music_drills_callresponse_h_answer)({ right, total: turns.length, bpm })}${all.length ? ` ${m.music_drills_callresponse_take_saved()}` : ""}`,
       metric: pct(score),
-      metricLabel: callMode === "echo" ? "notes and timing" : "landing and timing",
+      metricLabel: callMode === "echo" ? m.music_drills_callresponse_metric_echo() : m.music_drills_callresponse_metric_answer(),
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === turns.length,
-      cleanMeans: callMode === "echo" ? "every call echoed" : "every answer in time on a chord tone",
+      cleanMeans: callMode === "echo" ? m.music_drills_callresponse_clean_echo() : m.music_drills_callresponse_clean_answer(),
       xp: fin.xp,
       mode,
-      rows: turns.map((t, i) => ({ label: `Turn ${i + 1}`, value: t.score, text: t.text })),
+      rows: turns.map((t, i) => ({ label: m.music_drills_callresponse_row_turn({ n: i + 1 }), value: t.score, text: t.text })),
       // Echo measures each call note against its beat; an answer has no set notes to be early or late to.
       timing: callMode === "echo" ? { ...timing } : undefined,
       // The next run by the shared rule: faster, then two-bar calls.
@@ -288,7 +289,7 @@
       cap = null;
       run = null;
       phase = "ready";
-      status = "Stopped before the first answer. Nothing saved.";
+      status = m.music_drills_callresponse_stopped();
     }
   }
 
@@ -323,7 +324,7 @@
       demoRaf = requestAnimationFrame(tick);
     };
     demoRaf = requestAnimationFrame(tick);
-    status = "A sample call over the band, its keys lit as it plays. Not scored.";
+    status = m.music_drills_callresponse_demo();
     void h.done.then(() => demo === h && stopDemo());
   }
   function stopDemo() {
@@ -358,8 +359,8 @@
   const blankLane = $derived(mode === "check" && !demo?.playing);
   const laneRows = $derived<LaneRow[]>([
     // Named with their octave (C4, E5), so the call and your notes compare pitch for pitch.
-    { id: "call", mark: sample ? "e.g." : "Call", label: sample ? "A sample call" : "The call", hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: blankLane ? "" : noteName(n.midi, "flat") })) },
-    ...(phase === "running" ? [{ id: "you", mark: "You", label: "Your notes", hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: blankLane ? "" : noteName(r.midi, "flat") })) }] : []),
+    { id: "call", mark: sample ? m.music_drills_callresponse_mark_eg() : m.music_drills_callresponse_mark_call(), label: sample ? m.music_drills_callresponse_sample_call() : m.music_drills_callresponse_the_call(), hand: "right", notes: laneCall.map((n) => ({ beat: n.startBeat, dur: n.durationBeats, text: blankLane ? "" : noteName(n.midi, "flat") })) },
+    ...(phase === "running" ? [{ id: "you", mark: m.music_drills_callresponse_mark_you(), label: m.music_drills_callresponse_your_notes(), hand: "left" as const, notes: reply.map((r, i) => ({ beat: r.beat, dur: Math.max(0.25, Math.min(1, (reply[i + 1]?.beat ?? r.beat + 1) - r.beat)), text: blankLane ? "" : noteName(r.midi, "flat") })) }] : []),
   ]);
   const laneChords = $derived(
     Array.from({ length: bars }, (_, i) => ({ beat: i * BEATS_PER_BAR, symbol: chordAtBar(groove, (phase === "running" ? turnBar(laneTurn, bars) : 0) + i).symbol })),
@@ -378,10 +379,10 @@
   });
   const grooveLabel = $derived(CALL_GROOVES.find((g) => g.id === groove.id)?.label ?? groove.name);
   const summaryLine = $derived([
-    { text: callMode === "echo" ? "Echo the call" : "Answer the call", focus: "mode" },
-    { text: `over a ${grooveLabel.toLowerCase()} in ${groove.key}`, focus: "groove" },
-    { text: `${bars}-bar calls`, focus: "bars" },
-    { text: `${CALL_TURNS} turns at ${bpm} BPM` },
+    { text: callMode === "echo" ? m.music_drills_callresponse_echo_call() : m.music_drills_callresponse_answer_call(), focus: "mode" },
+    { text: m.music_drills_callresponse_over({ groove: grooveLabel.toLowerCase(), key: groove.key }), focus: "groove" },
+    { text: m.music_drills_callresponse_bar_calls({ count: bars }), focus: "bars" },
+    { text: m.music_drills_callresponse_turns_at({ turns: CALL_TURNS, bpm }) },
   ]);
 </script>
 
@@ -390,8 +391,8 @@
   title={CHANGES_TITLE}
   trainer={changesTrainer("call-response")}
   hue="ear"
-  blurb="A short call over the band, then your turn: echo it back, or answer with your own phrase."
-  modeNotes={{ practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." }}
+  blurb={m.music_drills_callresponse_blurb()}
+  modeNotes={{ practice: m.music_drills_callresponse_note_practice(), check: m.music_drills_callresponse_note_check() }}
   summary={summaryLine}
   bind:phase
   bind:mode
@@ -402,30 +403,30 @@
   demoPlaying={!!demo?.playing}
   onstart={start}
   onstop={stop}
-  cue={phase === "countin" ? "Count-in: the call comes first" : phase !== "running" ? "" : !now ? "Get ready" : now.part === "call" ? "Listen to the call" : callMode === "echo" ? "Your turn: echo it" : "Your turn: answer it"}
+  cue={phase === "countin" ? m.music_drills_callresponse_cue_countin() : phase !== "running" ? "" : !now ? m.music_drills_callresponse_get_ready() : now.part === "call" ? m.music_drills_callresponse_cue_listen_call() : callMode === "echo" ? m.music_drills_callresponse_cue_echo() : m.music_drills_callresponse_cue_answer()}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
       <Choice
-        label="Your part"
+        label={m.music_drills_callresponse_choice_part()}
         setupKey="mode"
         options={[
-          { value: "echo", label: "Echo the call", hint: "Play the call back, in time, in any octave." },
-          { value: "answer", label: "Answer it", hint: "Your own phrase: stay on the grid and end on a chord tone." },
+          { value: "echo", label: m.music_drills_callresponse_echo_call(), hint: m.music_drills_callresponse_echo_hint() },
+          { value: "answer", label: m.music_drills_callresponse_answer_it(), hint: m.music_drills_callresponse_answer_hint() },
         ]}
         value={callMode}
         onchange={(v) => cfg.set({ mode: v })}
       />
-      <Choice label="Groove" setupKey="groove" options={CALL_GROOVES.map((g) => ({ value: g.id, label: g.label }))} value={groove.id} onchange={(v) => cfg.set({ groove: v })} />
-      <Choice label="Call length" setupKey="bars" options={[{ value: "1", label: "One bar" }, { value: "2", label: "Two bars" }]} value={String(bars)} onchange={(v) => cfg.set({ bars: v })} />
+      <Choice label={m.music_drills_callresponse_choice_groove()} setupKey="groove" options={CALL_GROOVES.map((g) => ({ value: g.id, label: g.label }))} value={groove.id} onchange={(v) => cfg.set({ groove: v })} />
+      <Choice label={m.music_drills_callresponse_choice_length()} setupKey="bars" options={[{ value: "1", label: m.music_drills_chordscales_one_bar() }, { value: "2", label: m.music_drills_chordscales_two_bars() }]} value={String(bars)} onchange={(v) => cfg.set({ bars: v })} />
     </div>
-    <p class="mt-3 text-sm text-ws-soft">Set the tempo in the top bar. Each run is saved as a take you can hear in Record.</p>
+    <p class="mt-3 text-sm text-ws-soft">{m.music_drills_callresponse_tempo_note()}</p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Turn" value="{Math.min(CALL_TURNS, (now?.turn ?? 0) + 1)} of {CALL_TURNS}" />
-      {#if mode === "practice"}<Stat label="Turns right" value={turns.filter((t) => t.correct).length} />{/if}
+      <Stat label={m.music_drills_callresponse_stat_turn()} value={m.music_drills_voicings_n_of({ n: Math.min(CALL_TURNS, (now?.turn ?? 0) + 1), total: CALL_TURNS })} />
+      {#if mode === "practice"}<Stat label={m.music_drills_callresponse_stat_right()} value={turns.filter((t) => t.correct).length} />{/if}
     {/if}
   {/snippet}
 
@@ -440,10 +441,10 @@
     >
       <div class="flex flex-wrap items-center gap-3">
         <p class="cue font-display text-3xl font-semibold" data-part={now?.part ?? ""} aria-live="polite">
-          {phase !== "running" ? "Listen, then play" : !now ? "Get ready" : now.part === "call" ? "Listen" : "Your turn"}
+          {phase !== "running" ? m.music_drills_callresponse_listen_then_play() : !now ? m.music_drills_callresponse_get_ready() : now.part === "call" ? m.music_drills_callresponse_listen() : m.music_drills_callresponse_your_turn()}
         </p>
         <p class="text-sm text-ws-stage-soft">
-          Key of {groove.key.replace(/ major$/, "")}, now {chordAtBar(groove, now ? Math.floor((performance.now() - downbeat) / barMs()) : 0).symbol}
+          {m.music_drills_callresponse_key_now({ key: groove.key.replace(/ major$/, ""), chord: chordAtBar(groove, now ? Math.floor((performance.now() - downbeat) / barMs()) : 0).symbol })}
         </p>
       </div>
       <!-- The call as note blocks in time, lit as it plays; your notes fill the row under it as you play. -->
@@ -454,7 +455,7 @@
           beat={demo?.playing ? demoBeat : laneBeat}
           chords={laneChords}
           hidden={false}
-          label={phase === "running" ? `Turn ${laneTurn + 1}: the call, ${laneCall.length} notes, and your notes so far, ${reply.length}` : `A sample call: ${laneCall.length} notes over ${laneChords.map((c) => c.symbol).join(", ")}`}
+          label={phase === "running" ? m.music_drills_callresponse_lane_running({ turn: laneTurn + 1, callCount: laneCall.length, replyCount: reply.length }) : m.music_drills_callresponse_lane_sample({ count: laneCall.length, chords: laneChords.map((c) => c.symbol).join(", ") })}
         />
       </div>
       {#if phase === "running" && mode === "practice" && verdict?.kind === "in"}
@@ -470,12 +471,12 @@
         <!-- Check: while you play only a count (the notes stay hidden); once the turn is over, what you played by
              name. Right or wrong waits for the end. -->
         <p class="min-h-8 text-sm" aria-live="polite">
-          {#if now?.part === "answer"}<span class="text-ws-stage-soft">Notes heard:</span> <span class="font-medium">{heard.length}</span>
-          {:else if lastHeard.length}<span class="text-ws-stage-soft">You played:</span> <span class="font-medium [word-spacing:0.4rem]">{lastHeard.join(" ")}</span>{/if}
+          {#if now?.part === "answer"}<span class="text-ws-stage-soft">{m.music_drills_callresponse_notes_heard()}</span> <span class="font-medium">{heard.length}</span>
+          {:else if lastHeard.length}<span class="text-ws-stage-soft">{m.music_drills_callresponse_you_played()}</span> <span class="font-medium [word-spacing:0.4rem]">{lastHeard.join(" ")}</span>{/if}
         </p>
       {/if}
       {#if turns.length && mode === "practice"}
-        <ol class="flex flex-wrap gap-1.5" aria-label="Turns">
+        <ol class="flex flex-wrap gap-1.5" aria-label={m.music_drills_callresponse_turns()}>
           {#each turns as t, i (i)}
             <li class="turn rounded-full px-3 py-1 text-sm" data-state={t.correct ? "right" : "wrong"}>{i + 1}: {t.text}</li>
           {/each}
@@ -485,8 +486,8 @@
       <!-- A live phone run: this region takes the free height and the keys sit at its foot, under the thumb. -->
       <div class="flex flex-col justify-end" data-dock="instrument" data-grow={phone.current && phase === "running" ? "" : undefined}><InstrumentStage line={keyLine} {marks} {flashes} {...span} /></div>
       {#if phase === "ready" && !demo?.playing}
-        <p class="text-sm text-ws-stage-soft">The lane shows a sample call. Each turn brings a new one between C4 and E5. Each starts and ends on a chord tone: the lit keys are the tones of {chordAtBar(groove, 0).symbol}, the first chord.</p>
-      {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">The call's keys light as it plays. Your notes flash with a tick or a cross.</p>{/if}
+        <p class="text-sm text-ws-stage-soft">{m.music_drills_callresponse_ready_note({ chord: chordAtBar(groove, 0).symbol })}</p>
+      {:else if mode === "practice"}<p class="text-sm text-ws-stage-soft">{m.music_drills_callresponse_practice_note()}</p>{/if}
     </div>
   {/snippet}
 

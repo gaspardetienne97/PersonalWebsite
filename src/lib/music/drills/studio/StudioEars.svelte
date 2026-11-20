@@ -36,6 +36,7 @@
   import { audio } from "#lib/music/runtime/index.ts";
   import { listeningLessons } from "@repo/music-core/lessons/reading";
   import Volume2 from "@lucide/svelte/icons/volume-2";
+  import { m } from "@repo/i18n/messages.js";
 
   const LENGTH = 10;
   const entry = catalogEntry("listening")!;
@@ -63,25 +64,33 @@
   const pans = $derived((s.pans === "5" ? "5" : "3") as "3" | "5");
   const eqTask = $derived(exercise === "peak" || exercise === "cut" || exercise === "boost-or-cut");
   const LEVEL_OPTIONS = [
-    { value: "6,3", label: "6 and 3 dB" },
-    { value: "6,3,2", label: "6, 3 and 2 dB" },
-    { value: "6,3,2,1", label: "6, 3, 2 and 1 dB" },
+    { value: "6,3", label: m.music_drills_studio_ears_level_6_3() },
+    { value: "6,3,2", label: m.music_drills_studio_ears_level_6_3_2() },
+    { value: "6,3,2,1", label: m.music_drills_studio_ears_level_6_3_2_1() },
   ];
   /** The one knob each exercise moves through, easy to hard (compression has none). */
   const KNOBS: Partial<Record<StudioExercise, { key: "bands" | "gain" | "levels" | "pans" | "delays"; steps: { value: string; label: string }[] }>> = {
-    peak: { key: "bands", steps: [{ value: "3", label: "3 bands" }, { value: "5", label: "5 bands" }, { value: "9", label: "9 octave bands" }] },
-    cut: { key: "bands", steps: [{ value: "3", label: "3 bands" }, { value: "5", label: "5 bands" }, { value: "9", label: "9 octave bands" }] },
+    peak: { key: "bands", steps: [{ value: "3", label: m.music_drills_studio_ears_bands_3() }, { value: "5", label: m.music_drills_studio_ears_bands_5() }, { value: "9", label: m.music_drills_studio_ears_bands_9() }] },
+    cut: { key: "bands", steps: [{ value: "3", label: m.music_drills_studio_ears_bands_3() }, { value: "5", label: m.music_drills_studio_ears_bands_5() }, { value: "9", label: m.music_drills_studio_ears_bands_9() }] },
     "boost-or-cut": { key: "gain", steps: GAINS.map((g) => ({ value: String(g), label: `${g} dB` })) },
-    level: { key: "levels", steps: LEVEL_OPTIONS.map((o) => ({ ...o, label: `${o.label} steps` })) },
-    pan: { key: "pans", steps: [{ value: "3", label: "Three positions" }, { value: "5", label: "Five positions" }] },
-    delay: { key: "delays", steps: [{ value: "3", label: "Three echo times" }, { value: "4", label: "Four echo times" }] },
+    level: { key: "levels", steps: LEVEL_OPTIONS.map((o) => ({ ...o, label: m.music_drills_studio_ears_level_steps({ levels: o.label }) })) },
+    pan: { key: "pans", steps: [{ value: "3", label: m.music_drills_studio_ears_three_positions() }, { value: "5", label: m.music_drills_studio_ears_five_positions() }] },
+    delay: { key: "delays", steps: [{ value: "3", label: m.music_drills_studio_ears_three_echoes() }, { value: "4", label: m.music_drills_studio_ears_four_echoes() }] },
   };
   /** Short names for the tab row. */
-  const TAB: Record<StudioExercise, string> = { peak: "Boost", cut: "Cut", "boost-or-cut": "Boost or cut", level: "Level", pan: "Pan", compression: "Compression", delay: "Delay" };
+  const TAB: Record<StudioExercise, string> = {
+    peak: m.music_drills_studio_ears_tab_boost(),
+    cut: m.music_drills_studio_ears_tab_cut(),
+    "boost-or-cut": m.music_drills_studio_ears_tab_boost_or_cut(),
+    level: m.music_drills_studio_ears_tab_level(),
+    pan: m.music_drills_studio_ears_tab_pan(),
+    compression: m.music_drills_studio_ears_tab_compression(),
+    delay: m.music_drills_studio_ears_tab_delay(),
+  };
   const MATERIALS = [
-    { value: "noise", label: "Pink noise" },
-    { value: "drums", label: "Drum loop" },
-    { value: "music", label: "Band loop" },
+    { value: "noise", label: m.music_drills_studio_ears_pink_noise() },
+    { value: "drums", label: m.music_drills_studio_ears_drum_loop() },
+    { value: "music", label: m.music_drills_studio_ears_band_loop() },
   ];
 
   let phase = $state<Phase>("ready");
@@ -115,7 +124,7 @@
       : p.exercise === "peak" || p.exercise === "cut"
         ? bandLabel(Number(t))
         : p.exercise === "boost-or-cut"
-          ? t === "boost" ? "Boost" : "Cut"
+          ? t === "boost" ? m.music_drills_studio_ears_tab_boost() : m.music_drills_studio_ears_tab_cut()
           : p.exercise === "level"
             ? `${t} dB`
             : p.exercise === "compression"
@@ -136,7 +145,7 @@
     seed = {};
     qi = 0;
     step = "loading";
-    status = "Getting the loop ready…";
+    status = m.music_drills_studio_ears_getting_ready();
     await audio.unlock();
     buffer = await audio.studio.material(material);
     if (phase !== "running") return;
@@ -169,7 +178,7 @@
     loop?.set(p.change, trim);
     hearing = null;
     step = "answer";
-    status = `Question ${qi + 1} of ${LENGTH}: Flat, then Changed. Flip between them as often as you like.`;
+    status = m.music_drills_studio_ears_question_status({ n: qi + 1, total: LENGTH });
     // Flat first, then Changed, the way most trainers present it.
     show(false);
     introTimer = setTimeout(() => step === "answer" && show(true), 1500);
@@ -207,8 +216,8 @@
     });
     if (mode === "practice")
       status = g.correct
-        ? `Right: ${label(p, p.answer)}. Flip again to hear it knowing the answer.`
-        : `It was ${label(p, p.answer)}. You said ${label(p, t)}${g.near ? ", one step off (half credit)" : ""}.`;
+        ? m.music_drills_studio_ears_right_status({ answer: label(p, p.answer) })
+        : (g.near ? m.music_drills_studio_ears_wrong_status_near : m.music_drills_studio_ears_wrong_status)({ answer: label(p, p.answer), said: label(p, t) });
     else setTimeout(next, 500);
   }
 
@@ -264,28 +273,30 @@
     const right = records.filter((r) => r.correct).length;
     const near = records.filter((r) => r.near).length;
     const score = records.reduce((t, r) => t + r.score, 0) / LENGTH;
-    const fin = await run!.finish({ score, correct: right === LENGTH, headline: `${right} of ${LENGTH}` });
+    const fin = await run!.finish({ score, correct: right === LENGTH, headline: m.music_drills_studio_of({ a: right, b: LENGTH }) });
     const choices = records[0]?.prompt.choices ?? [];
     const weakest = weakestAnswer(choices);
     summary = {
       headline:
         right === LENGTH
-          ? `All ${LENGTH} right.`
-          : `${right} of ${LENGTH} right${near ? `, ${near} one step off` : ""}.`,
+          ? m.music_drills_studio_ears_all_right({ total: LENGTH })
+          : near
+            ? m.music_drills_studio_ears_right_of_near({ right, total: LENGTH, near })
+            : m.music_drills_studio_ears_right_of({ right, total: LENGTH }),
       metric: pct(score),
-      metricLabel: "score",
+      metricLabel: m.music_drills_studio_score(),
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === LENGTH,
-      cleanMeans: "every answer right",
-      coach: weakest ? { label: `Again: mostly ${label(records[0].prompt, weakest)}`, run: () => drillAnswer(weakest) } : undefined,
+      cleanMeans: m.music_drills_studio_ears_clean_means(),
+      coach: weakest ? { label: m.music_drills_studio_ears_coach({ answer: label(records[0].prompt, weakest) }), run: () => drillAnswer(weakest) } : undefined,
       xp: fin.xp,
       mode,
       rows: bandRows(choices),
-      routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
+      routine: page.url.searchParams.get("routine") ? { label: m.music_drills_studio_ears_back_today(), href: "/music" } : undefined,
       advance: await advanceAfter(score, right === LENGTH),
     };
-    status = `${summary.headline} Rest your ears for a minute before the next run.`;
+    status = m.music_drills_studio_ears_rest_status({ headline: summary.headline });
   }
 
   /** The one answer below every other this run (none when tied or all right). */
@@ -307,12 +318,12 @@
       .map((c) => {
         const here = records.filter((r) => r.prompt.answer === c);
         const ok = here.filter((r) => r.correct).length;
-        return { label: label(records[0].prompt, c), value: ok / here.length, text: `${ok} of ${here.length}`, tone: undefined as "warn" | undefined };
+        return { label: label(records[0].prompt, c), value: ok / here.length, text: m.music_drills_studio_of({ a: ok, b: here.length }), tone: undefined as "warn" | undefined };
       });
     const low = Math.min(...rows.map((r) => r.value));
     const weakest = rows.filter((r) => r.value === low);
     // Results draws the flag (a warning glyph and "Needs work"), so the text only names it.
-    if (low < 1 && weakest.length === 1) Object.assign(weakest[0], { text: `${weakest[0].text}, your weak spot`, tone: "warn" as const });
+    if (low < 1 && weakest.length === 1) Object.assign(weakest[0], { text: m.music_drills_studio_ears_weak_spot({ text: weakest[0].text }), tone: "warn" as const });
     return rows;
   }
 
@@ -332,7 +343,7 @@
   function stop() {
     teardown();
     phase = "ready";
-    status = `Stopped after ${records.length} answer${records.length === 1 ? "" : "s"}.`;
+    status = m.music_drills_studio_ears_stopped({ count: records.length });
   }
 
   function onKey(e: KeyboardEvent) {
@@ -372,111 +383,111 @@
     return pts.join(" ");
   });
   const summaryLine = $derived<SetupClause[]>([
-    { text: MATERIALS.find((m) => m.value === material)?.label.toLowerCase() ?? material, focus: "material" },
+    { text: MATERIALS.find((x) => x.value === material)?.label.toLowerCase() ?? material, focus: "material" },
     exercise === "peak" || exercise === "cut"
-      ? { text: `${BAND_SETS[bands].length} bands, ${exercise === "cut" ? "cut" : "boosted"} ${gainDb} dB`, focus: "bands" }
+      ? { text: (exercise === "cut" ? m.music_drills_studio_ears_sum_bands_cut : m.music_drills_studio_ears_sum_bands_boosted)({ count: BAND_SETS[bands].length, db: gainDb }), focus: "bands" }
       : exercise === "boost-or-cut"
         ? { text: `${gainDb} dB`, focus: "gain" }
         : exercise === "level"
-          ? { text: `${levels.join(", ")} dB steps`, focus: "levels" }
+          ? { text: m.music_drills_studio_ears_sum_level_steps({ levels: levels.join(", ") }), focus: "levels" }
           : exercise === "compression"
-            ? { text: "none, light or heavy" }
+            ? { text: m.music_drills_studio_ears_sum_compression() }
             : exercise === "delay"
-              ? { text: `${delays} echo times`, focus: "delays" }
-              : { text: `${PAN_SETS[pans].length} positions`, focus: "pans" },
-    { text: `${LENGTH} questions` },
+              ? { text: m.music_drills_studio_ears_sum_echoes({ count: delays }), focus: "delays" }
+              : { text: m.music_drills_studio_ears_sum_positions({ count: PAN_SETS[pans].length }), focus: "pans" },
+    { text: m.music_drills_studio_ears_sum_questions({ count: LENGTH }) },
   ]);
 </script>
 
-<svelte:head><title>Studio ears | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_drills_studio_ears_head_title()}</title></svelte:head>
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
   instrumentFree
   lesson={{ lessons: listeningLessons(exercise, { material, bands, gainDb, levels: levels.length ? levels : [6, 3], pans, delays }) }}
-  title="Ear"
+  title={m.music_drills_studio_ears_title()}
   trainer={earTrainer(entry.id)}
   hue="ear"
-  blurb="Hear a loop flat and changed, and name the change."
+  blurb={m.music_drills_studio_ears_blurb()}
   summary={summaryLine}
   tabs={STUDIO_EXERCISES.map((e) => ({ id: e.id, label: TAB[e.id] }))}
   tab={exercise}
   ontab={(id) => cfg.set({ exercise: id })}
-  modeNotes={{ practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." }}
+  modeNotes={{ practice: m.music_drills_studio_ears_note_practice(), check: m.music_drills_studio_ears_note_check() }}
   bind:phase
   bind:mode
   bind:status
   progress={(qi + 1) / LENGTH}
   onstart={start}
   onstop={stop}
-  cue={phase !== "running" || !current ? "" : step === "feedback" ? "" : "Flip Flat and Changed, then pick"}
-  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? "Next" : "See results", run: next } : null}
+  cue={phase !== "running" || !current ? "" : step === "feedback" ? "" : m.music_drills_studio_ears_cue()}
+  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? m.music_drills_studio_next() : m.music_drills_studio_see_results(), run: next } : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2">
-      <Choice label="Loop" setupKey="material" options={needsHits ? MATERIALS.slice(1) : MATERIALS} value={material} onchange={(v) => cfg.set({ material: v })} />
+      <Choice label={m.music_drills_studio_ears_loop()} setupKey="material" options={needsHits ? MATERIALS.slice(1) : MATERIALS} value={material} onchange={(v) => cfg.set({ material: v })} />
       {#if exercise === "delay"}
-        <Choice label="Echo times" setupKey="delays" options={[{ value: "3", label: "1/16, 1/8, 1/4" }, { value: "4", label: "With dotted 1/8" }]} value={delays} onchange={(v) => cfg.set({ delays: v })} />
+        <Choice label={m.music_drills_studio_ears_echo_times()} setupKey="delays" options={[{ value: "3", label: "1/16, 1/8, 1/4" }, { value: "4", label: m.music_drills_studio_ears_dotted() }]} value={delays} onchange={(v) => cfg.set({ delays: v })} />
       {/if}
       {#if exercise === "peak" || exercise === "cut"}
-        <Choice label="Bands" setupKey="bands" options={KNOBS.peak!.steps} value={bands} onchange={(v) => cfg.set({ bands: v })} />
+        <Choice label={m.music_drills_studio_ears_bands()} setupKey="bands" options={KNOBS.peak!.steps} value={bands} onchange={(v) => cfg.set({ bands: v })} />
       {/if}
       {#if eqTask}
-        <Choice label={exercise === "peak" ? "Boost size" : exercise === "cut" ? "Cut size" : "Amount"} setupKey="gain" options={GAINS.map((g) => ({ value: String(g), label: `${g} dB` }))} value={String(gainDb)} onchange={(v) => cfg.set({ gain: v })} />
+        <Choice label={exercise === "peak" ? m.music_drills_studio_ears_boost_size() : exercise === "cut" ? m.music_drills_studio_ears_cut_size() : m.music_drills_studio_ears_amount()} setupKey="gain" options={GAINS.map((g) => ({ value: String(g), label: `${g} dB` }))} value={String(gainDb)} onchange={(v) => cfg.set({ gain: v })} />
       {/if}
       {#if exercise === "level"}
-        <Choice label="Steps" setupKey="levels" options={LEVEL_OPTIONS} value={s.levels} onchange={(v) => cfg.set({ levels: v })} />
+        <Choice label={m.music_drills_studio_ears_steps()} setupKey="levels" options={LEVEL_OPTIONS} value={s.levels} onchange={(v) => cfg.set({ levels: v })} />
       {/if}
       {#if exercise === "pan"}
-        <Choice label="Positions" setupKey="pans" options={[{ value: "3", label: "Left, centre, right" }, { value: "5", label: "Five" }]} value={pans} onchange={(v) => cfg.set({ pans: v })} />
+        <Choice label={m.music_drills_studio_ears_positions()} setupKey="pans" options={[{ value: "3", label: m.music_drills_studio_ears_left_centre_right() }, { value: "5", label: m.music_drills_studio_ears_five() }]} value={pans} onchange={(v) => cfg.set({ pans: v })} />
       {/if}
     </div>
     <p class="mt-3 text-sm text-ws-soft">
-      {#if needsHits}{meta.title} needs hits to hear, so it plays on the drum or band loop.{/if}
-      Use the same headphones or speakers every time, at a level you could listen to all day. Short runs work best: rest your ears between them.
+      {#if needsHits}{m.music_drills_studio_ears_needs_hits({ title: meta.title })}{/if}
+      {m.music_drills_studio_ears_headphones()}
     </p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running" && current}
-      <Stat label="Question" value="{qi + 1} of {LENGTH}" />
-      {#if mode === "practice"}<Stat label="Right so far" value={records.filter((r) => r.correct).length} />{/if}
+      <Stat label={m.music_drills_studio_ears_question()} value={m.music_drills_studio_of({ a: qi + 1, b: LENGTH })} />
+      {#if mode === "practice"}<Stat label={m.music_drills_studio_ears_right_so_far()} value={records.filter((r) => r.correct).length} />{/if}
     {/if}
   {/snippet}
 
   {#snippet stage()}
     {#if phase === "running" && current}
       {@const p = current}
-      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Question {qi + 1}" data-exercise={p.exercise} data-answer={p.answer} data-step={step}>
-        <p class="text-sm text-ws-stage-soft">{MATERIALS.find((m) => m.value === material)?.label}</p>
+      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label={m.music_drills_studio_ears_question_n({ n: qi + 1 })} data-exercise={p.exercise} data-answer={p.answer} data-step={step}>
+        <p class="text-sm text-ws-stage-soft">{MATERIALS.find((x) => x.value === material)?.label}</p>
         <p class="font-display text-xl font-semibold sm:text-2xl">{meta.ask}</p>
-        <div class="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="Listen to">
+        <div class="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label={m.music_drills_studio_ears_listen_to()}>
           <!-- The one playing carries a speaker that pulses (still with reduced motion). -->
-          <button type="button" class="flip" aria-pressed={!changed} onclick={() => show(false)}>{#if !changed}<Volume2 class="playing size-4" aria-hidden="true" />{/if}Flat <kbd>A</kbd></button>
+          <button type="button" class="flip" aria-pressed={!changed} onclick={() => show(false)}>{#if !changed}<Volume2 class="playing size-4" aria-hidden="true" />{/if}{m.music_drills_studio_ears_flat()} <kbd>A</kbd></button>
           <button type="button" class="flip" aria-pressed={changed} onclick={() => {
               // Back from a compared band to the prompt's own change (EQ bands only, so no loudness trim).
               if (hearing && current) loop?.set(current.change, 0);
               hearing = null;
               show(true);
-            }}>{#if changed}<Volume2 class="playing size-4" aria-hidden="true" />{/if}Changed <kbd>B</kbd></button>
+            }}>{#if changed}<Volume2 class="playing size-4" aria-hidden="true" />{/if}{m.music_drills_studio_ears_changed()} <kbd>B</kbd></button>
           <!-- A switch, beside the pair it flips. -->
           <button type="button" class="auto" role="switch" aria-checked={s.flip === "auto"} onclick={() => setAutoFlip(s.flip !== "auto")}>
-            <span class="track" aria-hidden="true"><span class="thumb"></span></span>Auto flip every 2 s
+            <span class="track" aria-hidden="true"><span class="thumb"></span></span>{m.music_drills_studio_ears_auto_flip()}
           </button>
         </div>
         <!-- The loop as it plays: what you are hearing, and how far through it is. -->
         <div class="mt-3 flex items-center gap-3 text-sm" aria-hidden="true">
-          <span class="shrink-0 whitespace-nowrap font-semibold">Playing {changed ? (hearing ? `${label(p, hearing)} ${p.exercise === "cut" ? "cut" : "boosted"}` : "Changed") : "Flat"}</span>
+          <span class="shrink-0 whitespace-nowrap font-semibold">{m.music_drills_studio_ears_playing({ what: changed ? (hearing ? (p.exercise === "cut" ? m.music_drills_studio_ears_band_cut : m.music_drills_studio_ears_band_boosted)({ band: label(p, hearing) }) : m.music_drills_studio_ears_changed()) : m.music_drills_studio_ears_flat() })}</span>
           <span class="relative h-1.5 flex-1 overflow-hidden rounded-full bg-ws-stage-ink/15">
             <span class="absolute inset-y-0 left-0 rounded-full bg-instr" style:width="{loopAt * 100}%"></span>
           </span>
         </div>
         {#if eqTask}
-          {@render graph(p.choices, step === "feedback" && p.change.eq ? `${p.change.eq.gainDb > 0 ? "+" : ""}${p.change.eq.gainDb} dB at ${bandLabel(p.change.eq.freq)}` : "The frequency range, before the answer")}
+          {@render graph(p.choices, step === "feedback" && p.change.eq ? m.music_drills_studio_ears_graph_change({ gain: `${p.change.eq.gainDb > 0 ? "+" : ""}${p.change.eq.gainDb}`, band: bandLabel(p.change.eq.freq) }) : m.music_drills_studio_ears_graph_before())}
         {/if}
         <div data-dock="answers">
           <!-- Under the graph, each answer sits below its band; otherwise one equal grid, never a lone last button. -->
-          <div class={aligned ? "relative mt-1 h-12" : "answers mt-4 grid gap-2"} style:--np={p.choices.length === 4 ? 2 : Math.min(3, p.choices.length)} style:--ns={p.choices.length <= 5 ? p.choices.length : p.choices.length === 6 ? 3 : 4} role="group" aria-label="Answers">
+          <div class={aligned ? "relative mt-1 h-12" : "answers mt-4 grid gap-2"} style:--np={p.choices.length === 4 ? 2 : Math.min(3, p.choices.length)} style:--ns={p.choices.length <= 5 ? p.choices.length : p.choices.length === 6 ? 3 : 4} role="group" aria-label={m.music_drills_studio_ears_answers()}>
             {#each p.choices as t, i (t)}
               {@const r = step === "feedback" ? records.at(-1) : undefined}
               <button
@@ -495,19 +506,19 @@
             <!-- The verdict right under the answers it marks, then the one next step. -->
             <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
               <p class="text-lg font-semibold">
-                {#if r.correct}<span class="verdict right" aria-hidden="true">✓</span> Right: {label(p, p.answer)}.
-                {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {label(p, p.answer)}. You said {label(p, r.answered)}{r.near ? ", one step off" : ""}.{/if}
+                {#if r.correct}<span class="verdict right" aria-hidden="true">✓</span> {m.music_drills_studio_ears_fb_right({ answer: label(p, p.answer) })}
+                {:else}<span class="verdict wrong" aria-hidden="true">✕</span> {(r.near ? m.music_drills_studio_ears_fb_wrong_near : m.music_drills_studio_ears_wrong_status)({ answer: label(p, p.answer), said: label(p, r.answered) })}{/if}
               </p>
               {#if mode === "practice"}
                 <!-- From sm the card holds Continue; a phone docks it (the shell's step). -->
-                <button type="button" class="{btnPrimary} max-sm:hidden sm:ml-auto" onclick={next}>{qi + 1 < LENGTH ? "Next" : "See results"}</button>
+                <button type="button" class="{btnPrimary} max-sm:hidden sm:ml-auto" onclick={next}>{qi + 1 < LENGTH ? m.music_drills_studio_next() : m.music_drills_studio_see_results()}</button>
               {/if}
             </div>
             {#if mode === "practice" && !r.correct && p.change.eq && (p.exercise === "peak" || p.exercise === "cut")}
               <!-- A miss becomes a comparison: the change at the right band, then at yours. -->
               <div class="mt-2 flex flex-wrap gap-2">
                 {#each [p.answer, r.answered] as b (b)}
-                  <button type="button" class={btnStage} aria-pressed={hearing === b} onclick={() => hearBand(p, b)}><Volume2 class="size-4" aria-hidden="true" />Hear {label(p, b)}</button>
+                  <button type="button" class={btnStage} aria-pressed={hearing === b} onclick={() => hearBand(p, b)}><Volume2 class="size-4" aria-hidden="true" />{m.music_drills_studio_ears_hear_band({ band: label(p, b) })}</button>
                 {/each}
               </div>
             {/if}
@@ -515,16 +526,16 @@
         </div>
       </article>
     {:else if phase === "running"}
-      <p class="py-8 text-center text-ws-stage-soft">Getting the loop ready…</p>
+      <p class="py-8 text-center text-ws-stage-soft">{m.music_drills_studio_ears_getting_ready()}</p>
     {:else}
       <div class="space-y-2 py-2">
         <!-- The safety note on its own line, never cut short. -->
-        <p class="text-sm font-semibold">Keep the volume comfortable and the same all run.</p>
+        <p class="text-sm font-semibold">{m.music_drills_studio_ears_keep_volume()}</p>
         <!-- What a run is, not the subtitle again; for an EQ change, the range it happens in. -->
         <p class="font-display text-xl font-semibold">{meta.ask}</p>
-        <p class="text-sm text-ws-stage-soft">{LENGTH} questions. Each plays Flat, then Changed; flip between them with the buttons or A and B, then pick the answer.</p>
+        <p class="text-sm text-ws-stage-soft">{m.music_drills_studio_ears_intro({ count: LENGTH })}</p>
         {#if eqTask && (exercise === "peak" || exercise === "cut")}
-          {@render graph(BAND_SETS[bands].map(String), `The answers: ${BAND_SETS[bands].map(bandLabel).join(", ")}, on the frequency range`)}
+          {@render graph(BAND_SETS[bands].map(String), m.music_drills_studio_ears_answers_graph({ bands: BAND_SETS[bands].map(bandLabel).join(", ") }))}
         {/if}
       </div>
     {/if}

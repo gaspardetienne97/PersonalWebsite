@@ -9,6 +9,7 @@
   // first note, one key or fret at a time (on a phone only the two ends carry a
   // number); a wrong choice shows as a red key with a cross and its name, where
   // that answer would have landed. Notes light as they sound.
+  import { m } from "@repo/i18n/messages.js";
   import { noteName } from "@repo/music-core";
   import type { EarPrompt } from "@repo/music-core/content/ear";
   import InstrumentStage, { fretTuning } from "#lib/music/components/InstrumentStage.svelte";
@@ -105,20 +106,28 @@
   const playedText = $derived.by(() => {
     if (ends) {
       const [a, b] = spellInterval(from, ends[1]);
-      return `${tokenLabel("interval", prompt.answer)}, ${a} ${prompt.direction === "harmonic" ? "and" : way > 0 ? "up to" : "down to"} ${b}, ${steps} half step${steps === 1 ? "" : "s"}`;
+      const msg = prompt.direction === "harmonic" ? m.music_drills_ear_reveal_interval_harmonic : way > 0 ? m.music_drills_ear_reveal_interval_up : m.music_drills_ear_reveal_interval_down;
+      return msg({ name: tokenLabel("interval", prompt.answer), a, b, count: steps });
     }
-    if (prompt.drill === "inversion") return `${tokenLabel("inversion", prompt.answer)}: ${names(played)}, ${bass(played)} in the bass`;
-    if (degree) return `${tokenLabel("scale-degree", prompt.answer)}: ${played.map((m) => spellDegree(m, tonic, prompt.answer).replace(/-?\d+$/, "")).join(" ")}, over the tonic ${noteName(tonic, "flat", false)}`;
-    return `${tokenLabel(prompt.drill, prompt.answer)}: ${names(played)}`;
+    if (prompt.drill === "inversion") return m.music_drills_ear_reveal_inversion({ name: tokenLabel("inversion", prompt.answer), notes: names(played), bass: bass(played) });
+    if (degree)
+      return m.music_drills_ear_reveal_degree({
+        name: tokenLabel("scale-degree", prompt.answer),
+        notes: played.map((n) => spellDegree(n, tonic, prompt.answer).replace(/-?\d+$/, "")).join(" "),
+        tonic: noteName(tonic, "flat", false),
+      });
+    return m.music_drills_ear_reveal_notes({ name: tokenLabel(prompt.drill, prompt.answer), notes: names(played) });
   });
   const chosenText = $derived.by(() => {
     if (!chosen) return "";
     const ms = [...chosenNotes].sort((a, b) => a - b);
     if (ends) {
       const n = Math.abs(chosenNotes.at(-1)! - chosenNotes[0]);
-      return `${tokenLabel("interval", chosen.answer)}, ${n} half step${n === 1 ? "" : "s"}`;
+      return m.music_drills_ear_reveal_chosen_interval({ name: tokenLabel("interval", chosen.answer), count: n });
     }
-    return prompt.drill === "inversion" ? `${tokenLabel("inversion", chosen.answer)}: ${names(ms)}, ${bass(ms)} in the bass` : `${tokenLabel(prompt.drill, chosen.answer)}: ${names(ms)}`;
+    return prompt.drill === "inversion"
+      ? m.music_drills_ear_reveal_inversion({ name: tokenLabel("inversion", chosen.answer), notes: names(ms), bass: bass(ms) })
+      : m.music_drills_ear_reveal_notes({ name: tokenLabel(prompt.drill, chosen.answer), notes: names(ms) });
   });
 </script>
 
@@ -131,7 +140,7 @@
         <span class="flex items-center gap-2" aria-hidden="true">
           <span class="count tnum font-display text-3xl font-bold">{steps}</span>
           <span class="flex flex-col gap-1">
-            <span class="text-sm text-ws-stage-soft">half steps</span>
+            <span class="text-sm text-ws-stage-soft">{m.music_drills_ear_reveal_half_steps()}</span>
             <span class="flex gap-0.5">
               {#each { length: steps } as _, k (k)}<span class="pip" class:on={k < climb}></span>{/each}
             </span>
@@ -140,8 +149,8 @@
       {/if}
       <span class="flex min-w-0 flex-col text-sm">
         <!-- The legend: the swatch beside each line is the mark on the instrument. -->
-        <span class="font-semibold"><span class="played-key" aria-hidden="true"></span>Played: {playedText}</span>
-        {#if chosen}<span class="font-medium"><span class="chosen-key" aria-hidden="true">✕</span>You chose: {chosenText}</span>{/if}
+        <span class="font-semibold"><span class="played-key" aria-hidden="true"></span>{m.music_drills_ear_reveal_played({ text: playedText })}</span>
+        {#if chosen}<span class="font-medium"><span class="chosen-key" aria-hidden="true">✕</span>{m.music_drills_ear_reveal_you_chose({ text: chosenText })}</span>{/if}
       </span>
     </figcaption>
   </figure>
@@ -150,7 +159,7 @@
     <details class="staff mt-2">
       <summary class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-lg px-2 text-sm font-medium hover:bg-ws-stage-ink/8">
         <ChevronDown class="chev size-4" aria-hidden="true" />
-        <span class="closed-label">Show it on the staff</span><span class="open-label">Hide the staff</span>
+        <span class="closed-label">{m.music_drills_ear_reveal_show_staff()}</span><span class="open-label">{m.music_drills_ear_reveal_hide_staff()}</span>
       </summary>
       <EarVisual {prompt} revealed />
     </details>

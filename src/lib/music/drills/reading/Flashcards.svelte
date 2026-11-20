@@ -27,7 +27,8 @@
   import { nextRun } from "#lib/music/advance.svelte.ts";
   import { mic, settings } from "#lib/music/runtime/index.ts";
   import { catalogEntry } from "@repo/music-core/content/catalog";
-  import { clampRange, comparisonScore, flashcardScore, keyboardSpan, missMarks, playableWrittenRange, READING_TABS, type ReadingSetup } from "./reading";
+  import { m } from "@repo/i18n/messages.js";
+  import { clampRange, clefClause, comparisonScore, flashcardScore, instrumentName, keyboardSpan, keyLabel, missMarks, playableWrittenRange, READING_TABS, type ReadingSetup } from "./reading";
   import SetupFields from "./SetupFields.svelte";
   import { readingLessons } from "@repo/music-core/lessons/reading";
 
@@ -62,7 +63,7 @@
   const LENGTH = 10;
   const rand = rng(Math.floor(Math.random() * 2 ** 31));
   const entry = catalogEntry("reading")!;
-  const modeDef = entry.modes.find((m) => m.id === "flashcards")!;
+  const modeDef = entry.modes.find((md) => md.id === "flashcards")!;
 
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
@@ -91,9 +92,9 @@
   // what was played red with a cross, held until the next card.
   $effect(() => {
     if (!missedCard || !card || !answered || fretted) return;
-    const want = card.midi.map((m) => m + transpose);
-    if (byPlay) for (const m of answered.submitted.map((x) => x + transpose)) if (!want.includes(m)) flashes.add(m, "wrong", 600_000);
-    for (const m of want) flashes.add(m, "correct", 600_000);
+    const want = card.midi.map((n) => n + transpose);
+    if (byPlay) for (const n of answered.submitted.map((x) => x + transpose)) if (!want.includes(n)) flashes.add(n, "wrong", 600_000);
+    for (const n of want) flashes.add(n, "correct", 600_000);
     return () => flashes.clear();
   });
   const staffScore = $derived(card ? (missedCard && answered ? comparisonScore(card, answered.submitted, key.fifths) : flashcardScore(card, key.fifths)) : null);
@@ -105,7 +106,7 @@
   const high = $derived(span[1]);
 
   // With the octave when the answer was played (the staff names an octave).
-  const fullName = (p: FlashcardPrompt) => (byPlay ? p.midi.map((m) => noteName(m, key.fifths < 0 ? "flat" : "sharp")).join("-") : p.answer);
+  const fullName = (p: FlashcardPrompt) => (byPlay ? p.midi.map((n) => noteName(n, key.fifths < 0 ? "flat" : "sharp")).join("-") : p.answer);
   const expectedName = $derived(card ? fullName(card) : "");
 
   function makeCards() {
@@ -122,7 +123,7 @@
     queued = null;
     if (useMic && !(await mic.start())) {
       phase = "ready";
-      status = mic.error || "The microphone couldn't start. Allow it in the browser, then press Start.";
+      status = mic.error || m.music_drills_reading_mic_error();
       return;
     }
     run = practice.beginRun({
@@ -146,15 +147,15 @@
     hinted = false;
     played = [];
     shownAt = performance.now();
-    status = `Card ${i + 1} of ${cards.length}. ${byPlay ? "Play it." : "Name it."}`;
+    status = byPlay ? m.music_drills_reading_flash_status_play({ n: i + 1, total: cards.length }) : m.music_drills_reading_flash_status_name({ n: i + 1, total: cards.length });
   }
 
   function onNote(e: NoteEvent) {
     if (phase !== "running" || answered || !byPlay || e.at < shownAt) return;
     if (useMic ? e.source !== "audio" : e.source === "audio") return;
     played.push(e.midi - transpose);
-    if (e.string && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, cards[qi].midi.some((m) => pc(m) === pc(e.midi - transpose)) ? "correct" : "wrong");
-    else flashes.add(e.midi, cards[qi].midi.map((m) => m + transpose).includes(e.midi) ? "correct" : "wrong");
+    if (e.string && e.fret !== undefined) flashes.add(e.string * 100 + e.fret, cards[qi].midi.some((n) => pc(n) === pc(e.midi - transpose)) ? "correct" : "wrong");
+    else flashes.add(e.midi, cards[qi].midi.map((n) => n + transpose).includes(e.midi) ? "correct" : "wrong");
     clearTimeout(chordTimer);
     // A four-part chord doubles its root: three different notes answer it.
     const need = new Set(cards[qi].midi.map(pc)).size;
@@ -170,13 +171,17 @@
     // since the same note sits in several places and the mic can slip an octave.
     const correct = typeof response === "string" || instrument === "piano" || aero ? g.correct : flashcardCorrect(p, response);
     const submitted = typeof response === "string" ? response.split("-").map((n) => parseNote(n) ?? 60) : response;
-    const name = typeof response === "string" ? response : response.map((m) => noteName(m, key.fifths < 0 ? "flat" : "sharp")).join("-");
+    const name = typeof response === "string" ? response : response.map((n) => noteName(n, key.fifths < 0 ? "flat" : "sharp")).join("-");
     answered = { correct, submitted, name };
     answers = [...answers, { prompt: p, correct }];
     const notes = cap?.notes.filter((n) => n.kind === "noteon" && n.at >= shownAt) ?? [];
     const src: InputSource | "mixed" = typeof response === "string" ? "click" : runSource(notes);
     const assistance: Assistance | undefined = hinted ? "hinted" : undefined;
-    status = correct ? `Right: ${p.answer}.` : `You ${typeof response === "string" ? "answered" : "played"} ${name}. It was ${fullName(p)}.`;
+    status = correct
+      ? m.music_drills_reading_flash_right({ answer: p.answer })
+      : typeof response === "string"
+        ? m.music_drills_reading_flash_wrong_answered({ name, expected: fullName(p) })
+        : m.music_drills_reading_flash_wrong_played({ name, expected: fullName(p) });
     await run?.attempt({
       promptId: p.id,
       correct,
@@ -227,21 +232,21 @@
     summary = {
       headline:
         right === answers.length
-          ? `All ${answers.length} read right.`
-          : `${right} of ${answers.length} read right. Missed: ${missed.map((m) => m.answer).join(", ")}.`,
+          ? m.music_drills_reading_flash_all_right({ count: answers.length })
+          : m.music_drills_reading_flash_some_right({ right, total: answers.length, missed: missed.map((p) => p.answer).join(", ") }),
       metric: pct(score),
-      metricLabel: "read right",
+      metricLabel: m.music_drills_reading_flash_metric(),
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && right === answers.length,
-      cleanMeans: "every card right",
+      cleanMeans: m.music_drills_reading_flash_clean(),
       xp: fin.xp,
       mode,
       hinted: anyHint,
-      coach: missed.length ? { label: `Again: the notes you missed (${missed.length})`, run: retryMissed } : undefined,
+      coach: missed.length ? { label: m.music_drills_reading_retry_missed({ count: missed.length }), run: retryMissed } : undefined,
       rows: (["treble", "bass"] as const)
         .filter((c) => byClef(c).length)
-        .map((c) => ({ label: c === "treble" ? "Treble clef" : "Bass clef", value: byClef(c).filter((r) => r.correct).length / byClef(c).length, text: `${byClef(c).filter((r) => r.correct).length} of ${byClef(c).length}` })),
+        .map((c) => ({ label: c === "treble" ? m.music_drills_reading_flash_row_treble() : m.music_drills_reading_flash_row_bass(), value: byClef(c).filter((r) => r.correct).length / byClef(c).length, text: m.music_drills_reading_x_of_y({ n: byClef(c).filter((r) => r.correct).length, total: byClef(c).length }) })),
       // A retry of the missed cards is not the level's run.
       advance: retrying ? undefined : await advanceAfter(score, right === answers.length),
     };
@@ -264,7 +269,7 @@
   function stop() {
     teardown();
     phase = "ready";
-    status = "Stopped. Your answers are saved.";
+    status = m.music_drills_reading_stopped_saved();
   }
 
   function retryMissed() {
@@ -277,18 +282,18 @@
   onDestroy(teardown);
 
   const summaryLine = $derived<SetupClause[]>([
-    { text: level.id === "primer" ? `${level.label} level` : level.label, focus: "level" },
-    { text: kind === "note" ? (accidentals ? "single notes with accidentals" : "single notes") : kind === "satb" ? "four-part chords" : "triads", focus: "kind" },
-    { text: crossed ? "crossed clefs" : `${clefs.join(" and ")} clef`, focus: fretted || aero ? undefined : "clefs" },
-    { text: key.name, focus: "key" },
-    { text: `${noteName(range[0])} to ${noteName(range[1])}` },
-    { text: byPlay ? (useMic ? "play it into the mic" : "play it") : "name it", focus: "answer" },
-    { text: instrument },
+    { text: level.id === "primer" ? m.music_drills_reading_level_clause({ level: level.label }) : level.label, focus: "level" },
+    { text: kind === "note" ? (accidentals ? m.music_drills_reading_flash_kind_notes_acc() : m.music_drills_reading_flash_kind_notes()) : kind === "satb" ? m.music_drills_reading_flash_kind_satb() : m.music_drills_reading_flash_kind_triads(), focus: "kind" },
+    { text: crossed ? m.music_drills_reading_flash_crossed_clefs() : clefClause(clefs), focus: fretted || aero ? undefined : "clefs" },
+    { text: keyLabel(key.name), focus: "key" },
+    { text: m.music_drills_reading_flash_range({ low: noteName(range[0]), high: noteName(range[1]) }) },
+    { text: byPlay ? (useMic ? m.music_drills_reading_flash_answer_mic() : m.music_drills_reading_flash_answer_play()) : m.music_drills_reading_flash_answer_name(), focus: "answer" },
+    { text: instrumentName(instrument) },
   ]);
   const fretMarks = $derived(
     ((mode === "practice" && hinted) || (answered && !answered.correct)) && card && tuning
-      ? card.midi.flatMap((m) =>
-          tuning.openStrings.flatMap((open, i) => (m + transpose - open >= 0 && m + transpose - open <= 12 ? [{ string: i + 1, fret: m + transpose - open }] : [])),
+      ? card.midi.flatMap((n) =>
+          tuning.openStrings.flatMap((open, i) => (n + transpose - open >= 0 && n + transpose - open <= 12 ? [{ string: i + 1, fret: n + transpose - open }] : [])),
         )
       : [],
   );
@@ -298,19 +303,19 @@
     !card
       ? {}
       : missedCard
-        ? missMarks(card.midi.map((m) => m + transpose), byPlay ? answered!.submitted.map((m) => m + transpose) : [])
+        ? missMarks(card.midi.map((n) => n + transpose), byPlay ? answered!.submitted.map((n) => n + transpose) : [])
         : mode === "practice" && hinted
-          ? Object.fromEntries(card.midi.map((m) => [m + transpose, { target: true }]))
+          ? Object.fromEntries(card.midi.map((n) => [n + transpose, { target: true }]))
           : {},
   );
 </script>
 
 <DrillShell
   lesson={{ lessons: readingLessons("flashcards", crossed || kind === "satb" || clefs.length > 1 ? "both" : (clefs[0] ?? "treble"), { accidentals, fifths: key.fifths, ...(kind === "note" ? {} : { stack: kind }) }) }}
-  title="Note reading"
+  title={m.music_drills_reading_flash_title()}
   hue="reading"
-  blurb="Read the note on the staff, then name it or play it."
-  modeNotes={{ practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." }}
+  blurb={m.music_drills_reading_flash_blurb()}
+  modeNotes={{ practice: m.music_drills_reading_flash_mode_practice(), check: m.music_drills_reading_flash_mode_check() }}
   summary={summaryLine}
   tabs={READING_TABS}
   tab="flashcards"
@@ -321,8 +326,8 @@
   progress={cards.length ? (qi + 1) / cards.length : 0}
   onstart={start}
   onstop={stop}
-  cue={phase !== "running" || !card ? "" : answered ? "" : byPlay ? "Play the note you see" : "Name the note you see"}
-  step={phase === "running" && answered && !answered.correct ? { label: qi + 1 < cards.length ? "Next card" : "See results", run: next } : null}
+  cue={phase !== "running" || !card ? "" : answered ? "" : byPlay ? m.music_drills_reading_flash_cue_play() : m.music_drills_reading_flash_cue_name()}
+  step={phase === "running" && answered && !answered.correct ? { label: qi + 1 < cards.length ? m.music_drills_reading_flash_next_card() : m.music_drills_reading_see_results(), run: next } : null}
 >
   {#snippet setup()}
     <SetupFields {cfg} activity="flashcards" {fretted} oneLine={fretted || aero} {instrument} {limits} />
@@ -330,8 +335,8 @@
 
   {#snippet hud()}
     {#if phase === "running"}
-      <Stat label="Card" value="{qi + 1} of {cards.length}" />
-      <Stat label="Right so far" value={answers.filter((r) => r.correct).length} />
+      <Stat label={m.music_drills_reading_flash_stat_card()} value={m.music_drills_reading_x_of_y({ n: qi + 1, total: cards.length })} />
+      <Stat label={m.music_drills_reading_flash_stat_right()} value={answers.filter((r) => r.correct).length} />
     {/if}
   {/snippet}
 
@@ -350,30 +355,30 @@
         <p class="flex min-h-7 flex-wrap items-center justify-center gap-x-6 gap-y-1 px-1 text-base font-semibold" aria-live="polite">
           {#if missedCard && answered}
             <!-- In the staff's order: the card's note first, then what was played. -->
-            <span class="inline-flex items-center gap-1.5"><span class="glyph right" aria-hidden="true">✓</span>It was {expectedName}.</span>
-            <span class="inline-flex items-center gap-1.5"><span class="glyph wrong" aria-hidden="true">✕</span>You {byPlay ? "played" : "answered"} {answered.name}.</span>
+            <span class="inline-flex items-center gap-1.5"><span class="glyph right" aria-hidden="true">✓</span>{m.music_drills_reading_flash_it_was({ name: expectedName })}</span>
+            <span class="inline-flex items-center gap-1.5"><span class="glyph wrong" aria-hidden="true">✕</span>{byPlay ? m.music_drills_reading_flash_you_played({ name: answered.name }) : m.music_drills_reading_flash_you_answered({ name: answered.name })}</span>
           {:else if answered}
             <span class="glyph right" aria-hidden="true">✓</span> {card?.answer}
           {:else if hinted}
-            Hint: {card?.answer}
+            {m.music_drills_reading_flash_hint_answer({ answer: card?.answer ?? "" })}
           {:else if phase !== "running"}
-            <span class="font-normal text-ws-stage-soft">A sample card. A run is {LENGTH} cards.</span>
+            <span class="font-normal text-ws-stage-soft">{m.music_drills_reading_flash_sample({ count: LENGTH })}</span>
           {/if}
         </p>
         {#if phase === "running" && answered && !answered.correct}
           <!-- From sm the card holds Next card; a phone docks it (the shell's step). -->
-          <button bind:this={nextBtn} type="button" class="{btnPrimary} mt-2 max-sm:hidden" onclick={next}>{qi + 1 < cards.length ? "Next card" : "See results"}</button>
+          <button bind:this={nextBtn} type="button" class="{btnPrimary} mt-2 max-sm:hidden" onclick={next}>{qi + 1 < cards.length ? m.music_drills_reading_flash_next_card() : m.music_drills_reading_see_results()}</button>
         {/if}
         {#if phase === "running" && mode === "practice" && !answered && !hinted}
           <!-- The hint sits on the card it helps with. -->
-          <button type="button" class="{btnStage} mx-auto mt-2 border-2 border-ws-stage-ink/40 bg-transparent" onclick={() => (hinted = anyHint = true)}>Hint: show the name</button>
+          <button type="button" class="{btnStage} mx-auto mt-2 border-2 border-ws-stage-ink/40 bg-transparent" onclick={() => (hinted = anyHint = true)}>{m.music_drills_reading_flash_hint_button()}</button>
         {/if}
       </div>
 
       <!-- The answer surface (names, or the instrument) sits at the bottom of a phone screen. -->
       <div class="w-full min-w-0" data-dock="answers">
         {#if !byPlay}
-          <div class="mx-auto grid max-w-xl grid-cols-4 gap-1.5 sm:grid-cols-6" role="group" aria-label="Note names">
+          <div class="mx-auto grid max-w-xl grid-cols-4 gap-1.5 sm:grid-cols-6" role="group" aria-label={m.music_drills_reading_flash_names_label()}>
             {#each choices as c (c)}
               <button
                 type="button"
@@ -386,15 +391,15 @@
           </div>
         {:else if useMic}
           <div class="mx-auto max-w-md rounded-2xl bg-ws-stage-ink/8 p-4 text-center">
-            <p class="text-sm text-ws-stage-soft">Play the note on your {instrument}. The microphone listens.</p>
-            <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : "No pitch yet"}</p>
+            <p class="text-sm text-ws-stage-soft">{m.music_drills_reading_flash_mic_prompt({ instrument: instrumentName(instrument) })}</p>
+            <p class="mt-1 font-display text-2xl font-semibold tnum">{mic.pitch ? noteName(mic.pitch.midi) : m.music_drills_reading_no_pitch()}</p>
           </div>
         {:else if fretted && tuning}
-          <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} {flashes} label="{instrument} fretboard" />
+          <Fretboard openStrings={tuning.openStrings} from={0} to={12} marks={fretMarks} {flashes} label={m.music_drills_reading_fretboard_label({ instrument: instrumentName(instrument) })} />
         {:else if aero}
-          <InstrumentStage instrument="aerophone" line={card?.midi.map((m) => m + transpose) ?? []} marks={pianoMarks} {flashes} />
+          <InstrumentStage instrument="aerophone" line={card?.midi.map((n) => n + transpose) ?? []} marks={pianoMarks} {flashes} />
         {:else}
-          <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} spelling={key.fifths < 0 ? "flat" : "sharp"} label="Piano keyboard, {noteName(low)} to {noteName(high)}" />
+          <Piano {low} {high} marks={pianoMarks} {flashes} names={mode === "check" ? "none" : "c"} spelling={key.fifths < 0 ? "flat" : "sharp"} label={m.music_drills_reading_piano_label({ low: noteName(low), high: noteName(high) })} />
         {/if}
       </div>
     </div>

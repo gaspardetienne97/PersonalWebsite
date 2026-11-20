@@ -4,6 +4,7 @@
   // kind at their own tempos, so the kit's sound gives nothing away. Practice
   // says what gave it away after each answer; Check moves straight on.
   import { onDestroy } from "svelte";
+  import { m } from "@repo/i18n/messages.js";
   import { page } from "$app/state";
   import { FEELS, feelPrompt, type FeelId } from "@repo/music-core/content/pads-studio";
   import { earLessons } from "@repo/music-core/lessons/ear";
@@ -46,7 +47,7 @@
   function ask() {
     current = feelPrompt(Math.random, current?.feel);
     step = "answer";
-    status = `${qi + 1} of ${LENGTH}. Straight, swung, a shuffle or 12/8?`;
+    status = m.music_drills_rhythm_feel_ask({ n: qi + 1, total: LENGTH });
     hear();
   }
 
@@ -86,7 +87,7 @@
       instrument: null,
     });
     const right = FEELS.find((f) => f.id === p.feel)!;
-    if (mode === "practice") status = correct ? `Right: ${right.label}. ${right.hint}` : `It was ${right.label}: ${right.hint}`;
+    if (mode === "practice") status = correct ? m.music_drills_rhythm_feel_right_status({ feel: right.label, hint: right.hint }) : m.music_drills_rhythm_feel_wrong_status({ feel: right.label, hint: right.hint });
     else nextTimer = setTimeout(next, 500);
   }
 
@@ -108,20 +109,20 @@
     const fin = await run!.finish({ score, correct, headline: `${right} of ${LENGTH} right` });
     const confused = FEELS.map((f) => ({ f, missed: records.filter((r) => r.feel === f.id && !r.correct) })).filter((x) => x.missed.length);
     summary = {
-      headline: correct ? `${right} of ${LENGTH}: you hear the feel.` : `${right} of ${LENGTH} right. A clean run needs ${PASS}.`,
+      headline: correct ? m.music_drills_rhythm_feel_headline_pass({ n: right, total: LENGTH }) : m.music_drills_rhythm_feel_headline_fail({ n: right, total: LENGTH, pass: PASS }),
       metric: pct(score),
-      metricLabel: "right",
+      metricLabel: m.music_drills_rhythm_metric_right(),
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && correct,
-      cleanMeans: `${PASS} of ${LENGTH} right or better`,
+      cleanMeans: m.music_drills_rhythm_feel_clean_means({ pass: PASS, total: LENGTH }),
       xp: fin.xp,
       mode,
       rows: [
-        { label: "Right", value: score, text: `${right} of ${LENGTH}` },
-        ...confused.map((x) => ({ label: `${x.f.label} heard as`, text: x.missed.map((r) => FEELS.find((f) => f.id === r.answered)!.label).join(", ") })),
+        { label: m.music_drills_rhythm_right(), value: score, text: m.music_drills_rhythm_of({ n: right, total: LENGTH }) },
+        ...confused.map((x) => ({ label: m.music_drills_rhythm_feel_heard_as({ feel: x.f.label }), text: x.missed.map((r) => FEELS.find((f) => f.id === r.answered)!.label).join(", ") })),
       ],
-      routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
+      routine: page.url.searchParams.get("routine") ? { label: m.music_drills_rhythm_back_today(), href: "/music" } : undefined,
     };
     status = summary.headline;
   }
@@ -130,7 +131,7 @@
     clearTimeout(nextTimer);
     playing?.stop();
     phase = "ready";
-    status = `Stopped after ${records.length} answer${records.length === 1 ? "" : "s"}.`;
+    status = m.music_drills_rhythm_feel_stopped({ count: records.length });
   }
 
   onDestroy(() => {
@@ -146,15 +147,15 @@
   }
 </script>
 
-<svelte:head><title>Feel | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_drills_rhythm_feel_head_title()}</title></svelte:head>
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
-  title="Ear"
+  title={m.music_drills_rhythm_feel_ear_title()}
   trainer={earTrainer("ear-feel")}
   hue="ear"
-  blurb="Hear a groove and name its feel: straight, swung, shuffle or 12/8."
-  summary={[{ text: `${LENGTH} grooves` }, { text: `${PASS} right for a clean run` }]}
+  blurb={m.music_drills_rhythm_feel_blurb()}
+  summary={[{ text: m.music_drills_rhythm_feel_grooves({ count: LENGTH }) }, { text: m.music_drills_rhythm_feel_pass_clean({ pass: PASS }) }]}
   bind:phase
   bind:mode
   bind:status
@@ -163,31 +164,31 @@
   onstart={start}
   onstop={stop}
   instrumentFree
-  cue={phase !== "running" || !current || step === "feedback" ? "" : "Name the feel you hear"}
-  step={phase === "running" && current && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? "Next" : "See results", run: next } : null}
+  cue={phase !== "running" || !current || step === "feedback" ? "" : m.music_drills_rhythm_feel_cue()}
+  step={phase === "running" && current && step === "feedback" && mode === "practice" ? { label: qi + 1 < LENGTH ? m.music_drills_rhythm_next() : m.music_drills_rhythm_see_results(), run: next } : null}
 >
   {#snippet hud()}
     {#if phase === "running" && current}
-      <Stat label="Groove" value="{qi + 1} of {LENGTH}" />
-      {#if mode === "practice"}<Stat label="Right so far" value={records.filter((r) => r.correct).length} />{/if}
+      <Stat label={m.music_drills_rhythm_feel_stat_groove()} value={m.music_drills_rhythm_of({ n: qi + 1, total: LENGTH })} />
+      {#if mode === "practice"}<Stat label={m.music_drills_rhythm_right_so_far()} value={records.filter((r) => r.correct).length} />{/if}
     {/if}
   {/snippet}
 
   {#snippet stage()}
     {#if phase === "running" && current}
       {@const r = step === "feedback" ? records.at(-1) : undefined}
-      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Groove {qi + 1}" data-feel={current.feel} data-step={step}>
-        <p class="font-display text-2xl font-semibold sm:text-3xl">What is the feel?</p>
-        <button type="button" class="{btnStage} mt-3" onclick={() => hear()}>Hear it again</button>
+      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label={m.music_drills_rhythm_feel_groove_n({ n: qi + 1 })} data-feel={current.feel} data-step={step}>
+        <p class="font-display text-2xl font-semibold sm:text-3xl">{m.music_drills_rhythm_feel_question()}</p>
+        <button type="button" class="{btnStage} mt-3" onclick={() => hear()}>{m.music_drills_rhythm_hear_again()}</button>
         {#if r}
-          <p class="mt-3 text-lg font-semibold">{r.correct ? "Right" : "Not quite"}: {FEELS.find((f) => f.id === current!.feel)?.label}, {current.groove.label.toLowerCase()} at {current.bpm} BPM.</p>
+          <p class="mt-3 text-lg font-semibold">{(r.correct ? m.music_drills_rhythm_feel_reveal_right : m.music_drills_rhythm_feel_reveal_wrong)({ feel: FEELS.find((f) => f.id === current!.feel)?.label ?? "", groove: current.groove.label.toLowerCase(), bpm: current.bpm })}</p>
           {#if mode === "practice"}
             <p class="mt-1 text-sm text-ws-stage-soft">{FEELS.find((f) => f.id === current!.feel)?.hint}</p>
-            <button type="button" class="{btnPrimary} mt-3 max-sm:hidden" onclick={next}>{qi + 1 < LENGTH ? "Next" : "See results"} <kbd class="ml-1 text-sm opacity-80">Enter</kbd></button>
+            <button type="button" class="{btnPrimary} mt-3 max-sm:hidden" onclick={next}>{qi + 1 < LENGTH ? m.music_drills_rhythm_next() : m.music_drills_rhythm_see_results()} <kbd class="ml-1 text-sm opacity-80">Enter</kbd></button>
           {/if}
         {/if}
       </article>
-      <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="Answers">
+      <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label={m.music_drills_rhythm_answers()}>
         {#each FEELS as f, i (f.id)}
           <button
             type="button"
@@ -202,7 +203,7 @@
       </div>
     {:else}
       <div class="space-y-2">
-        <p class="font-display text-xl font-semibold">Straight, swung, shuffle, 12/8</p>
+        <p class="font-display text-xl font-semibold">{m.music_drills_rhythm_feel_intro()}</p>
         <ul class="space-y-1 text-sm text-ws-stage-soft">
           {#each FEELS as f (f.id)}<li><span class="font-semibold text-ws-stage-ink">{f.label}.</span> {f.hint}</li>{/each}
         </ul>
