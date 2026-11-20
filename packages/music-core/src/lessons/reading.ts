@@ -26,6 +26,8 @@ import {
   type ReadingMeter,
   type SightItem,
 } from "../content/reading";
+import { m } from "@repo/i18n/messages.js";
+import { formatList } from "@repo/i18n/format";
 import { SUBS, countName, type PerBeat } from "./count";
 import { keys } from "./tier1";
 import type { Lesson, LessonFigure, LessonScreen, LessonSound, LessonStep } from "./types";
@@ -51,9 +53,12 @@ export const staffSpaces = (clef: Clef) => [1, 3, 5, 7].map((s) => staffNote(cle
 const letter = (midi: number) => noteName(midi, "sharp", false);
 const letters = (ms: number[]) => ms.map(letter).join(" ");
 /** "F#" as it is said: "F sharp". */
-const say = (n: string) => (n.length > 1 ? `${n[0]} ${n[1] === "#" ? "sharp" : "flat"}` : n);
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const say = (n: string) =>
+  n.length > 1
+    ? n[1] === "#"
+      ? m.music_lessons_reading_say_sharp({ note: n[0] })
+      : m.music_lessons_reading_say_flat({ note: n[0] })
+    : n;
 
 const staff = (
   clef: Clef,
@@ -71,10 +76,6 @@ const run = (midis: number[]): LessonSound => ({
   notes: midis.map((m, i) => ({ midi: [m], at: i * 0.6, dur: 0.5 })),
 });
 
-const MNEMONIC: Record<Clef, { lines: string; spaces: string }> = {
-  treble: { lines: "Every Good Boy Does Fine", spaces: "They spell the word FACE" },
-  bass: { lines: "Good Boys Do Fine Always", spaces: "All Cows Eat Grass" },
-};
 /** The first letters of a phrase, spaced: "Every Good Boy" is "E G B". */
 export const initials = (phrase: string) =>
   phrase
@@ -84,41 +85,48 @@ export const initials = (phrase: string) =>
     .join(" ");
 
 function linesSpaces(clef: Clef): Lesson {
-  const Name = clef === "treble" ? "Treble" : "Bass";
+  const treble = clef === "treble";
   const lines = staffLines(clef);
   const spaces = staffSpaces(clef);
   const landmark = clef === "treble" ? staffNote(clef, 2) : staffNote(clef, 6);
   const below = staffNote(clef, -2);
   const above = staffNote(clef, 10);
-  const other = clef === "treble" ? above : below;
+  const other = treble ? above : below;
   return {
     id: `reading.lines-spaces.${clef}`,
-    title: `${Name} clef: lines and spaces`,
+    title: treble
+      ? m.music_lessons_reading_ls_title_treble()
+      : m.music_lessons_reading_ls_title_bass(),
     screens: [
       {
-        title: "Five lines",
-        text: `A staff has five lines, counted from the bottom. In the ${clef} clef they are ${letters(lines)}. ${MNEMONIC[clef].lines} gives you the order.`,
+        title: m.music_lessons_reading_ls_lines_title(),
+        text: (treble
+          ? m.music_lessons_reading_ls_lines_text_treble
+          : m.music_lessons_reading_ls_lines_text_bass)({ letters: letters(lines) }),
         figure: quarters(clef, lines),
         sound: run(lines),
       },
       {
-        title: "Four spaces",
-        text: `The four spaces between the lines, from the bottom, are ${letters(spaces)} in the ${clef} clef. ${MNEMONIC[clef].spaces}.`,
+        title: m.music_lessons_reading_ls_spaces_title(),
+        text: (treble
+          ? m.music_lessons_reading_ls_spaces_text_treble
+          : m.music_lessons_reading_ls_spaces_text_bass)({ letters: letters(spaces) }),
         figure: quarters(clef, spaces),
         sound: run(spaces),
       },
       {
-        title: `A landmark: ${letter(landmark)}`,
-        text:
-          clef === "treble"
-            ? `The treble clef curls around the second line, so that line is ${letter(landmark)}. Count up or down from it to find any other note.`
-            : `The two dots of the bass clef sit either side of the fourth line, so that line is ${letter(landmark)}. Count up or down from it to find any other note.`,
+        title: m.music_lessons_reading_ls_landmark_title({ note: letter(landmark) }),
+        text: (treble
+          ? m.music_lessons_reading_ls_landmark_text_treble
+          : m.music_lessons_reading_ls_landmark_text_bass)({ note: letter(landmark) }),
         figure: quarters(clef, [landmark]),
         sound: run([landmark]),
       },
       {
-        title: "Ledger lines",
-        text: `A note too high or too low for the five lines sits on short extra lines called ledger lines. Middle C is on the first ledger line ${clef === "treble" ? "below" : "above"} the ${clef} staff, and ${letter(other)} is on the first one ${clef === "treble" ? "above" : "below"}. The figure shows two notes on ledger lines on each side.`,
+        title: m.music_lessons_reading_ls_ledger_title(),
+        text: (treble
+          ? m.music_lessons_reading_ls_ledger_text_treble
+          : m.music_lessons_reading_ls_ledger_text_bass)({ note: letter(other) }),
         figure: quarters(
           clef,
           [-4, -2, 10, 12].map((s) => staffNote(clef, s)),
@@ -133,23 +141,23 @@ function accidentalsLesson(): Lesson {
   const flat = (n: number) => noteName(n, "flat", false);
   return {
     id: "reading.accidentals",
-    title: "Sharps, flats and naturals",
+    title: m.music_lessons_reading_acc_title(),
     screens: [
       {
-        title: "Sharp: up a half step",
-        text: `A sharp sign raises a note by a half step, the next key up on the piano. Here ${letter(60)} is followed by ${say(letter(61))}, in C major.`,
+        title: m.music_lessons_reading_acc_sharp_title(),
+        text: m.music_lessons_reading_acc_sharp_text({ note: letter(60), next: say(letter(61)) }),
         figure: quarters("treble", [60, 61], 0),
         sound: run([60, 61]),
       },
       {
-        title: "Flat: down a half step",
-        text: `A flat sign lowers a note by a half step, the next key down. Here ${letter(62)} is followed by ${say(flat(61))}, in F major.`,
+        title: m.music_lessons_reading_acc_flat_title(),
+        text: m.music_lessons_reading_acc_flat_text({ note: letter(62), next: say(flat(61)) }),
         figure: quarters("treble", [62, 61], -1),
         sound: run([62, 61]),
       },
       {
-        title: "Natural: back to plain",
-        text: `In F major every B is played as ${say(flat(70))}, so the first B has no sign. A natural sign cancels that flat for the note it sits beside, and the second note is a plain ${letter(71)}.`,
+        title: m.music_lessons_reading_acc_natural_title(),
+        text: m.music_lessons_reading_acc_natural_text({ flat: say(flat(70)), plain: letter(71) }),
         figure: quarters("treble", [70, 71], -1),
         sound: run([70, 71]),
       },
@@ -249,17 +257,20 @@ export function readingLessons(
 function stackedLesson(kind: "chord" | "satb"): Lesson {
   return {
     id: `reading.stacked.${kind === "chord" ? "triad" : "satb"}`,
-    title: kind === "chord" ? "Reading a triad" : "Reading four notes",
+    title:
+      kind === "chord"
+        ? m.music_lessons_reading_triad_title()
+        : m.music_lessons_reading_satb_title(),
     screens: [
       kind === "chord"
         ? {
-            title: "Three notes stacked",
-            text: "A triad is three notes stacked in thirds, so they sit on three lines in a row or three spaces in a row. Name it by its three notes from the bottom, like C-E-G.",
+            title: m.music_lessons_reading_triad_screen_title(),
+            text: m.music_lessons_reading_triad_text(),
             figure: keys({ 60: "C", 64: "E", 67: "G" }),
           }
         : {
-            title: "Four notes, one triad",
-            text: "Four notes are stacked across the grand staff, and the lowest is the root of the chord. The root is doubled above it. Name the triad by its three notes from the root up, like C-E-G, with the doubled note once.",
+            title: m.music_lessons_reading_satb_screen_title(),
+            text: m.music_lessons_reading_satb_text(),
             figure: keys({ 48: "C", 55: "G", 64: "E", 72: "C" }),
           },
     ],
@@ -289,14 +300,10 @@ function valuesLesson(clef: Clef): Lesson {
     })),
   });
   const VALUES: { name: string; beats: number; text: string }[] = [
-    { name: "whole", beats: 4, text: "A whole note lasts 4 beats, so one fills the bar." },
-    { name: "half", beats: 2, text: "A half note lasts 2 beats, so two fill the bar." },
-    { name: "quarter", beats: 1, text: "A quarter note lasts 1 beat, so four fill the bar." },
-    {
-      name: "eighth",
-      beats: 0.5,
-      text: "An eighth note lasts half a beat, so eight fill the bar. Counted 1 & 2 & 3 & 4 &, two fit in each beat.",
-    },
+    { name: "whole", beats: 4, text: m.music_lessons_reading_val_whole() },
+    { name: "half", beats: 2, text: m.music_lessons_reading_val_half() },
+    { name: "quarter", beats: 1, text: m.music_lessons_reading_val_quarter() },
+    { name: "eighth", beats: 0.5, text: m.music_lessons_reading_val_eighth() },
   ];
   const steps: LessonStep[] = VALUES.map((v) => ({
     text: v.text,
@@ -305,17 +312,17 @@ function valuesLesson(clef: Clef): Lesson {
   }));
   return {
     id: "reading.values",
-    title: "Note values and counting",
+    title: m.music_lessons_reading_values_title(),
     screens: [
       {
-        title: "How long a note lasts",
-        text: "In 4/4 a bar has 4 beats, counted 1 2 3 4. Tap Next to see how long each note value lasts.",
+        title: m.music_lessons_reading_values_length_title(),
+        text: m.music_lessons_reading_values_length_text(),
         figure: bar(4),
         steps,
       },
       {
-        title: "The time signature",
-        text: "The top number of a time signature says how many notes of one length fit in a bar, and the bottom number names that length. 4/4 holds four quarter notes, 3/4 three, and 6/8 six eighth notes. This bar is 3/4, counted 1 2 3.",
+        title: m.music_lessons_reading_values_time_sig_title(),
+        text: m.music_lessons_reading_values_time_sig_text(),
         figure: staff(
           clef,
           [1, 1, 1].map((beats) => ({ midi: pitch, beats })),
@@ -324,8 +331,8 @@ function valuesLesson(clef: Clef): Lesson {
         sound: { notes: [0, 1, 2].map((i) => ({ midi: [pitch], at: i * BEAT, dur: BEAT * 0.9 })) },
       },
       {
-        title: "Dots and rests",
-        text: "A dot adds half the note's length. In this bar the dotted half note lasts 3 beats, and the quarter rest is the last beat of silence.",
+        title: m.music_lessons_reading_values_dots_title(),
+        text: m.music_lessons_reading_values_dots_text(),
         figure: staff(
           clef,
           [
@@ -345,7 +352,6 @@ function keySignatureLessons(clefs: Clef[], fifths: number): Lesson[] {
   const clef = clefs[0];
   const n = Math.abs(fifths);
   const sharp = fifths > 0;
-  const word = sharp ? "sharp" : "flat";
   const order = (sharp ? SHARP_ORDER : FLAT_ORDER).slice(0, n);
   const sig = (reveal?: number): LessonFigure => ({
     kind: "signature",
@@ -362,34 +368,51 @@ function keySignatureLessons(clefs: Clef[], fifths: number): Lesson[] {
   return [
     {
       id: "reading.key-signature",
-      title: "The key signature",
+      title: m.music_lessons_reading_ks_title(),
       screens: [
         {
-          title: "Signs at the start of the staff",
-          text: "The sharps or flats right after the clef are the key signature. They hold for every bar, so no sign is written beside each note.",
+          title: m.music_lessons_reading_ks_intro_title(),
+          text: m.music_lessons_reading_ks_intro_text(),
           figure: sig(),
         },
       ],
     },
     {
       id: `reading.key-signature.${fifths}`,
-      title: `${plural(n, word)} in the signature`,
+      title: (sharp
+        ? m.music_lessons_reading_ks_count_title_sharp
+        : m.music_lessons_reading_ks_count_title_flat)({ count: n }),
       screens: [
         {
-          title: `This key has ${plural(n, word)}`,
+          title: (sharp
+            ? m.music_lessons_reading_ks_has_sharp
+            : m.music_lessons_reading_ks_has_flat)({ count: n }),
           text:
             n === 1
-              ? `Tap Next to add the ${word}.`
-              : `Tap Next to add the ${plural(n, word)} one at a time, in the order they are written.`,
+              ? sharp
+                ? m.music_lessons_reading_ks_add_one_sharp()
+                : m.music_lessons_reading_ks_add_one_flat()
+              : (sharp
+                  ? m.music_lessons_reading_ks_add_many_sharp
+                  : m.music_lessons_reading_ks_add_many_flat)({ count: n }),
           figure: sig(0),
           steps: order.map((l, i) => ({
-            text: `${l} ${word}: every ${l}, in every octave, is played a half step ${sharp ? "higher" : "lower"}.`,
+            text: (sharp
+              ? m.music_lessons_reading_ks_step_sharp
+              : m.music_lessons_reading_ks_step_flat)({ letter: l }),
             figure: sig(i + 1),
           })),
         },
         ...clefs.map((c) => ({
-          title: clefs.length > 1 ? `On the ${c} staff` : "On the staff",
-          text: `With this key signature the note shown is ${last} ${word}, though no sign is written beside it. Every ${last} in the piece is played the same way, unless a sign beside a note says otherwise.`,
+          title:
+            clefs.length > 1
+              ? c === "treble"
+                ? m.music_lessons_reading_ks_on_treble()
+                : m.music_lessons_reading_ks_on_bass()
+              : m.music_lessons_reading_ks_on_staff(),
+          text: (sharp
+            ? m.music_lessons_reading_ks_note_sharp
+            : m.music_lessons_reading_ks_note_flat)({ letter: last }),
           figure: staff(c, [{ midi: onStaff(c, last), beats: 1 }], { fifths }),
           sound: run([onStaff(c, last)]),
         })),
@@ -398,18 +421,16 @@ function keySignatureLessons(clefs: Clef[], fifths: number): Lesson[] {
   ];
 }
 
-const VALUE_METERS: Partial<Record<ReadingMeter, string>> = {
-  compound:
-    "In 6/8 the beat is a dotted quarter, so a bar has two beats of three eighth notes, counted 1 & a 2 & a.",
-  "3/8": "3/8 has three eighth notes in a bar, counted 1 2 3.",
-  "9/8": "9/8 has nine eighth notes in a bar, in three beats of three, counted 1 & a 2 & a 3 & a.",
-  "2/2":
-    "2/2 has two half-note beats in a bar, so a half note is one beat and a quarter note is half a beat.",
-  "5/4": "5/4 has five quarter notes in a bar, grouped as three and two or as two and three.",
-  "7/8": "7/8 has seven eighth notes in a bar, grouped in twos and threes.",
-  "5/8": "5/8 has five eighth notes in a bar, grouped as two and three or as three and two.",
+/** How each meter with its own lesson is counted. */
+const VALUE_METERS: Partial<Record<ReadingMeter, () => string>> = {
+  compound: m.music_lessons_reading_meter_compound,
+  "3/8": m.music_lessons_reading_meter_3_8,
+  "9/8": m.music_lessons_reading_meter_9_8,
+  "2/2": m.music_lessons_reading_meter_2_2,
+  "5/4": m.music_lessons_reading_meter_5_4,
+  "7/8": m.music_lessons_reading_meter_7_8,
+  "5/8": m.music_lessons_reading_meter_5_8,
 };
-const CHECK_METER = "Check the time signature before you start, and at every bar where it changes.";
 /** One bar of the meter, a note on every count of its bottom number (beats in quarters). */
 export function meterBar(m: ReadingMeter): LessonFigure {
   const { beats, beatUnit } = READING_METERS[m];
@@ -419,30 +440,30 @@ export function meterBar(m: ReadingMeter): LessonFigure {
     { meter: { beats, beatUnit } },
   );
 }
-function meterLesson(m: ReadingMeter): Lesson {
-  const label = READING_METERS[m].label;
+function meterLesson(meter: ReadingMeter): Lesson {
+  const label = READING_METERS[meter].label;
   return {
-    id: `reading.meter.${m.replace("/", "-")}`,
-    title: `${label} time`,
+    id: `reading.meter.${meter.replace("/", "-")}`,
+    title: m.music_lessons_reading_meter_title({ label }),
     screens: [
       {
-        title: `Counting ${label}`,
-        text: `${VALUE_METERS[m]} ${CHECK_METER}`,
-        figure: meterBar(m),
+        title: m.music_lessons_reading_meter_counting({ label }),
+        text: `${VALUE_METERS[meter]!()} ${m.music_lessons_reading_check_meter()}`,
+        figure: meterBar(meter),
       },
     ],
   };
 }
 /** The meters a changing-meter phrase of the chosen length goes through, in order. */
 function changingMeterLesson(parts: ReadingMeter[]): Lesson {
-  const labels = parts.map((m) => READING_METERS[m].label);
+  const labels = parts.map((p) => READING_METERS[p].label);
   return {
     id: "reading.meter.changing",
-    title: "Changing meters",
+    title: m.music_lessons_reading_changing_title(),
     screens: [
       {
-        title: "The meter changes",
-        text: `The time signature changes every 2 bars, through ${labels.slice(0, -1).join(", ")} and ${labels.at(-1)} in turn. ${CHECK_METER}`,
+        title: m.music_lessons_reading_changing_screen_title(),
+        text: `${m.music_lessons_reading_changing_text({ list: formatList(labels) })} ${m.music_lessons_reading_check_meter()}`,
         figure: meterBar(parts[0]),
       },
     ],
@@ -456,67 +477,67 @@ interface ItemText {
   bar?: { beats: number; notes: number[] };
   figure?: LessonFigure;
 }
-const BASS_CHORDS: ItemText = {
-  title: "Chords in the left hand",
-  text: "On some strong beats the left hand plays the melody note with one or two lower notes. Play them together.",
+const BASS_CHORDS = (): ItemText => ({
+  title: m.music_lessons_reading_item_chords_lh_title(),
+  text: m.music_lessons_reading_item_chords_lh_text(),
   figure: keys({ 43: "G", 48: "C" }),
-};
-const ITEM_TEXT: Record<string, ItemText> = {
+});
+const ITEM_TEXT = (): Record<string, ItemText> => ({
   ties: {
-    title: "Ties",
-    text: "A tie is a curved line joining two notes of the same pitch. Play the first, hold through the second, and don't play it again.",
+    title: m.music_lessons_reading_item_ties_title(),
+    text: m.music_lessons_reading_item_ties_text(),
     // The middle half note crosses the bar line, so it is written as two tied quarters.
     bar: { beats: 2, notes: [1, 2, 1] },
   },
   "dotted-quarter": {
-    title: "Dotted quarter notes",
-    text: "A dotted quarter note is a quarter note plus an eighth note, so it's as long as three eighth notes. A dot always adds half of the note's own length.",
+    title: m.music_lessons_reading_item_dotted_quarter_title(),
+    text: m.music_lessons_reading_item_dotted_quarter_text(),
     bar: { beats: 2, notes: [1.5, 0.5] },
   },
   syncopation: {
-    title: "Syncopation",
-    text: "In syncopation a long note starts halfway between two quarter-note pulses and is held across the next pulse. Nothing new starts in that line on that pulse, so keep counting through the held note.",
+    title: m.music_lessons_reading_item_syncopation_title(),
+    text: m.music_lessons_reading_item_syncopation_text(),
     bar: { beats: 2, notes: [0.5, 1, 0.5] },
   },
   sixteenths: {
-    title: "Sixteenth notes",
-    text: "Four sixteenth notes make one quarter note, and two make an eighth note. Sixteenths are written with two beams or two flags.",
+    title: m.music_lessons_reading_item_sixteenths_title(),
+    text: m.music_lessons_reading_item_sixteenths_text(),
     bar: { beats: 1, notes: [0.25, 0.25, 0.25, 0.25] },
   },
   "dotted-eighth": {
-    title: "Dotted eighth and sixteenth",
-    text: "A dotted eighth note is an eighth note plus a sixteenth note. A dotted eighth and a sixteenth together are as long as a quarter note.",
+    title: m.music_lessons_reading_item_dotted_eighth_title(),
+    text: m.music_lessons_reading_item_dotted_eighth_text(),
     bar: { beats: 1, notes: [0.75, 0.25] },
   },
   triplets: {
-    title: "Triplets",
-    text: "A triplet puts three even notes in the time of two of the same kind. Three eighth note triplets take the time of one quarter note.",
+    title: m.music_lessons_reading_item_triplets_title(),
+    text: m.music_lessons_reading_item_triplets_text(),
     bar: { beats: 2, notes: [1 / 3, 1 / 3, 1 / 3, 1] },
   },
   pickup: {
-    title: "Pickup bar",
-    text: "Some phrases open with a pickup: the first bar opens with rests, and only its last note is played. Count the rests silently and come in on that note.",
+    title: m.music_lessons_reading_item_pickup_title(),
+    text: m.music_lessons_reading_item_pickup_text(),
     bar: { beats: 4, notes: [-3, 1] },
   },
   chords: {
-    title: "Chords in the right hand",
-    text: "On some strong beats the right hand plays the melody note with one or two lower notes. Play them together.",
+    title: m.music_lessons_reading_item_chords_rh_title(),
+    text: m.music_lessons_reading_item_chords_rh_text(),
     figure: keys({ 67: "G", 72: "C", 76: "E" }),
   },
   "clef-change": {
-    title: "Clef changes",
-    text: "For a bar or two the left hand may read in the treble clef. A small clef sign on the staff marks the change, and a bass clef sign marks the return.",
+    title: m.music_lessons_reading_item_clef_change_title(),
+    text: m.music_lessons_reading_item_clef_change_text(),
     // Notes around middle C as the left hand reads them in the treble clef.
     figure: quarters("treble", [60, 62, 64, 65]),
   },
   swing: {
-    title: "Swing",
-    text: "Swing eighths are written straight but played long and short, about two to one. Lean on the first of each pair.",
+    title: m.music_lessons_reading_item_swing_title(),
+    text: m.music_lessons_reading_item_swing_text(),
     bar: { beats: 2, notes: [0.5, 0.5, 0.5, 0.5] },
   },
-};
+});
 function valueItemLesson(id: string, clef: Clef): Lesson {
-  const t = id === "chords" && clef === "bass" ? BASS_CHORDS : ITEM_TEXT[id];
+  const t = id === "chords" && clef === "bass" ? BASS_CHORDS() : ITEM_TEXT()[id];
   return {
     id: `reading.values.${id}`,
     title: t.title,
@@ -565,8 +586,19 @@ export const REST_VALUES: { name: string; beats: number; length: string }[][] = 
     { name: "thirty-second", beats: 0.125, length: "half a sixteenth note" },
   ],
 ];
-/** "an eighth", "a half". */
-const an = (name: string, a: "A" | "a") => `${/^[aeiou]/.test(name) ? `${a}n` : a} ${name}`;
+/** "A whole rest is silent as long as a whole note, four quarter notes.", by the rest's name. */
+const REST_TEXT: Record<string, () => string> = {
+  whole: m.music_lessons_reading_rest_whole,
+  "dotted half": m.music_lessons_reading_rest_dotted_half,
+  half: m.music_lessons_reading_rest_half,
+  "dotted quarter": m.music_lessons_reading_rest_dotted_quarter,
+  quarter: m.music_lessons_reading_rest_quarter,
+  eighth: m.music_lessons_reading_rest_eighth,
+  "dotted eighth": m.music_lessons_reading_rest_dotted_eighth,
+  sixteenth: m.music_lessons_reading_rest_sixteenth,
+  "dotted sixteenth": m.music_lessons_reading_rest_dotted_sixteenth,
+  "thirty-second": m.music_lessons_reading_rest_thirty_second,
+};
 function restsLesson(clef: Clef): Lesson {
   const pitch = staffNote(clef, 4);
   /** The note, then its rest. */
@@ -577,26 +609,26 @@ function restsLesson(clef: Clef): Lesson {
     ]);
   const SCREENS = [
     {
-      title: "Long rests",
-      text: "A rest is a silence as long as the note it's named after. The whole rest hangs below a line and the half rest sits on top of one. Tap Next to see each rest after its note.",
+      title: m.music_lessons_reading_rests_long_title(),
+      text: m.music_lessons_reading_rests_long_text(),
     },
     {
-      title: "Shorter rests",
-      text: "A dot after a rest adds half its length, as it does after a note. Tap Next to see each one.",
+      title: m.music_lessons_reading_rests_shorter_title(),
+      text: m.music_lessons_reading_rests_shorter_text(),
     },
     {
-      title: "The shortest rests",
-      text: "More flags make a shorter rest. Tap Next to see each one.",
+      title: m.music_lessons_reading_rests_shortest_title(),
+      text: m.music_lessons_reading_rests_shortest_text(),
     },
   ];
   return {
     id: "reading.values.rests",
-    title: "Rests",
+    title: m.music_lessons_reading_rests_title(),
     screens: REST_VALUES.map((group, i) => ({
       ...SCREENS[i],
       figure: pair(group[0].beats),
       steps: group.map((r) => ({
-        text: `${an(r.name, "A")} rest is silent as long as ${an(r.name, "a")} note, ${r.length}.`,
+        text: REST_TEXT[r.name](),
         figure: pair(r.beats),
       })),
     })),
@@ -683,21 +715,21 @@ function countingLesson(g: keyof typeof GROUPS, echo = false): Lesson {
   const intro: Record<typeof g, { id: string; title: string; text: string; ex: string }> = {
     eighths: {
       id: "rhythm.counting",
-      title: "Counting the beat",
-      text: `Count 1 2 3 4 with the click, one number on each click. Between two numbers sits an &, the second half of the beat, so a bar is counted ${countLine(names)}.`,
-      ex: "A note on a number starts on the beat, and a note on an & starts in the second half of it.",
+      title: m.music_lessons_reading_count_eighths_title(),
+      text: m.music_lessons_reading_count_eighths_text({ counts: countLine(names) }),
+      ex: m.music_lessons_reading_count_eighths_ex(),
     },
     sixteenths: {
       id: "rhythm.counting.sixteenths",
-      title: "Counting sixteenths",
-      text: `Sixteenth notes split each beat in four, counted with e, & and a after the number. A bar is counted ${countLine(names)}.`,
-      ex: "Each beat has four places to put a note, and the number comes first.",
+      title: m.music_lessons_reading_count_sixteenths_title(),
+      text: m.music_lessons_reading_count_sixteenths_text({ counts: countLine(names) }),
+      ex: m.music_lessons_reading_count_sixteenths_ex(),
     },
     compound: {
       id: "rhythm.counting.compound",
-      title: "Counting 6/8",
-      text: `In 6/8 the beat is a dotted quarter, so a bar has two beats. Each beat splits in three, so a bar is counted ${countLine(names)}.`,
-      ex: "A note on a number starts on the beat, and the & and the a are the two places after it.",
+      title: m.music_lessons_reading_count_compound_title(),
+      text: m.music_lessons_reading_count_compound_text({ counts: countLine(names) }),
+      ex: m.music_lessons_reading_count_compound_ex(),
     },
   };
   const t = intro[g];
@@ -715,30 +747,30 @@ function countingLesson(g: keyof typeof GROUPS, echo = false): Lesson {
         sound: { notes: click(beatsPerBar, spacing) },
       },
       {
-        title: "One bar of notes",
-        text: `${t.ex} In this bar the notes fall on ${exNames.join(", ")}.`,
+        title: m.music_lessons_reading_one_bar_title(),
+        text: `${t.ex} ${m.music_lessons_reading_notes_fall_on({ names: exNames.join(", ") })}`,
         figure: fig(ex.onsets),
         sound: tick(ex.onsets, spacing),
       },
       echo
         ? {
             // The echo shown before the first try: a bar heard, then the same bar tapped back on the grid.
-            title: "Hear it, then tap it back",
-            text: "One bar plays over the click, then you tap the same rhythm on the next bar. Tap Next to see it.",
+            title: m.music_lessons_reading_echo_title(),
+            text: m.music_lessons_reading_echo_text(),
             figure: fig([]),
             sound: both,
             steps: [
-              { text: "Listen and count: the bar plays once.", figure: fig([]), sound: both },
+              { text: m.music_lessons_reading_echo_listen(), figure: fig([]), sound: both },
               {
-                text: `Your turn: tap on ${exNames.join(", ")}. Each tap lands on its count.`,
+                text: m.music_lessons_reading_echo_your_turn({ names: exNames.join(", ") }),
                 figure: fig(ex.onsets),
                 sound: both,
               },
             ],
           }
         : {
-            title: "Count while you listen",
-            text: "Count the beats out loud while the rhythm plays over the click. Notice which counts get a note, and which stay silent.",
+            title: m.music_lessons_reading_listen_title(),
+            text: m.music_lessons_reading_listen_text(),
             figure: fig(ex.onsets),
             sound: both,
           },
@@ -761,22 +793,22 @@ function gridLesson(g: keyof typeof GROUPS): Lesson {
   const id = g === "eighths" ? "rhythm.grid" : `rhythm.grid.${g}`;
   return {
     id,
-    title: "Writing a rhythm on the grid",
+    title: m.music_lessons_reading_grid_title(),
     screens: [
       {
-        title: "The grid is the count",
-        text: `Each column is one count, with the number on the beat and ${SUBS[perBeat].join(", ")} after it. You mark a cell where a note starts.`,
+        title: m.music_lessons_reading_grid_count_title(),
+        text: m.music_lessons_reading_grid_count_text({ subs: SUBS[perBeat].join(", ") }),
         figure: fig([]),
       },
       {
-        title: "From the ear to the grid",
-        text: `Say the count as the rhythm plays, and mark the cell for every note you hear. These notes fall on ${exNames.join(", ")}.`,
+        title: m.music_lessons_reading_grid_ear_title(),
+        text: m.music_lessons_reading_grid_ear_text({ names: exNames.join(", ") }),
         figure: fig(ex.onsets),
         sound: tick(ex.onsets, spacing),
       },
       {
-        title: "Rests and held notes",
-        text: "Mark only where a note starts. A rest, or the rest of a held note, leaves its cells empty.",
+        title: m.music_lessons_reading_grid_rests_title(),
+        text: m.music_lessons_reading_grid_rests_text(),
         figure: fig(ex.onsets),
       },
     ],
@@ -801,8 +833,10 @@ function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
     const e = ex(g, g === "compound" ? ["half"] : ["quarter", "rest", "half"]);
     card(
       "rests-halves",
-      "Rests and half notes",
-      `A rest is a silent beat, and ${g === "compound" ? "a dotted half note is held through both beats of the bar" : "a half note is held through two beats"}. ${g === "compound" ? `In this bar one note starts on ${e.names} and is held to the end.` : `In this bar a note starts on ${e.names}.`}`,
+      m.music_lessons_reading_cell_rests_title(),
+      (g === "compound"
+        ? m.music_lessons_reading_cell_rests_text_compound
+        : m.music_lessons_reading_cell_rests_text_simple)({ names: e.names }),
       { figure: e.fig, sound: e.sound },
     );
   }
@@ -810,8 +844,8 @@ function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
     const e = ex(g, ["dotted-quarter", "half"]);
     card(
       "dotted-quarter",
-      "Dotted quarters",
-      `A dotted quarter note lasts one and a half beats, so the next note falls on an &. In this bar notes start on ${e.names}.`,
+      m.music_lessons_reading_cell_dotted_quarter_title(),
+      m.music_lessons_reading_cell_dotted_quarter_text({ names: e.names }),
       { figure: e.fig, sound: e.sound },
     );
   }
@@ -819,8 +853,8 @@ function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
     const e = ex(g, ["syncopation", "rest", "quarter"]);
     card(
       "syncopation",
-      "Syncopation",
-      `Syncopation puts a note on an & and holds it over the next number, so that number has no note starting on it. In this bar notes start on ${e.names}.`,
+      m.music_lessons_reading_item_syncopation_title(),
+      m.music_lessons_reading_cell_syncopation_text({ names: e.names }),
       { figure: e.fig, sound: e.sound },
     );
   }
@@ -828,16 +862,16 @@ function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
     const e = ex(g, ["dotted-eighth", "quarter", "half"]);
     card(
       "dotted-eighth",
-      "Dotted eighths",
-      `A dotted eighth note lasts three sixteenths, so the note after it falls on the a of the same beat. In this bar notes start on ${e.names}.`,
+      m.music_lessons_reading_cell_dotted_eighth_title(),
+      m.music_lessons_reading_cell_dotted_eighth_text({ names: e.names }),
       { figure: e.fig, sound: e.sound },
     );
   }
   if (has("triplet") && g !== "compound")
     card(
       "triplets",
-      "Triplets",
-      "A triplet fits three even notes into one beat. They fall between the counts of the e, & and a grid, so tap them evenly across the beat.",
+      m.music_lessons_reading_item_triplets_title(),
+      m.music_lessons_reading_cell_triplets_text(),
       {
         // Written as a triplet: the drill's grid has no place for them.
         figure: staff(
@@ -852,8 +886,8 @@ function cellItems(g: keyof typeof GROUPS, cells: readonly string[]): Lesson[] {
     const e = ex(g, ["eighths", "eighths", "eighths", "eighths"]);
     card(
       "swing",
-      "Swung eighths",
-      "Swung eighths are played long and short, about two to one, but counted and written as straight eighths 1 &. The second note of each pair comes late.",
+      m.music_lessons_reading_cell_swing_title(),
+      m.music_lessons_reading_cell_swing_text(),
       {
         // Written straight on the grid; the sound plays them swung.
         figure: e.fig,
@@ -907,14 +941,17 @@ const DEFAULT_SETUP: ListeningSetup = {
 /** What a band sounds like, in a few words true of every boost or cut there. */
 const bandWord = (hz: number) =>
   hz <= 125
-    ? "the weight and rumble"
+    ? m.music_lessons_reading_eq_word_weight()
     : hz <= 500
-      ? "the body and warmth"
+      ? m.music_lessons_reading_eq_word_body()
       : hz <= 2000
-        ? "the presence in the middle"
+        ? m.music_lessons_reading_eq_word_presence()
         : hz <= 8000
-          ? "the bite and brightness"
-          : "the air and sparkle";
+          ? m.music_lessons_reading_eq_word_bite()
+          : m.music_lessons_reading_eq_word_air();
+
+/** A label mid-sentence: "Dotted 1/8, 500 ms" becomes "dotted 1/8, 500 ms". */
+const lowerFirst = (label: string) => label.charAt(0).toLocaleLowerCase() + label.slice(1);
 
 /**
  * The intro for a mixing-ear drill, then one card for each item its current set uses (a band, a gain,
@@ -929,7 +966,7 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
       effect: { material: s.material, change, ...(matched ? { matched } : {}) },
     } as LessonSound,
   });
-  const flat = hear("Flat", {});
+  const flat = hear(m.music_lessons_reading_eq_flat(), {});
   const g = s.gainDb;
   /** The EQ drawn: one bell at `band`, or a flat line at 0 dB. */
   const eqFig = (band: number, gainDb: number): LessonFigure => ({ kind: "eq", band, gainDb });
@@ -938,7 +975,9 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
   const bands = [...BAND_SETS[drill === "boost-or-cut" ? "5" : s.bands]];
   const eqOption = (freq: number, gainDb: number, matched = false) => ({
     ...hear(
-      `${bandLabel(freq)} ${gainDb > 0 ? "boosted" : "cut"}`,
+      (gainDb > 0 ? m.music_lessons_reading_eq_band_boosted : m.music_lessons_reading_eq_band_cut)({
+        band: bandLabel(freq),
+      }),
       { eq: { freq, gainDb, q: 1.41 } },
       matched,
     ),
@@ -961,32 +1000,36 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
     ]);
   const intro = (title: string, text: string, tip: string, figure?: LessonFigure) =>
     lesson(`listening.${drill}`, title, [
-      { title: "Flat, then Changed", text, ...(figure ? { figure } : {}) },
-      { title: "What to listen for", text: tip },
+      { title: m.music_lessons_reading_eq_intro_title(), text, ...(figure ? { figure } : {}) },
+      { title: m.music_lessons_reading_eq_listen_for_title(), text: tip },
     ]);
   switch (drill as StudioExercise) {
     case "peak":
     case "cut": {
-      const sign = drill === "peak" ? 1 : -1;
-      const verb = drill === "peak" ? "boosted" : "cut";
+      const peak = drill === "peak";
+      const sign = peak ? 1 : -1;
       return [
-        drill === "peak"
+        peak
           ? intro(
-              "Hearing a boosted band",
-              "Each question gives you one loop in two versions. Flat is untouched, and Changed has one band boosted, like the bump drawn here. Flip between them as often as you like, then name the band.",
-              "Boosting a low band makes the sound heavier or boomier, and boosting a high band makes it brighter or hissier. A band you miss comes back more often.",
+              m.music_lessons_reading_eq_peak_title(),
+              m.music_lessons_reading_eq_peak_text(),
+              m.music_lessons_reading_eq_peak_tip(),
               eqFig(1000, g),
             )
           : intro(
-              "Hearing a cut band",
-              "Each question gives you one loop in two versions. Flat is untouched, and Changed has one band cut, like the dip drawn here. Flip between them as often as you like, then name the band.",
-              "Cutting a low band makes the sound thinner, and cutting a high band makes it duller. Go back to Flat often, because you're listening for what's gone.",
+              m.music_lessons_reading_eq_cut_title(),
+              m.music_lessons_reading_eq_cut_text(),
+              m.music_lessons_reading_eq_cut_tip(),
               eqFig(1000, -g),
             ),
         card(
           `gain.${g}`,
-          `A ${g} dB ${drill === "peak" ? "boost" : "cut"}`,
-          `Here every band is ${verb} by ${g} dB, about one octave wide. Tap Flat, then the 1 kHz band at that size.`,
+          (peak
+            ? m.music_lessons_reading_eq_gain_title_boost
+            : m.music_lessons_reading_eq_gain_title_cut)({ db: g }),
+          (peak
+            ? m.music_lessons_reading_eq_gain_text_boost
+            : m.music_lessons_reading_eq_gain_text_cut)({ db: g }),
           [eqFlat, eqOption(1000, sign * g)],
           eqFig(1000, sign * g),
         ),
@@ -994,7 +1037,13 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
           card(
             `band.${hz}`,
             `${bandLabel(hz)}`,
-            `Tap Flat, then ${bandLabel(hz)} ${verb} by ${g} dB. Listen for ${bandWord(hz)}.`,
+            (peak
+              ? m.music_lessons_reading_eq_band_text_boost
+              : m.music_lessons_reading_eq_band_text_cut)({
+              band: bandLabel(hz),
+              db: g,
+              what: bandWord(hz),
+            }),
             [eqFlat, eqOption(hz, sign * g)],
             eqFig(hz, sign * g),
           ),
@@ -1003,43 +1052,43 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
     }
     case "boost-or-cut":
       return [
-        lesson("listening.boost-or-cut", "Boost or cut", [
+        lesson("listening.boost-or-cut", m.music_lessons_reading_boc_title(), [
           {
-            title: "Flat, then Changed",
-            text: "Changed has one band either boosted or cut. You decide which, and the band doesn't matter for the answer. Changed is turned up or down to match Flat's loudness, so a louder sound isn't the clue.",
+            title: m.music_lessons_reading_eq_intro_title(),
+            text: m.music_lessons_reading_boc_intro_text(),
             figure: eqFig(1000, g),
           },
           {
-            title: "Boosts",
-            text: `Tap Flat, then each band boosted by ${g} dB, and notice that the sound gains something.`,
+            title: m.music_lessons_reading_boc_boosts_title(),
+            text: m.music_lessons_reading_boc_boosts_text({ db: g }),
             options: [eqFlat, ...bands.map((hz) => eqOption(hz, g, true))],
           },
           {
-            title: "Cuts",
-            text: `Now each band cut by ${g} dB. The sound loses something, and each cut sounds different from the boost at the same band.`,
+            title: m.music_lessons_reading_boc_cuts_title(),
+            text: m.music_lessons_reading_boc_cuts_text({ db: g }),
             options: [eqFlat, ...bands.map((hz) => eqOption(hz, -g, true))],
           },
         ]),
         card(
           `gain.${g}`,
-          `A ${g} dB change`,
-          `Here every change is ${g} dB. Tap Flat, then the 1 kHz band boosted and cut by that much.`,
+          m.music_lessons_reading_boc_gain_title({ db: g }),
+          m.music_lessons_reading_boc_gain_text({ db: g }),
           [eqFlat, eqOption(1000, g, true), eqOption(1000, -g, true)],
         ),
       ];
     case "level": {
       return [
         intro(
-          "How many dB",
-          "Changed is Flat made louder by a few dB. You name how much.",
-          "The smaller the step, the harder it is to tell from Flat. Flip back and forth quickly, because a level is easier to compare in a moment than from memory.",
+          m.music_lessons_reading_level_title(),
+          m.music_lessons_reading_level_text(),
+          m.music_lessons_reading_level_tip(),
         ),
         ...s.levels.map((db) =>
           card(
             `${db}`,
-            `Louder by ${db} dB`,
-            `Tap Flat, then a step of ${db} dB, and notice the size of the jump.`,
-            [flat, hear(`Louder by ${db} dB`, { levelDb: db })],
+            m.music_lessons_reading_level_louder({ db }),
+            m.music_lessons_reading_level_card_text({ db }),
+            [flat, hear(m.music_lessons_reading_level_louder({ db }), { levelDb: db })],
           ),
         ),
       ];
@@ -1047,29 +1096,30 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
     case "pan":
       return [
         intro(
-          "Where is it panned",
-          "Changed is Flat moved to one place between the left and the right speaker. Centre is an answer too, and then Changed sounds in the same place as Flat.",
-          "Headphones or two speakers both work, but headphones make the position clearest. Left means the sound sits more in your left ear.",
+          m.music_lessons_reading_pan_title(),
+          m.music_lessons_reading_pan_text(),
+          m.music_lessons_reading_pan_tip(),
         ),
         ...PAN_SETS[s.pans].map((p) =>
-          card(
-            `${p}`,
-            panLabel(p),
-            `Tap Flat, then ${panLabel(p)}, and notice where the sound sits.`,
-            [flat, hear(panLabel(p), { pan: p })],
-          ),
+          card(`${p}`, panLabel(p), m.music_lessons_reading_pan_card_text({ pos: panLabel(p) }), [
+            flat,
+            hear(panLabel(p), { pan: p }),
+          ]),
         ),
       ];
     case "compression":
       return [
-        lesson("listening.compression", "How compressed", [
+        lesson("listening.compression", m.music_lessons_reading_comp_title(), [
           {
-            title: "Flat, then Changed",
-            text: "A compressor turns down the loudest parts so the sound is more even. Changed is Flat with light compression, heavy compression, or none, and you name which.",
+            title: m.music_lessons_reading_eq_intro_title(),
+            text: m.music_lessons_reading_comp_intro_text(),
           },
           {
-            title: "Hear each setting",
-            text: `Tap Flat, then ${compLabel("light")} and ${compLabel("heavy")}. The levels are matched, so each is as loud as Flat overall.`,
+            title: m.music_lessons_reading_comp_hear_title(),
+            text: m.music_lessons_reading_comp_hear_text({
+              light: compLabel("light"),
+              heavy: compLabel("heavy"),
+            }),
             options: [
               flat,
               hear(compLabel("light"), { comp: "light" }, true),
@@ -1077,23 +1127,23 @@ export function listeningLessons(drill: string, setup: Partial<ListeningSetup> =
             ],
           },
           {
-            title: "What to listen for",
-            text: "Listen to the hits. Heavy compression flattens them more than light compression does, so the loop sounds smaller and more even.",
+            title: m.music_lessons_reading_eq_listen_for_title(),
+            text: m.music_lessons_reading_comp_tip(),
           },
         ]),
       ];
     case "delay":
       return [
         intro(
-          "Delay time",
-          `Changed has an echo, a repeat of the sound a short time later. The loop runs at ${LOOP_BPM} BPM, so the times are note values.`,
-          "The longer the delay, the further the echo lands from the hit. Listen for where the repeat falls against the beat.",
+          m.music_lessons_reading_delay_title(),
+          m.music_lessons_reading_delay_text({ bpm: LOOP_BPM }),
+          m.music_lessons_reading_delay_tip(),
         ),
         ...DELAY_SETS[s.delays].map((ms) =>
           card(
             `${Math.round(ms)}`,
             delayLabel(ms),
-            `Tap Flat, then an echo of ${delayLabel(ms).replace(/^D/, "d")}, and listen for how long after a hit the repeat lands.`,
+            m.music_lessons_reading_delay_card_text({ delay: lowerFirst(delayLabel(ms)) }),
             [flat, hear(delayLabel(ms), { delayMs: ms })],
           ),
         ),

@@ -3,6 +3,8 @@
 // and every number from its constants, so the lesson and the grader cannot disagree. An intro lesson per
 // mode, then one card per item the drill's setup adds (a rudiment, a fill, a repeat rate...), as ear.ts does.
 
+import { formatList, formatNumber } from "@repo/i18n/format";
+import { m } from "@repo/i18n/messages.js";
 import type { GrooveDef } from "../data";
 import { MPC_RUDIMENTS } from "../data";
 import { rng } from "../content/random";
@@ -143,8 +145,7 @@ const barHits = (g: GrooveDef, bar: number): Hit[] =>
   g.targets.filter((t) => Math.floor(t.beat / 4 + 1e-9) === bar);
 const countsOf = (beats: number[], perBeat: 2 | 3 | 4 = 4) =>
   beats.map((b) => countName(b % 4, perBeat, 4));
-const list = (xs: string[]) =>
-  xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
+const list = (xs: string[]) => formatList(xs);
 const beatsOf = (hits: readonly Hit[], v: string, only?: Accent) =>
   hits
     .filter((h) => h.voice === v && (!only || (h.accent ?? "normal") === only))
@@ -164,6 +165,21 @@ const padsFigure = (marks: Record<number, string>): LessonFigure => ({
 
 // ---------------------------------------------------------------------------
 // Rudiments
+
+/** SUBDIVISION_NAMES in the visitor's language, and capitalised as option labels. */
+const SUB_NAMES: Record<number, () => string> = {
+  2: m.music_lessons_pads_sub_2,
+  3: m.music_lessons_pads_sub_3,
+  4: m.music_lessons_pads_sub_4,
+  6: m.music_lessons_pads_sub_6,
+  8: m.music_lessons_pads_sub_8,
+};
+const subName = (n: number) => SUB_NAMES[n]?.() ?? SUBDIVISION_NAMES[n];
+const SUB_LABELS: Record<number, () => string> = {
+  2: m.music_lessons_pads_sub_label_2,
+  3: m.music_lessons_pads_sub_label_3,
+  4: m.music_lessons_pads_sub_label_4,
+};
 
 const hand = (h: string) => (h === "left" ? "L" : "R");
 const sticking = (unit: readonly string[]) => unit.map(hand).join(" ");
@@ -225,7 +241,8 @@ const gridSound = (perBeat: number): LessonSound => ({
 export const rudimentItem = (id: string) => (rudiment(id)?.hits ? "stick-control" : id);
 export const RUDIMENT_ITEMS = [...new Set(RUDIMENTS.map((r) => rudimentItem(r.id)))];
 
-const percent = (b: readonly number[]) => `${Math.round(b[0] * 100)} to ${Math.round(b[1] * 100)}`;
+/** A band's edges as whole percentages. */
+const percent = (b: readonly number[]) => [Math.round(b[0] * 100), Math.round(b[1] * 100)];
 
 function rudimentsIntro(): Lesson {
   const single = sticking(rudiment("single-strokes").unit);
@@ -254,15 +271,19 @@ function rudimentsIntro(): Lesson {
   });
   return card(
     "pads.rudiments",
-    "Rudiments on the pads",
+    m.music_lessons_pads_rud_title(),
     {
-      title: "Two hands, two pads",
-      text: `A rudiment is a sticking: which hand plays each stroke, left (L) on ${padName(LEFT_PAD)} and right (R) on ${padName(RIGHT_PAD)}. Tap Next to play this drill's paradiddle, ${drillPara}, one stroke at a time.`,
+      title: m.music_lessons_pads_rud_two_hands_title(),
+      text: m.music_lessons_pads_rud_two_hands_text({
+        left: padName(LEFT_PAD),
+        right: padName(RIGHT_PAD),
+        sticking: drillPara,
+      }),
       figure: handPads("single-strokes"),
       sound: rudimentSound("paradiddle"),
       // The sticking drawn on the pads: each Next lights the pad that plays the stroke.
       steps: rudiment("paradiddle").unit.map((h, i, unit) => ({
-        text: `Stroke ${i + 1}: ${hand(h)}.`,
+        text: m.music_lessons_pads_rud_stroke_step({ n: i + 1, hand: hand(h) }),
         figure: { kind: "pads", marks: { [h === "left" ? LEFT_PAD : RIGHT_PAD]: hand(h) } },
         sound: {
           notes: unit.slice(0, i + 1).map((x, j) => ({
@@ -276,33 +297,41 @@ function rudimentsIntro(): Lesson {
       })),
     },
     {
-      title: "Singles, doubles, paradiddle",
-      text: "Tap Next to reveal each one, then Hear this step. L is the left hand and R the right.",
+      title: m.music_lessons_pads_rud_kinds_title(),
+      text: m.music_lessons_pads_rud_kinds_text(),
       figure: handPads("single-strokes"),
       steps: [
-        step(`Single strokes alternate: ${single}.`, "single-strokes"),
-        step(`Double strokes play each hand twice: ${doubles}.`, "double-strokes"),
+        step(m.music_lessons_pads_rud_singles_step({ sticking: single }), "single-strokes"),
+        step(m.music_lessons_pads_rud_doubles_step({ sticking: doubles }), "double-strokes"),
         step(
-          `The paradiddle is ${PARADIDDLE.join(" ")}, the sticking the Rudiments on the kit drill uses. This drill starts it on the left hand, ${drillPara}, the same pattern with the other hand first.`,
+          m.music_lessons_pads_rud_para_step({
+            paradiddle: PARADIDDLE.join(" "),
+            sticking: drillPara,
+          }),
           "paradiddle",
         ),
       ],
     },
     {
-      title: "Accents and taps",
-      text: `With pads that send changing velocity, each accent should land at ${percent(RUDIMENT_BANDS.accent)} percent of full level and each tap at ${percent(RUDIMENT_BANDS.tap)} percent. Tap Even, then Accent and taps, to hear four sixteenths each way.`,
+      title: m.music_lessons_pads_rud_accents_title(),
+      text: m.music_lessons_pads_rud_accents_text({
+        accentLow: percent(RUDIMENT_BANDS.accent)[0],
+        accentHigh: percent(RUDIMENT_BANDS.accent)[1],
+        tapLow: percent(RUDIMENT_BANDS.tap)[0],
+        tapHigh: percent(RUDIMENT_BANDS.tap)[1],
+      }),
       figure: handPads("accents-ghosts"),
       options: [
-        { label: "Even", sound: bandSound(true) },
-        { label: "Accent and taps", sound: bandSound(false) },
+        { label: m.music_lessons_pads_rud_even(), sound: bandSound(true) },
+        { label: m.music_lessons_pads_rud_accent_taps(), sound: bandSound(false) },
       ],
     },
     {
-      title: "Eighths, triplets, sixteenths",
-      text: "The subdivision is how many strokes fit in a beat: two for eighths, three for triplets, four for sixteenths. Tap each to hear four beats of single strokes, and watch the grid.",
+      title: m.music_lessons_pads_rud_sub_title(),
+      text: m.music_lessons_pads_rud_sub_text(),
       figure: gridBeats(2),
       options: ([2, 3, 4] as const).map((n) => ({
-        label: SUBDIVISION_NAMES[n][0].toUpperCase() + SUBDIVISION_NAMES[n].slice(1),
+        label: SUB_LABELS[n](),
         sound: gridSound(n),
         figure: gridBeats(n),
       })),
@@ -317,32 +346,39 @@ function rudimentCard(key: string): Lesson | null {
   if (key === "stick-control") {
     return card("pads.rudiments:stick-control", "Stick Control", {
       title: "Stick Control",
-      text: `Page one of Stick Control is every four-note sticking of R and L, ${RUDIMENTS.filter((r) => r.hits).length} in all, in eighths. You play each ${d.hits! / d.unit.length} times on one pad a hand, so the app can check the sticking. The label gives the sticking, such as ${sticking(d.unit)}.`,
+      text: m.music_lessons_pads_stick_text({
+        count: RUDIMENTS.filter((r) => r.hits).length,
+        times: d.hits! / d.unit.length,
+        sticking: sticking(d.unit),
+      }),
       figure: handPads(d.id),
       sound: rudimentSound(d.id),
     });
   }
   const grid = d.subdivision
-    ? `It's timed in ${SUBDIVISION_NAMES[d.subdivision]}.`
+    ? m.music_lessons_pads_rud_timed({ sub: subName(d.subdivision) })
     : d.perBeat
-      ? `It plays ${d.perBeat.join(", ")} notes in successive beats, timed on its closest spacing, ${SUBDIVISION_NAMES[rudimentPerBeat(d, 2)]}.`
-      : "It uses the subdivision you pick.";
+      ? m.music_lessons_pads_rud_per_beat({
+          counts: d.perBeat.join(", "),
+          sub: subName(rudimentPerBeat(d, 2)),
+        })
+      : m.music_lessons_pads_rud_any_sub();
   const parts = [
     d.onePad
-      ? `Two fingers on one pad, ${sticking(d.unit)}, repeated.`
-      : `The sticking is ${sticking(d.unit)}, repeated.`,
+      ? m.music_lessons_pads_rud_one_pad({ sticking: sticking(d.unit) })
+      : m.music_lessons_pads_rud_sticking({ sticking: sticking(d.unit) }),
     grid,
   ];
-  if (d.flam)
-    parts.push(
-      `Each stroke has a grace note on the other pad ${MPC_RUDIMENTS.flamGraceMs} ms before it, and only the main strokes are scored.`,
-    );
-  else if (d.accentMode === "moving") parts.push("The accent moves one note later each beat.");
+  if (d.flam) parts.push(m.music_lessons_pads_rud_flam({ ms: MPC_RUDIMENTS.flamGraceMs }));
+  else if (d.accentMode === "moving") parts.push(m.music_lessons_pads_rud_moving());
   else if (d.accents)
     parts.push(
       d.accents.length === 1
-        ? `The accent is stroke ${d.accents[0] + 1} of each ${d.unit.length}.`
-        : `The accents are strokes ${list(d.accents.map((i) => String(i + 1)))} of each ${d.unit.length}.`,
+        ? m.music_lessons_pads_rud_accent_one({ stroke: d.accents[0] + 1, count: d.unit.length })
+        : m.music_lessons_pads_rud_accent_many({
+            strokes: list(d.accents.map((i) => String(i + 1))),
+            count: d.unit.length,
+          }),
     );
   return card(`pads.rudiments:${key}`, d.label, {
     title: d.label,
@@ -425,52 +461,62 @@ function sixteenthsLesson(): Lesson {
   });
   return card(
     "pads.grooves.sixteenths",
-    "Sixteenths, ghosts and swing",
+    m.music_lessons_pads_six_title(),
     {
-      title: "Counting sixteenths",
-      text: "From level 3 many grooves put notes between the eighths. Count each beat 1 e & a, four sixteenths to a beat. The grid marks hi-hat hits on every sixteenth of one bar.",
+      title: m.music_lessons_pads_six_count_title(),
+      text: m.music_lessons_pads_six_count_text(),
       figure: gridOf(hatsOnSixteenths(), 0, 1),
       sound: soundOf(hatsOnSixteenths()),
     },
     {
-      title: "A bar of it",
-      text: `Here is "${r.groove.label}", one bar at a time. Tap Next to add a part.`,
+      title: m.music_lessons_pads_six_bar_title(),
+      text: m.music_lessons_pads_six_bar_text({ groove: r.groove.label }),
       figure: gridOf([], 0, 1),
       steps: [
         stepAt(
           hatEvery
-            ? "The hi-hat plays every sixteenth."
-            : `The hi-hat plays on ${list(countsOf(beatsOf(bar, "hats")))}.`,
+            ? m.music_lessons_pads_six_hat_every()
+            : m.music_lessons_pads_six_hat_on({ counts: list(countsOf(beatsOf(bar, "hats"))) }),
           (h) => h.voice === "hats",
         ),
         stepAt(
-          `The kick lands on ${list(countsOf(beatsOf(bar, "kick")))}.`,
+          m.music_lessons_pads_six_kick({ counts: list(countsOf(beatsOf(bar, "kick"))) }),
           (h) => h.voice === "hats" || h.voice === "kick",
         ),
         stepAt(
-          `The snare backbeat lands on ${list(countsOf(beatsOf(bar, "snare", "accent")))}.`,
+          m.music_lessons_pads_six_backbeat({
+            counts: list(countsOf(beatsOf(bar, "snare", "accent"))),
+          }),
           (h) => h.accent !== "ghost",
         ),
         stepAt(
-          `The soft ghost snares sit on ${list(countsOf(beatsOf(bar, "snare", "ghost")))}.`,
+          m.music_lessons_pads_six_ghosts({
+            counts: list(countsOf(beatsOf(bar, "snare", "ghost"))),
+          }),
           () => true,
         ),
       ],
     },
     {
-      title: "Ghost notes",
-      text: `A ghost note is a very quiet hit, here on the snare between the backbeats. On the 0 to 127 scale the drill's bands are ${BANDS.ghost[0]} to ${BANDS.ghost[1]} for a ghost, ${BANDS.normal[0]} to ${BANDS.normal[1]} for a normal hit and ${BANDS.accent[0]} and up for an accent. It checks them only when your pads send changing velocity.`,
+      title: m.music_lessons_pads_six_ghost_title(),
+      text: m.music_lessons_pads_six_ghost_text({
+        ghostLow: BANDS.ghost[0],
+        ghostHigh: BANDS.ghost[1],
+        normalLow: BANDS.normal[0],
+        normalHigh: BANDS.normal[1],
+        accentLow: BANDS.accent[0],
+      }),
       options: [
-        { label: "Ghosts", sound: ghostBar(false) },
-        { label: "Too loud", sound: ghostBar(true) },
+        { label: m.music_lessons_pads_ghosts(), sound: ghostBar(false) },
+        { label: m.music_lessons_pads_too_loud(), sound: ghostBar(true) },
       ],
     },
     {
-      title: "Swing",
-      text: `Swing delays every second sixteenth. The drill gives it as a percentage of the eighth, from 50 for straight up to 75, where 66 sits on the triplet, and offers it on grooves that can swing. Tap Straight or Swung to hear sixteenth hats at 50 and at ${swung}.`,
+      title: m.music_lessons_pads_swing_title(),
+      text: m.music_lessons_pads_six_swing_text({ swung }),
       options: [
-        { label: "Straight", sound: soundOf(hatsOnSixteenths(50)) },
-        { label: "Swung", sound: soundOf(hatsOnSixteenths(swung)) },
+        { label: m.music_lessons_pads_straight(), sound: soundOf(hatsOnSixteenths(50)) },
+        { label: m.music_lessons_pads_swung(), sound: soundOf(hatsOnSixteenths(swung)) },
       ],
     },
   );
@@ -491,9 +537,9 @@ function grooveCard(item: string): Lesson | null {
   if (item === "independence") {
     const g = GROOVE_OF("independence");
     const hits: Hit[] = g.targets.filter((t) => t.beat < 8);
-    return card(id, "Independence", {
-      title: "Independence",
-      text: `In an independence groove each hand or foot plays a part of its own and holds it whatever the others do. In "${g.label}" the hats play the same in every bar while the kick takes a new pattern each bar. The grid shows its first two bars.`,
+    return card(id, m.music_lessons_pads_independence_title(), {
+      title: m.music_lessons_pads_independence_title(),
+      text: m.music_lessons_pads_independence_text({ groove: g.label }),
       figure: gridOf(hits, 0, 2),
       sound: soundOf(hits),
     });
@@ -501,9 +547,9 @@ function grooveCard(item: string): Lesson | null {
   if (item === "linear") {
     const g = GROOVE_OF("linear-singles");
     const hits: Hit[] = firstBar(g);
-    return card(id, "Linear grooves", {
-      title: "Linear grooves",
-      text: `In a linear groove no two drums play at the same time, so the hands and the foot take turns. In "${g.label}" the hats, snare and kick pass the bar round without overlapping. The grid shows its bar.`,
+    return card(id, m.music_lessons_pads_linear_title(), {
+      title: m.music_lessons_pads_linear_title(),
+      text: m.music_lessons_pads_linear_text({ groove: g.label }),
       figure: gridOf(hits, 0, 1),
       sound: soundOf(hits),
     });
@@ -511,9 +557,9 @@ function grooveCard(item: string): Lesson | null {
   if (item === "fills") {
     const g = GROOVE_OF("fill-one-beat");
     const hits: Hit[] = g.targets.filter((t) => t.beat >= 8 && t.beat < 16);
-    return card(id, "Fills", {
-      title: "Fills",
-      text: `A fill is a short burst of drum hits that marks the end of a phrase. In these grooves it's the last bar of four, and the next phrase starts back on the one. The grid shows the last two bars of "${g.label}".`,
+    return card(id, m.music_lessons_pads_fills_title(), {
+      title: m.music_lessons_pads_fills_title(),
+      text: m.music_lessons_pads_fills_groove_text({ groove: g.label }),
       figure: gridOf(hits, 8, 2),
       sound: soundOf(hits, { from: 8 }),
     });
@@ -521,10 +567,13 @@ function grooveCard(item: string): Lesson | null {
   if (item === "rolls") {
     const g = GROOVE_OF("trap-32");
     const hats = barHits(g, 0).filter((t) => t.voice === "hats");
-    const per = (rate: string) => `${repeatPerBeat(rate)} to a beat`;
-    return card(id, "Rolls", {
-      title: "Rolls",
-      text: `A roll plays notes faster than sixteenths: thirty-seconds, ${per("1/32")}, or sixteenth triplets, ${per("1/16T")}. Alternate two fingers on one pad, or hold Note Repeat at 1/32 or 1/16T. Hear the hats of "${g.label}".`,
+    return card(id, m.music_lessons_pads_rolls_title(), {
+      title: m.music_lessons_pads_rolls_title(),
+      text: m.music_lessons_pads_rolls_text({
+        per32: repeatPerBeat("1/32"),
+        per16t: repeatPerBeat("1/16T"),
+        groove: g.label,
+      }),
       sound: soundOf(hats),
     });
   }
@@ -533,9 +582,9 @@ function grooveCard(item: string): Lesson | null {
     const hits: Hit[] = g.targets
       .filter((t) => t.beat < 4 || (t.beat >= 12 && t.beat < 16))
       .map((t) => (t.beat >= 12 ? { ...t, beat: t.beat - 8 } : t));
-    return card(id, "Breaks", {
-      title: "Breaks",
-      text: `A break is a short drum part lifted from a record, written out for you to play. The ${g.label} runs for ${g.bars} bars and the bars differ, so keep count of where you are. The grid shows its kick and snare in bars 1 and 4.`,
+    return card(id, m.music_lessons_pads_breaks_title(), {
+      title: m.music_lessons_pads_breaks_title(),
+      text: m.music_lessons_pads_breaks_text({ groove: g.label, bars: g.bars }),
       figure: gridOf(hits, 0, 2, ["kick", "snare"], [1, 4]),
       sound: soundOf(hits),
     });
@@ -543,9 +592,9 @@ function grooveCard(item: string): Lesson | null {
   if (item === "shuffle") {
     const g = GROOVE_OF("blues-shuffle");
     const hats = firstBar(g).filter((t) => t.voice === "hats");
-    return card(id, "Shuffle", {
-      title: "Shuffle",
-      text: `In a shuffle each beat splits into three, counted 1 trip let, and many shuffles skip the middle note. The grid for these grooves has three steps a beat, or six in the grooves that go finer. The picture shows the hi-hat of "${g.label}".`,
+    return card(id, m.music_lessons_pads_shuffle_title(), {
+      title: m.music_lessons_pads_shuffle_title(),
+      text: m.music_lessons_pads_shuffle_text({ groove: g.label }),
       figure: {
         kind: "rhythm",
         bars: 1,
@@ -558,9 +607,9 @@ function grooveCard(item: string): Lesson | null {
   }
   if (item === "meter") {
     const g = GROOVE_OF("five-four");
-    return card(id, "Odd meters", {
-      title: "Odd meters",
-      text: "Odd-meter grooves have 5 or 7 counts in a bar instead of 4. Count them in groups of two and three, for example 5 as 3 + 2. In 7/8 each count is an eighth note.",
+    return card(id, m.music_lessons_pads_meter_title(), {
+      title: m.music_lessons_pads_meter_title(),
+      text: m.music_lessons_pads_meter_text(),
       sound: soundOf(firstBar(g)),
     });
   }
@@ -570,16 +619,23 @@ function grooveCard(item: string): Lesson | null {
     const twice = [...TRESILLO, ...TRESILLO.map((b) => b + 2)];
     return card(
       id,
-      "The tresillo",
+      m.music_lessons_pads_latin_title(),
       {
-        title: "Three, three, two",
-        text: `Count each beat in four sixteenths: 1 e & a. The tresillo puts three notes in eight sixteenths, spaced 3 + 3 + 2, on ${list(countsOf(TRESILLO))}. Then it starts again on ${list(countsOf(TRESILLO.map((b) => b + 2)))}.`,
+        title: m.music_lessons_pads_latin_332_title(),
+        text: m.music_lessons_pads_latin_332_text({
+          first: list(countsOf(TRESILLO)),
+          again: list(countsOf(TRESILLO.map((b) => b + 2))),
+        }),
         figure: { kind: "rhythm", bars: 1, perBeat: 4, beatsPerBar: 4, onsets: twice },
         sound: soundOf(twice.map((beat) => ({ voice: "rim", beat }))),
       },
       {
-        title: "In a groove",
-        text: `Many Caribbean and Latin grooves are built on it. In "${g.label}" the kick plays the first two notes and the snare the third, while ${list(TRESILLO_ALSO.map((v) => repertoireFor(v)!.style))} play the last two on the snare over a kick on every beat. Hear one bar of ${g.label.toLowerCase()}.`,
+        title: m.music_lessons_pads_latin_groove_title(),
+        text: m.music_lessons_pads_latin_groove_text({
+          groove: g.label,
+          styles: list(TRESILLO_ALSO.map((v) => repertoireFor(v)!.style)),
+          grooveLower: g.label.toLowerCase(),
+        }),
         figure: gridOf(bar, 0, 1),
         sound: soundOf(bar),
       },
@@ -594,10 +650,10 @@ function grooveCard(item: string): Lesson | null {
     const houseBar = firstBar(house);
     return card(
       id,
-      "Dance grooves",
+      m.music_lessons_pads_dance_title(),
       {
-        title: "Four on the floor",
-        text: `House and disco put the kick on every beat, called four on the floor. The open hat plays on every &, between the kicks. The lit pads are the ones "${house.label}" uses.`,
+        title: m.music_lessons_pads_dance_floor_title(),
+        text: m.music_lessons_pads_dance_floor_text({ groove: house.label }),
         figure: padsFigure(
           Object.fromEntries(
             [...new Set(houseBar.map((h) => voice(h.voice).midi))].map((m) => [m, ""]),
@@ -606,8 +662,12 @@ function grooveCard(item: string): Lesson | null {
         sound: soundOf(houseBar),
       },
       {
-        title: "Half time and two-step",
-        text: `Trap feels half as fast as its tempo, with the clap only on ${list(countsOf(clap))}. Drum and bass plays its kick on ${list(countsOf(dnbKick))}, at up to ${dnb.bpm.target} BPM. Tap each to hear a bar at its starting tempo.`,
+        title: m.music_lessons_pads_dance_half_title(),
+        text: m.music_lessons_pads_dance_half_text({
+          clap: list(countsOf(clap)),
+          kick: list(countsOf(dnbKick)),
+          bpm: dnb.bpm.target,
+        }),
         options: [
           { label: "Trap", sound: soundOf(firstBar(trap.groove), { bpm: trap.bpm.start }) },
           { label: "Drum and bass", sound: soundOf(firstBar(dnb.groove), { bpm: dnb.bpm.start }) },
@@ -621,18 +681,24 @@ function grooveCard(item: string): Lesson | null {
       .sort((a, b) => a - b);
     return card(
       id,
-      "Swing",
+      m.music_lessons_pads_swing_title(),
       {
-        title: "Late every other sixteenth",
-        text: `Swing delays every second sixteenth, the e and the a, while notes on the beat and the & stay put. The Swing choice runs from ${SWING_CHOICES[0]}, straight, to ${SWING_CHOICES[SWING_CHOICES.length - 1]}, and 66 sits on the triplet. Tap each to hear sixteenth hats.`,
+        title: m.music_lessons_pads_swing_late_title(),
+        text: m.music_lessons_pads_swing_late_text({
+          min: SWING_CHOICES[0],
+          max: SWING_CHOICES[SWING_CHOICES.length - 1],
+        }),
         options: [50, ...swings].map((w) => ({
-          label: w === 50 ? "Straight" : `Swing ${w}`,
+          label:
+            w === 50
+              ? m.music_lessons_pads_straight()
+              : m.music_lessons_pads_swing_option({ amount: w }),
           sound: soundOf(hatsOnSixteenths(w)),
         })),
       },
       {
-        title: "Feel it",
-        text: "Count the beats, not the late notes: the swung one should feel lazy, not placed. On a swung groove the results show Swing played, where your notes on the e and the a landed against the groove's swing. It doesn't change the pass.",
+        title: m.music_lessons_pads_swing_feel_title(),
+        text: m.music_lessons_pads_swing_feel_text(),
       },
     );
   }
@@ -644,10 +710,13 @@ function grooveCard(item: string): Lesson | null {
     const onBeat = bar.map((h) => (h.voice === "snare" ? { ...h, beat: Math.round(h.beat) } : h));
     return card(id, r.groove.label, {
       title: r.groove.label,
-      text: `Two feels at once: the hats swing at ${r.swing} while the snare comes about ${ms} ms early at ${r.bpm.target} BPM, a little more at slower tempos. The drill times your snare against that early spot. Tap Pushed, then On the beat, to hear the difference.`,
+      text: m.music_lessons_pads_dilla_text({ swing: r.swing!, ms, bpm: r.bpm.target }),
       options: [
-        { label: "Pushed", sound: soundOf(bar, { bpm: r.bpm.target }) },
-        { label: "On the beat", sound: soundOf(onBeat, { bpm: r.bpm.target }) },
+        { label: m.music_lessons_pads_pushed(), sound: soundOf(bar, { bpm: r.bpm.target }) },
+        {
+          label: m.music_lessons_pads_on_the_beat(),
+          sound: soundOf(onBeat, { bpm: r.bpm.target }),
+        },
       ],
     });
   }
@@ -673,29 +742,35 @@ function fillsIntro(): Lesson {
   const play = (shift?: (h: Hit) => number) => soundOf(third, { from: 8, shift });
   return card(
     "pads.fills",
-    "Fills",
+    m.music_lessons_pads_fills_title(),
     {
-      title: "Three bars, then a fill",
-      text: "A run is three bars of groove, a fill in bar 4, then crash and kick together on the next one. The grid shows one groove bar and the fill bar, and Hear it plays them with the landing.",
+      title: m.music_lessons_pads_fills_run_title(),
+      text: m.music_lessons_pads_fills_run_text(),
       figure: gridOf(grid, 0, 2),
       sound: play(),
     },
     {
-      title: "Landing on the one",
-      text: `The landing counts when crash and kick are both within ${FILL.landMs} ms of the click on the one. Tap Landed to hear them there, or Late to hear both ${FILL_DEMO_MS} ms behind.`,
+      title: m.music_lessons_pads_fills_land_title(),
+      text: m.music_lessons_pads_fills_land_text({ ms: FILL.landMs, demo: FILL_DEMO_MS }),
       figure: gridOf(grid, 0, 2),
       options: [
-        { label: "Landed", sound: play() },
-        { label: "Late", sound: play((h) => (g.landing.includes(hits.indexOf(h)) ? ms : 0)) },
+        { label: m.music_lessons_pads_landed(), sound: play() },
+        {
+          label: m.music_lessons_pads_late(),
+          sound: play((h) => (g.landing.includes(hits.indexOf(h)) ? ms : 0)),
+        },
       ],
     },
     {
-      title: "Do not rush",
-      text: `If the fill's notes come more than ${FILL.rushMs} ms early on average, the fill counts as rushed and the run isn't clean. Tap On time, or Rushed to hear the fill ${FILL_DEMO_MS} ms early.`,
+      title: m.music_lessons_pads_fills_rush_title(),
+      text: m.music_lessons_pads_fills_rush_text({ ms: FILL.rushMs, demo: FILL_DEMO_MS }),
       figure: gridOf(grid, 0, 2),
       options: [
-        { label: "On time", sound: play() },
-        { label: "Rushed", sound: play((h) => (g.fill.includes(hits.indexOf(h)) ? -ms : 0)) },
+        { label: m.music_lessons_pads_on_time(), sound: play() },
+        {
+          label: m.music_lessons_pads_rushed(),
+          sound: play((h) => (g.fill.includes(hits.indexOf(h)) ? -ms : 0)),
+        },
       ],
     },
   );
@@ -710,7 +785,11 @@ function fillCard(id: string): Lesson | null {
   const marks = Object.fromEntries(voices.map((v) => [voice(v).midi, ""]));
   return card(`pads.fills:${id}`, fill.label, {
     title: fill.label,
-    text: `It comes after three bars of ${fill.groove ? "shuffle" : "rock"}. The lit pads are the ones the fill bar and the landing use. The drill times the ${g.fill.length} notes it adds to the groove for rushing.`,
+    text: (fill.groove
+      ? m.music_lessons_pads_fill_card_shuffle
+      : m.music_lessons_pads_fill_card_rock)({
+      count: g.fill.length,
+    }),
     figure: padsFigure(marks),
     sound: soundOf(
       hits.filter((h) => h.beat >= 8),
@@ -735,37 +814,37 @@ function echoIntro(): Lesson {
   const snare = list(countsOf(beatsOf(call, "snare")));
   return card(
     "pads.echo",
-    "Play it back",
+    m.music_lessons_pads_echo_title(),
     {
-      title: "Listen, then play it back",
-      text: "The app plays a bar, then the next bar is yours: play back what you heard. There are four rounds, each a call and an answer, and only your answers are scored. The grid stays hidden until the run is over.",
+      title: m.music_lessons_pads_echo_listen_title(),
+      text: m.music_lessons_pads_echo_listen_text(),
       figure: gridOf([...call, ...answer], 0, 2),
     },
     {
-      title: "One round",
-      text: "Tap Next to hear a call and then the answer that matches it.",
+      title: m.music_lessons_pads_echo_round_title(),
+      text: m.music_lessons_pads_echo_round_text(),
       figure: gridOf([], 0, 1),
       steps: [
         {
-          text: `The call is one bar: kick on ${kick}, snare on ${snare}.`,
+          text: m.music_lessons_pads_echo_call({ kick, snare }),
           figure: gridOf(call, 0, 1),
           sound: soundOf(call),
         },
         {
-          text: "Your answer is the same bar, played in the bar after the call.",
+          text: m.music_lessons_pads_echo_answer(),
           figure: gridOf(answer, 4, 1),
           sound: soundOf(answer, { from: 4 }),
         },
         {
-          text: "Together: the call, then your answer.",
+          text: m.music_lessons_pads_echo_together(),
           figure: gridOf(answer, 4, 1),
           sound: soundOf([...call, ...answer]),
         },
       ],
     },
     {
-      title: "How a round passes",
-      text: `A round counts as played back when at least ${Math.round(ECHO_PASS * 100)} percent of its notes are matched. The run is correct when all four rounds are played back and you play no extra hits. Playing along with a call costs nothing, because only the answer bars are scored.`,
+      title: m.music_lessons_pads_echo_pass_title(),
+      text: m.music_lessons_pads_echo_pass_text({ pass: Math.round(ECHO_PASS * 100) }),
     },
   );
 }
@@ -787,9 +866,9 @@ function echoCard(levelId: string): Lesson | null {
   if (!lvl) return null;
   const { voices, ghosts } = echoVoices(levelId);
   const { call } = echoRound(levelId);
-  const parts = [`This level plays ${list(voices.map(voiceName))}.`];
-  if (ghosts) parts.push("Some calls have ghost notes, played at the ghost level.");
-  parts.push("The grid shows the first call.");
+  const parts = [m.music_lessons_pads_echo_level_plays({ drums: list(voices.map(voiceName)) })];
+  if (ghosts) parts.push(m.music_lessons_pads_echo_level_ghosts());
+  parts.push(m.music_lessons_pads_echo_level_grid());
   return card(`pads.echo:${levelId}`, lvl.label, {
     title: lvl.label,
     text: parts.join(" "),
@@ -818,35 +897,45 @@ function ostinatoIntro(): Lesson {
   const claveName = voiceName(ostinatoGroove("clave").ostinato);
   return card(
     "pads.ostinato",
-    "Ostinato and a line",
+    m.music_lessons_pads_ost_title(),
     {
-      title: "Keep one part going",
-      text: `An ostinato is a part that repeats without changing while another part moves. The ${hatsName} keep eighths while the snare reads a line, or the kick when you choose that for new lines, and for the clave line the ${claveName} keeps the son clave. You play two bars of the ostinato alone, then four bars with the line.`,
+      title: m.music_lessons_pads_ost_keep_title(),
+      text: m.music_lessons_pads_ost_keep_text({ hats: hatsName, clave: claveName }),
       figure: gridOf(withLine, 0, 1),
     },
     {
-      title: "Hats, then the line",
-      text: "Tap Next to hear the hi-hat alone and then with a snare line on top.",
+      title: m.music_lessons_pads_ost_hats_title(),
+      text: m.music_lessons_pads_ost_hats_text(),
       figure: gridOf([], 0, 1),
       steps: [
         {
-          text: `The hi-hat plays eighths: ${list(countsOf(beatsOf(alone, "hats"), 2))}.`,
+          text: m.music_lessons_pads_ost_hats_step({
+            counts: list(countsOf(beatsOf(alone, "hats"), 2)),
+          }),
           figure: gridOf(alone, 0, 1),
           sound: soundOf(alone),
         },
         {
-          text: `Then the snare reads a line on ${list(countsOf(beatsOf(withLine, "snare")))} while the hats carry on.`,
+          text: m.music_lessons_pads_ost_line_step({
+            counts: list(countsOf(beatsOf(withLine, "snare"))),
+          }),
           figure: gridOf(withLine, 0, 1),
           sound: soundOf(withLine),
         },
       ],
     },
     {
-      title: "How it's scored",
-      text: `The drill counts how many ostinato notes you hit alone, then under the line. The ostinato holds when the rate under the line is no more than ${Math.round(OSTINATO.maxDrop * 100)} percentage points below the rate alone. The run also needs the groove itself to be correct.`,
+      title: m.music_lessons_pads_ost_scored_title(),
+      text: m.music_lessons_pads_ost_scored_text({ drop: Math.round(OSTINATO.maxDrop * 100) }),
     },
   );
 }
+
+/** Who reads the line, by INTERPRETATIONS id. */
+const READERS: Record<(typeof INTERPRETATIONS)[number]["id"], () => string> = {
+  snare: m.music_lessons_pads_reader_snare,
+  kick: m.music_lessons_pads_reader_kick,
+};
 
 function ostinatoCard(id: string): Lesson | null {
   const line = READING_LINES.find((l) => l.id === id);
@@ -857,7 +946,7 @@ function ostinatoCard(id: string): Lesson | null {
     const rim = beatsOf(bar, "rim");
     return card(cid, line.label, {
       title: line.label,
-      text: `The rim plays the son clave on ${list(countsOf(rim))}. The kick plays a different pattern in each of the four bars under it. The grid shows the clave.`,
+      text: m.music_lessons_pads_ost_clave_text({ counts: list(countsOf(rim)) }),
       figure: {
         kind: "rhythm",
         bars: 1,
@@ -872,7 +961,12 @@ function ostinatoCard(id: string): Lesson | null {
     const hits = lineBar("read", readingLines(rng(7), 1)[0]);
     return card(cid, line.label, {
       title: line.label,
-      text: `Four new bars to read come up on every run, built from short patterns, with at least three notes a bar and never plain quarters. You choose who reads, ${INTERPRETATIONS.map((x) => `the ${x.id}`).join(" or ")}. The grid shows one example bar read on the snare.`,
+      text: m.music_lessons_pads_ost_read_text({
+        readers: formatList(
+          INTERPRETATIONS.map((x) => READERS[x.id]()),
+          "disjunction",
+        ),
+      }),
       figure: gridOf(hits, 0, 1),
       sound: soundOf(hits),
     });
@@ -880,7 +974,7 @@ function ostinatoCard(id: string): Lesson | null {
   const hits = lineBar(id);
   return card(cid, line.label, {
     title: line.label,
-    text: `The snare plays on ${list(countsOf(beatsOf(hits, "snare")))}. The hats play eighths under it.`,
+    text: m.music_lessons_pads_ost_line_text({ counts: list(countsOf(beatsOf(hits, "snare"))) }),
     figure: gridOf(hits, 0, 1),
     sound: soundOf(hits),
   });
@@ -907,32 +1001,32 @@ function orchestrateIntro(): Lesson {
   const group = (n: number) => bar.filter((h) => h.beat >= n && h.beat < n + 1);
   return card(
     "pads.orchestrate",
-    "Rudiments on the kit",
+    m.music_lessons_pads_orch_title(),
     {
-      title: "Sticking on the kit",
+      title: m.music_lessons_pads_orch_sticking_title(),
       figure: padsFigure(orchestraPads(o.id)),
-      text: `The paradiddle is ${PARADIDDLE.join(" ")}, two groups of four. In this drill each hand gets its own drum, so the sticking becomes a groove: two bars of sixteenths with the first stroke of each group accented.`,
+      text: m.music_lessons_pads_orch_sticking_text({ paradiddle: PARADIDDLE.join(" ") }),
     },
     {
-      title: "Which pad",
-      text: `${o.detail}, as the ${o.label} choice plays it. The lit pads show each hand, and K is the kick.`,
+      title: m.music_lessons_pads_orch_which_title(),
+      text: m.music_lessons_pads_orch_which_text({ detail: o.detail, choice: o.label }),
       figure: padsFigure(orchestraPads(o.id)),
     },
     {
-      title: "Hear it",
-      text: "Tap Next to hear each group of four, then the whole bar.",
+      title: m.music_lessons_pads_orch_hear_title(),
+      text: m.music_lessons_pads_orch_hear_text(),
       figure: padsFigure(orchestraPads(o.id)),
       steps: [
         {
-          text: `The first group is ${PARADIDDLE.slice(0, 4).join(" ")}.`,
+          text: m.music_lessons_pads_orch_first({ sticking: PARADIDDLE.slice(0, 4).join(" ") }),
           sound: soundOf(group(0), { bpm: 90 }),
         },
         {
-          text: `The second group is ${PARADIDDLE.slice(4).join(" ")}.`,
+          text: m.music_lessons_pads_orch_second({ sticking: PARADIDDLE.slice(4).join(" ") }),
           sound: soundOf(group(1), { bpm: 90, from: 1 }),
         },
         {
-          text: "Four groups make one bar of sixteenths, the paradiddle twice through.",
+          text: m.music_lessons_pads_orch_whole(),
           sound: soundOf(bar, { bpm: 90 }),
         },
       ],
@@ -946,7 +1040,11 @@ function orchestrateCard(id: string): Lesson | null {
   const kick = orchestrationGroove(id).targets.some((t) => t.voice === "kick");
   return card(`pads.orchestrate:${id}`, o.label, {
     title: o.label,
-    text: `${o.detail}. The drill plays two bars of sixteenth paradiddles with the first stroke of each group of four accented, and the example plays one.${kick ? "" : " This one has no kick."}`,
+    text: (kick
+      ? m.music_lessons_pads_orch_card_text
+      : m.music_lessons_pads_orch_card_text_no_kick)({
+      detail: o.detail,
+    }),
     figure: padsFigure(orchestraPads(id)),
     sound: soundOf(orchestraBar(id), { bpm: 90 }),
   });
@@ -970,13 +1068,19 @@ function repeatIntro(): Lesson {
   const build = noteRepeatPiece("build");
   const bars: Record<string, number> = {};
   for (const l of build.sectionLabels) if (l !== "drop") bars[l] = (bars[l] ?? 0) + 1;
-  const runs = Object.entries(bars).map(([rate, n]) => `${n === 2 ? "two" : n} bars at ${rate}`);
+  const runs = Object.entries(bars).map(([rate, n]) =>
+    m.music_lessons_pads_repeat_run({
+      count: n,
+      n: n === 2 ? m.music_lessons_pads_two() : n,
+      rate,
+    }),
+  );
   return card(
     "pads.repeat",
-    "Note repeat",
+    m.music_lessons_pads_repeat_title(),
     {
-      title: "Hold the pad",
-      text: "Note Repeat plays a pad again for as long as you hold it, on a grid set by the rate. The app changes the rate as the chart goes, so you hold the pad and follow the chart. The drill names the pad to hold.",
+      title: m.music_lessons_pads_hold_title(),
+      text: m.music_lessons_pads_hold_text(),
       // One held pad: eighths for two beats, then sixteenths when the rate changes.
       figure: gridOf(
         [0, 0.5, 1, 1.5, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75].map((beat) => ({
@@ -989,12 +1093,15 @@ function repeatIntro(): Lesson {
       ),
     },
     {
-      title: "Pressure",
-      text: "If your pads send aftertouch, pressure sets the level of the repeats. If they don't, every repeat keeps the level of your first hit.",
+      title: m.music_lessons_pads_pressure_title(),
+      text: m.music_lessons_pads_pressure_text(),
     },
     {
-      title: "Builds",
-      text: `The build goes ${list(runs)}, louder all the way. It's scored on how steadily the level climbs and on covering at least ${Math.round(BUILD.span * 100)} percent of your soft to loud range. That needs pads that send velocity.`,
+      title: m.music_lessons_pads_builds_title(),
+      text: m.music_lessons_pads_builds_text({
+        runs: list(runs),
+        span: Math.round(BUILD.span * 100),
+      }),
     },
   );
 }
@@ -1007,9 +1114,9 @@ function repeatCard(rate: string): Lesson | null {
     beat: i / r.perBeat,
     accent: "normal",
   }));
-  return card(`pads.repeat:${rate}`, `Rate ${rate}`, {
-    title: `Rate ${rate}`,
-    text: `At ${rate} a held pad repeats ${r.perBeat} times a beat, which is ${SUBDIVISION_NAMES[r.perBeat]}. Hear two beats of it. Each repeat keeps your hit's level unless your pads send aftertouch.`,
+  return card(`pads.repeat:${rate}`, m.music_lessons_pads_rate_title({ rate }), {
+    title: m.music_lessons_pads_rate_title({ rate }),
+    text: m.music_lessons_pads_rate_text({ rate, count: r.perBeat, sub: subName(r.perBeat) }),
     sound: soundOf(hits),
   });
 }
@@ -1032,13 +1139,27 @@ export function dynamicsSound(id: (typeof SONG_LEVELS)[number] | "rising"): Less
   };
 }
 
+/** A section's level as a button label, and as a word in a sentence. */
+const LEVEL_LABELS = {
+  soft: m.music_lessons_pads_level_soft,
+  medium: m.music_lessons_pads_level_medium,
+  loud: m.music_lessons_pads_level_loud,
+  rising: m.music_lessons_pads_level_rising,
+};
+const LEVEL_WORDS: Record<string, () => string> = {
+  soft: m.music_lessons_pads_dyn_soft,
+  medium: m.music_lessons_pads_dyn_medium,
+  loud: m.music_lessons_pads_dyn_loud,
+  rising: m.music_lessons_pads_dyn_rising,
+};
+
 function songIntro(): Lesson {
   return card(
     "pads.song",
-    "Song form",
+    m.music_lessons_pads_song_title(),
     {
-      title: "One take",
-      text: "A piece is a list of sections, such as an intro, a groove, a build and a drop. You play it from start to end in one take, and each section is scored on its own.",
+      title: m.music_lessons_pads_take_title(),
+      text: m.music_lessons_pads_take_text(),
       // Four bars as four sections: an intro on the hats, a groove, a snare build, a drop on the one.
       figure: gridOf(
         [
@@ -1059,19 +1180,26 @@ function songIntro(): Lesson {
       ),
     },
     {
-      title: "Soft, medium, loud, rising",
-      text: `Each section has a level against your own soft to loud range: soft is ${percent(DYN_BANDS.soft)} percent of it, medium ${percent(DYN_BANDS.medium)} and loud ${percent(DYN_BANDS.loud)}. In written music these are p, mf and f, and a rising section is a crescendo. Tap each to hear eight snare hits on a typical range.`,
+      title: m.music_lessons_pads_levels_title(),
+      text: m.music_lessons_pads_levels_text({
+        softLow: percent(DYN_BANDS.soft)[0],
+        softHigh: percent(DYN_BANDS.soft)[1],
+        mediumLow: percent(DYN_BANDS.medium)[0],
+        mediumHigh: percent(DYN_BANDS.medium)[1],
+        loudLow: percent(DYN_BANDS.loud)[0],
+        loudHigh: percent(DYN_BANDS.loud)[1],
+      }),
       options: [
-        ...SONG_LEVELS.map((l) => ({
-          label: l[0].toUpperCase() + l.slice(1),
-          sound: dynamicsSound(l),
-        })),
-        { label: "Rising", sound: dynamicsSound("rising") },
+        ...SONG_LEVELS.map((l) => ({ label: LEVEL_LABELS[l](), sound: dynamicsSound(l) })),
+        { label: LEVEL_LABELS.rising(), sound: dynamicsSound("rising") },
       ],
     },
     {
-      title: "How a section passes",
-      text: `A section passes with at least ${Math.round(SECTION_PASS.matched * 100)} percent of its notes matched and no more than ${Math.round(SECTION_PASS.extraShare * 100)} percent of them as extra hits (one is always allowed). When your pads send velocity, its level must be in band too. The run is correct when every section passes.`,
+      title: m.music_lessons_pads_section_pass_title(),
+      text: m.music_lessons_pads_section_pass_text({
+        matched: Math.round(SECTION_PASS.matched * 100),
+        extra: Math.round(SECTION_PASS.extraShare * 100),
+      }),
     },
   );
 }
@@ -1081,24 +1209,37 @@ function songCard(id: string): Lesson | null {
   if (!f) return null;
   return card(`pads.song:${id}`, f.label, {
     title: f.label,
-    text: `The sections are ${f.sections.map((x) => `${x.label} (${x.bars} bars, ${x.dyn})`).join(", ")}. It starts at ${f.bpm.start} BPM and aims for ${f.bpm.target}.`,
+    text: m.music_lessons_pads_song_card_text({
+      sections: f.sections
+        .map((x) =>
+          m.music_lessons_pads_song_section({
+            label: x.label,
+            bars: x.bars,
+            dyn: LEVEL_WORDS[x.dyn]?.() ?? x.dyn,
+          }),
+        )
+        .join(", "),
+      start: f.bpm.start,
+      target: f.bpm.target,
+    }),
   });
 }
 
 // ---------------------------------------------------------------------------
 // Chop
 
-const slices = (steps: readonly number[]) => steps.map((s) => (s ? String(s) : "a gap")).join(", ");
+const slices = (steps: readonly number[]) =>
+  steps.map((s) => (s ? String(s) : m.music_lessons_pads_gap())).join(", ");
 /** How long a slice of an `n`-bar loop is. */
 export const sliceWord = (bars: number) => {
   const beats = (bars * 4) / CHOP_SLICES;
   return beats === 0.25
-    ? "sixteenths"
+    ? m.music_lessons_pads_slice_sixteenths()
     : beats === 0.5
-      ? "eighths"
+      ? m.music_lessons_pads_slice_eighths()
       : beats === 1
-        ? "beats"
-        : `${beats} beats`;
+        ? m.music_lessons_pads_slice_beats()
+        : m.music_lessons_pads_slice_n_beats({ n: beats });
 };
 
 function chopIntro(): Lesson {
@@ -1115,10 +1256,15 @@ function chopIntro(): Lesson {
   });
   return card(
     "pads.chop",
-    "Chop",
+    m.music_lessons_pads_chop_title(),
     {
-      title: "A loop in sixteen slices",
-      text: `A chop cuts a loop into ${CHOP_SLICES} equal slices, one on each pad from ${padName(slicePad(0))} to ${padName(slicePad(CHOP_SLICES - 1))}. Hear it plays the ${src.label.toLowerCase()} loop whole, and Next lights slices 1 to 4 in turn.`,
+      title: m.music_lessons_pads_chop_loop_title(),
+      text: m.music_lessons_pads_chop_loop_text({
+        count: CHOP_SLICES,
+        first: padName(slicePad(0)),
+        last: padName(slicePad(CHOP_SLICES - 1)),
+        loop: src.label.toLowerCase(),
+      }),
       figure: lit(1),
       sound: {
         notes: srcNotes.map((n) => ({
@@ -1131,7 +1277,7 @@ function chopIntro(): Lesson {
       },
       // Each Next lights the next slice's pad and plays that slice alone.
       steps: [1, 2, 3, 4].map((k) => ({
-        text: `Slice ${k}, on ${padName(slicePad(k - 1))}.`,
+        text: m.music_lessons_pads_chop_slice_step({ n: k, pad: padName(slicePad(k - 1)) }),
         figure: lit(k),
         sound: {
           notes: srcNotes
@@ -1147,12 +1293,21 @@ function chopIntro(): Lesson {
       })),
     },
     {
-      title: "How long a slice is",
-      text: `A one-bar loop gives slices of ${sliceWord(1)}, a two-bar loop ${sliceWord(2)} and a four-bar loop ${sliceWord(4)}. Played in order, slices 1 to ${CHOP_SLICES} bring the loop back.`,
+      title: m.music_lessons_pads_chop_len_title(),
+      text: m.music_lessons_pads_chop_len_text({
+        one: sliceWord(1),
+        two: sliceWord(2),
+        four: sliceWord(4),
+        count: CHOP_SLICES,
+      }),
     },
     {
-      title: "Chopping it up",
-      text: `Chopping plays the slices in a new order: the ${flip.label.split(":")[0]} edit plays slices ${slices(flip.steps)}. Slices ${list(never.map(String))} never play.`,
+      title: m.music_lessons_pads_chop_up_title(),
+      text: m.music_lessons_pads_chop_up_text({
+        edit: flip.label.split(":")[0],
+        slices: slices(flip.steps),
+        never: list(never.map(String)),
+      }),
     },
   );
 }
@@ -1162,23 +1317,42 @@ function chopCard(item: string): Lesson | null {
     const e = CHOP_EDITS.find((x) => x.id === item.slice(5));
     if (!e) return null;
     const src = e.source ? CHOP_SOURCES.find((s) => s.id === e.source) : null;
-    const step = e.every === 0.25 ? "a sixteenth" : e.every === 0.5 ? "an eighth" : "a beat";
+    const step =
+      e.every === 0.25
+        ? m.music_lessons_pads_chop_step_sixteenth()
+        : e.every === 0.5
+          ? m.music_lessons_pads_chop_step_eighth()
+          : m.music_lessons_pads_chop_step_beat();
     const [name, ...rest] = e.label.split(":");
     const desc = rest.join(":").trim();
+    const plays = e.steps.includes(0)
+      ? m.music_lessons_pads_chop_edit_plays_gap
+      : m.music_lessons_pads_chop_edit_plays;
     return card(`pads.chop:${item}`, name, {
       title: name,
-      text: `${desc ? `${desc[0].toUpperCase()}${desc.slice(1)}. ` : ""}It plays ${step} a step: slices ${slices(e.steps)}${e.steps.includes(0) ? " (a gap lets the slice before it ring)" : ""}.${src ? ` It is written for the ${src.label.toLowerCase()} loop.` : ""}`,
+      text: [
+        ...(desc ? [`${desc[0].toUpperCase()}${desc.slice(1)}.`] : []),
+        plays({ step, slices: slices(e.steps) }),
+        ...(src ? [m.music_lessons_pads_chop_edit_source({ loop: src.label.toLowerCase() })] : []),
+      ].join(" "),
     });
   }
   const x = CHOP_EXERCISES.find((y) => y.id === item);
   if (!x) return null;
   const extra =
     x.id === "free"
-      ? ` It needs at least ${FREE_CHOP.minHits} hits, and passes at ${Math.round(FREE_CHOP.repeatPass * 100)} percent of them played again and ${Math.round(FREE_CHOP.timePass * 100)} percent on time.`
+      ? m.music_lessons_pads_chop_free_extra({
+          hits: FREE_CHOP.minHits,
+          repeat: Math.round(FREE_CHOP.repeatPass * 100),
+          time: Math.round(FREE_CHOP.timePass * 100),
+        })
       : x.id === "reorder"
-        ? " The Order choice picks the edit."
+        ? m.music_lessons_pads_chop_reorder_extra()
         : "";
-  return card(`pads.chop:${item}`, x.label, { title: x.label, text: `${x.detail}.${extra}` });
+  return card(`pads.chop:${item}`, x.label, {
+    title: x.label,
+    text: extra ? `${x.detail}. ${extra}` : `${x.detail}.`,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1219,30 +1393,35 @@ const hitCounts = [...new Set(DYNAMICS_EXERCISES.map((x) => x.notes))];
 function dynamicsIntro(): Lesson {
   return card(
     "pads.dynamics",
-    "Dynamics",
+    m.music_lessons_pads_dynamics_title(),
     {
-      title: "Velocity",
-      text: "How hard you strike a pad is its velocity, a MIDI number from 1 to 127. The drill reads it from the MPC with Full Level off, and the pads on screen send none. Tap Soft and Loud to hear the two ends.",
+      title: m.music_lessons_pads_velocity_title(),
+      text: m.music_lessons_pads_velocity_text(),
       options: [
-        { label: "Soft", sound: snareAt(0.1) },
-        { label: "Loud", sound: snareAt(0.9) },
+        { label: m.music_lessons_pads_level_soft(), sound: snareAt(0.1) },
+        { label: m.music_lessons_pads_level_loud(), sound: snareAt(0.9) },
       ],
     },
     {
-      title: "Your range",
-      text: "Every controller and every hand differ, so the drill first asks for your own range. Calibrate takes four of your softest hits, then four of your loudest, and keeps the average of each. Every level is then read as a share of the space between them.",
+      title: m.music_lessons_pads_range_title(),
+      text: m.music_lessons_pads_range_text(),
     },
     {
-      title: "Three exercises",
-      text: `The setup offers four levels, a crescendo, and even hits, each ${list(hitCounts.map(String))} hits long. After a run the results draw each hit's level in your range against where it should be.`,
+      title: m.music_lessons_pads_three_title(),
+      text: m.music_lessons_pads_three_text({ counts: list(hitCounts.map(String)) }),
     },
   );
 }
 
-const DYN_TEXT: Record<DynamicsId, string> = {
-  ladder: `Sixteen hits in four groups of four, each group in the next quarter of your range, softest first. The run is correct with at least ${Math.round(DYNAMICS.inBandPass * 100)} percent of hits in their quarter. Hear it on a typical range.`,
-  crescendo: `A bar of sixteenths from as soft as you can to your loudest. It passes when the levels climb steadily (a rank correlation of ${DYNAMICS.crescendoRho} or more), cover at least ${Math.round(DYNAMICS.crescendoSpan * 100)} percent of your range, and no hit is missed. Hear it on a typical range.`,
-  even: `Sixteen hits at the same level. It passes when they vary by less than ${Math.round(DYNAMICS.evenSpread * 100)} percent of your range, measured as the spread, and no hit is missed. Hear it on a typical range.`,
+const DYN_TEXT: Record<DynamicsId, () => string> = {
+  ladder: () =>
+    m.music_lessons_pads_dyn_ladder_text({ pass: Math.round(DYNAMICS.inBandPass * 100) }),
+  crescendo: () =>
+    m.music_lessons_pads_dyn_crescendo_text({
+      rho: formatNumber(DYNAMICS.crescendoRho),
+      span: Math.round(DYNAMICS.crescendoSpan * 100),
+    }),
+  even: () => m.music_lessons_pads_dyn_even_text({ spread: Math.round(DYNAMICS.evenSpread * 100) }),
 };
 
 function dynamicsCard(id: string): Lesson | null {
@@ -1251,7 +1430,7 @@ function dynamicsCard(id: string): Lesson | null {
   const title = x.label.split(":")[0];
   return card(`pads.dynamics:${id}`, title, {
     title,
-    text: DYN_TEXT[x.id],
+    text: DYN_TEXT[x.id](),
     sound: dynamicsExerciseSound(x.id),
   });
 }
@@ -1271,21 +1450,24 @@ function phrasesIntro(): Lesson {
   const bars = PAD_PHRASES.map((r) => r.groove.bars);
   return card(
     "pads.phrases",
-    "Phrases",
+    m.music_lessons_pads_phrases_title(),
     {
-      title: "Rhythms with names",
+      title: m.music_lessons_pads_names_title(),
       figure: { kind: "rhythm", bars: 1, perBeat: 4, beatsPerBar: 4, onsets: rim },
-      text: `A phrase is a short rhythm drummers know by name: clave cells, a tag ending, a fill and its landing, a build. They run ${Math.min(...bars)} to ${Math.max(...bars)} bars, and the setup lists them easiest first.`,
+      text: m.music_lessons_pads_names_text({ min: Math.min(...bars), max: Math.max(...bars) }),
     },
     {
-      title: "Count the sixteenths",
-      text: `Count each beat in four: 1 e & a. The ${clave.groove.label.toLowerCase()} plays on ${list(countsOf(rim))}. Tap Hear it and count along.`,
+      title: m.music_lessons_pads_count16_title(),
+      text: m.music_lessons_pads_count16_text({
+        phrase: clave.groove.label.toLowerCase(),
+        counts: list(countsOf(rim)),
+      }),
       figure: { kind: "rhythm", bars: 1, perBeat: 4, beatsPerBar: 4, onsets: rim },
       sound: soundOf(clave.groove.targets),
     },
     {
-      title: "Hear it, then play it",
-      text: "Hear it first plays the phrase before you try it. Each phrase starts slow, and clean runs raise the tempo toward its goal. At the goal, Move on offers the next phrase.",
+      title: m.music_lessons_pads_hear_play_title(),
+      text: m.music_lessons_pads_hear_play_text(),
     },
   );
 }
@@ -1297,7 +1479,6 @@ function phraseCard(id: string): Lesson | null {
   const all: Hit[] = g.targets;
   const voices = [...new Set(all.map((h) => h.voice))];
   const counts = (v: string) => list(countsOf(beatsOf(all, v)));
-  const drum = (v: string) => `the ${voice(v).name} pad`;
   const onGrid = voices.every((v) => LANE[v]);
   const figure = (hits: Hit[]): LessonFigure | undefined =>
     onGrid
@@ -1309,25 +1490,29 @@ function phraseCard(id: string): Lesson | null {
   if (g.bars > 1)
     return card(`pads.phrases:${id}`, g.label, {
       title: g.label,
-      text: `${r.feel} It runs ${g.bars} bars. Hear it at ${r.bpm.start} BPM, its starting tempo.`,
+      text: m.music_lessons_pads_phrase_bars({ feel: r.feel, bars: g.bars, bpm: r.bpm.start }),
       sound,
     });
   if (voices.length === 1)
     return card(`pads.phrases:${id}`, g.label, {
       title: g.label,
-      text: `${r.feel} It's all on ${drum(voices[0])}, on ${counts(voices[0])}.`,
+      text: m.music_lessons_pads_phrase_one_pad({
+        feel: r.feel,
+        name: voice(voices[0]).name,
+        counts: counts(voices[0]),
+      }),
       figure: figure(all),
       sound,
     });
   return card(`pads.phrases:${id}`, g.label, {
     title: g.label,
-    text: `${r.feel} Tap Next to add a pad.`,
+    text: m.music_lessons_pads_phrase_steps({ feel: r.feel }),
     figure: figure([]),
     steps: voices.map((v, i) => {
       const hits = all.filter((h) => voices.indexOf(h.voice) <= i);
       const f = figure(hits);
       return {
-        text: `${drum(v)[0].toUpperCase()}${drum(v).slice(1)} plays on ${counts(v)}.`,
+        text: m.music_lessons_pads_phrase_pad_plays({ name: voice(v).name, counts: counts(v) }),
         sound: soundOf(hits, { bpm: r.bpm.start }),
         ...(f ? { figure: f } : {}),
       };
