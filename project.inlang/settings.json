@@ -15,7 +15,9 @@
 			"./messages/music/winds/{locale}.json",
 			"./messages/music/drills/{locale}.json",
 			"./messages/music/lessons/{locale}.json",
-			"./messages/music/content/{locale}.json"
+			"./messages/music/content/{locale}.json",
+			"./messages/music/cards/{locale}.json",
+			"./messages/music/repertoire/{locale}.json"
 		]
 	},
 	"baseLocale": "en",
