@@ -3,6 +3,7 @@
   // tap it back (echo) or write it down (dictation). Every input counts: the
   // big tap button (pointer or Space), MIDI, microphone onsets.
   import { onDestroy } from "svelte";
+  import { m } from "@repo/i18n/messages.js";
   import { MediaQuery } from "svelte/reactivity";
   import { page } from "$app/state";
   import type { InputEvent } from "@repo/music-core";
@@ -199,7 +200,7 @@
         ctx.stopClock();
         cap?.stop();
         phase = "ready";
-        status = mic.error || "The microphone couldn't start. Allow it in the browser, then press Start.";
+        status = mic.error || m.music_drills_rhythm_mic_failed();
         return;
       }
       frames = [];
@@ -209,9 +210,9 @@
         if (frames.length > 24) frames.shift();
       });
     }
-    const earMode = byEar ? entry.modes.find((m) => m.id === s.mode)! : null;
+    const earMode = byEar ? entry.modes.find((md) => md.id === s.mode)! : null;
     run = practice.beginRun({
-      exerciseId: earMode ? earMode.exerciseId : pulse ? entry.modes.find((m) => m.id === "pulse")!.exerciseId : rhythmExerciseId(def.id),
+      exerciseId: earMode ? earMode.exerciseId : pulse ? entry.modes.find((md) => md.id === "pulse")!.exerciseId : rhythmExerciseId(def.id),
       setupKey: earMode ? `${s.mode}|${groove ? grooveLevel.id : earLevel.id}|${bpm}` : pulse ? `pulse|${beats}|${bpm}` : `pattern|${def.id}|${bpm}`,
       skillIds: earMode ? earMode.skillIds : rhythmSkills(pulse ? "pulse" : def.id),
       capabilities: ["rhythm"],
@@ -225,12 +226,12 @@
       // The call: the pattern on its own sound, from the first downbeat, over the click.
       call = audio.playSequence(callNotes(false), { startPerf: ctx.downbeat });
       if (writes) {
-        status = "Listen to the pattern. Mark the notes as you hear them, or once it ends.";
+        status = m.music_drills_rhythm_status_dictation_listen();
         timers.push(
           setTimeout(() => {
             ctx.stopClock();
             writing = true;
-            status = "Mark every note you heard on the grid, then check it.";
+            status = m.music_drills_rhythm_status_dictation_write();
           }, Math.max(0, ctx.downbeat + plan.lengthMs - performance.now() + 150)),
         );
         loop();
@@ -238,13 +239,13 @@
       }
       // Echo: your turn starts the bar after the pattern ends.
       downbeat = ctx.downbeat + plan.lengthMs;
-      status = "Listen to the pattern. Tap it back in the next bars.";
-      timers.push(setTimeout(() => phase === "running" && (status = "Your turn: tap it back."), Math.max(0, downbeat - performance.now())));
+      status = m.music_drills_rhythm_status_echo_listen();
+      timers.push(setTimeout(() => phase === "running" && (status = m.music_drills_rhythm_status_echo_turn()), Math.max(0, downbeat - performance.now())));
     }
     // Silent bars (gap click): stop the click where the schedule goes quiet.
     const silent = pulse ? undefined : plan.clicks.find((c) => !c.audible);
     if (silent) timers.push(setTimeout(() => ctx.stopClock(), Math.max(0, ctx.downbeat + silent.atMs - performance.now() - 20)));
-    if (!echo) status = pulse ? `Tap ${beats} beats with the click.` : `Tap the pattern: ${def.label}.`;
+    if (!echo) status = pulse ? m.music_drills_rhythm_status_pulse({ count: beats }) : m.music_drills_rhythm_status_read({ pattern: def.label });
     loop();
   }
 
@@ -281,10 +282,10 @@
 
   const directionText = (r: PulseResult) =>
     r.direction === "ahead"
-      ? `${Math.round(-r.meanErrorMs)} ms early`
+      ? m.music_drills_rhythm_dir_early({ ms: Math.round(-r.meanErrorMs) })
       : r.direction === "behind"
-        ? `${Math.round(r.meanErrorMs)} ms late`
-        : `on the click (${signedMs(r.meanErrorMs)})`;
+        ? m.music_drills_rhythm_dir_late({ ms: Math.round(r.meanErrorMs) })
+        : m.music_drills_rhythm_dir_on({ offset: signedMs(r.meanErrorMs) });
 
   async function finish() {
     if (phase !== "running" && phase !== "countin") return;
@@ -311,32 +312,30 @@
       summary = {
         // The count comes from the same breakdown the bars draw; the lean is said after it.
         headline: !r.matched
-          ? "No taps landed on the beats. Tap the big button, press Space, or play any key."
-          : `${landedText(timing, "beats")}${
-              r.direction === "ahead"
-                ? ` You rushed, ${Math.round(-r.meanErrorMs)} ms ahead of the click on average: let the beat come to you.`
-                : r.direction === "behind"
-                  ? ` You dragged, ${Math.round(r.meanErrorMs)} ms behind the click on average: lean in a little.`
-                  : ` ${Math.round(r.meanAbsErrorMs)} ms off on average.`
-            }`,
+          ? m.music_drills_rhythm_pulse_no_taps()
+          : r.direction === "ahead"
+            ? m.music_drills_rhythm_pulse_rushed({ landed: landedText(timing, "beats"), ms: Math.round(-r.meanErrorMs) })
+            : r.direction === "behind"
+              ? m.music_drills_rhythm_pulse_dragged({ landed: landedText(timing, "beats"), ms: Math.round(r.meanErrorMs) })
+              : m.music_drills_rhythm_pulse_centred({ landed: landedText(timing, "beats"), ms: Math.round(r.meanAbsErrorMs) }),
         metric: pct(r.score),
-        metricLabel: "timing",
+        metricLabel: m.music_drills_rhythm_metric_timing(),
         timing: r.matched ? timing : undefined,
         delta: fin.delta,
         best: fin.best,
         clean: r.correct && mode === "check",
-        cleanMeans: "a timing score of 85% or more",
+        cleanMeans: m.music_drills_rhythm_clean_timing(),
         xp: fin.xp,
         mode,
         rows: [
-          { label: "Beats hit", value: beats ? r.matched / beats : 0, text: `${r.matched} of ${beats}` },
+          { label: m.music_drills_rhythm_row_beats_hit(), value: beats ? r.matched / beats : 0, text: m.music_drills_rhythm_of({ n: r.matched, total: beats }) },
           // The signed lean, apart from the headline's unsigned "ms off": ahead, behind or centred.
-          { label: "On average", text: r.matched ? directionText(r) : "No taps" },
-          { label: "Varies by", text: r.matched > 1 ? spreadText(r.jitterMs) : "Needs two taps" },
-          { label: "Extra taps", text: String(r.extra) },
+          { label: m.music_drills_rhythm_row_on_average(), text: r.matched ? directionText(r) : m.music_drills_rhythm_row_no_taps() },
+          { label: m.music_drills_rhythm_row_varies_by(), text: r.matched > 1 ? spreadText(r.jitterMs) : m.music_drills_rhythm_row_needs_two_taps() },
+          { label: m.music_drills_rhythm_row_extra_taps(), text: String(r.extra) },
         ],
         advance: await advanceAfter(r.score, r.correct),
-        routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
+        routine: page.url.searchParams.get("routine") ? { label: m.music_drills_rhythm_back_today(), href: "/music" } : undefined,
       };
     } else {
       const r = gradePattern(def, taken, { startAt: downbeat, beatMs });
@@ -347,36 +346,37 @@
       const total = r.grid.length;
       const errors = r.grid.map((g) => g.errorMs ?? null);
       const timing = timingBreakdown(errors, POCKET_MS);
-      const slips = [r.restHits ? `${r.restHits} tap${r.restHits > 1 ? "s" : ""} in a rest` : "", r.extra ? `${r.extra} extra` : ""].filter(Boolean);
+      const slips = [r.restHits ? m.music_drills_rhythm_slip_rest({ count: r.restHits }) : "", r.extra ? m.music_drills_rhythm_slip_extra({ n: r.extra }) : ""].filter(Boolean);
+      const landed = landedText(timing, "notes", "tapped");
       summary = {
         // "8 of 8 notes tapped, 7 on time, 1 late.": the count and the breakdown are one array.
-        headline: `${landedText(timing, "notes", "tapped").slice(0, -1)}${slips.length ? `; ${slips.join(", ")}` : ""}.`,
+        headline: slips.length ? m.music_drills_rhythm_pattern_slips({ landed: landed.slice(0, -1), slips: slips.join(", ") }) : landed,
         metric: pct(r.score),
-        metricLabel: "score",
+        metricLabel: m.music_drills_rhythm_metric_score(),
         timing: r.matched ? timing : undefined,
         delta: fin.delta,
         best: fin.best,
         clean: r.correct && mode === "check",
-        cleanMeans: "a score of 85% or more",
+        cleanMeans: m.music_drills_rhythm_clean_score(),
         xp: fin.xp,
         mode,
         hinted: target,
         rows: [
-          timingRow(errors.filter((e): e is number => e !== null), total, plan.matchWindowMs, "Timing", POCKET_MS),
+          timingRow(errors.filter((e): e is number => e !== null), total, plan.matchWindowMs, m.music_drills_rhythm_row_timing(), POCKET_MS),
           // The timing bars count the missed notes; without them (nothing landed) the row says it.
-          ...(r.matched ? [] : [{ label: "Missed notes", text: String(r.missed) }]),
-          { label: "Taps in rests", text: String(r.restHits) },
-          { label: "Extra taps", text: String(r.extra) },
+          ...(r.matched ? [] : [{ label: m.music_drills_rhythm_row_missed_notes(), text: String(r.missed) }]),
+          { label: m.music_drills_rhythm_row_taps_in_rests(), text: String(r.restHits) },
+          { label: m.music_drills_rhythm_row_extra_taps(), text: String(r.extra) },
           ...(def.chords?.length
             ? [
                 r.chords
-                  ? { label: "Chords", text: r.chords.map((c) => `${c.symbol} ${c.held ? "held" : "missed"}`).join(", ") }
-                  : { label: "Chords", text: "Timing only: no pitch was heard" },
+                  ? { label: m.music_drills_rhythm_row_chords(), text: r.chords.map((c) => (c.held ? m.music_drills_rhythm_chord_held : m.music_drills_rhythm_chord_missed)({ chord: c.symbol })).join(", ") }
+                  : { label: m.music_drills_rhythm_row_chords(), text: m.music_drills_rhythm_chords_no_pitch() },
               ]
             : []),
         ],
         advance: await advanceAfter(r.score, r.correct),
-        routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
+        routine: page.url.searchParams.get("routine") ? { label: m.music_drills_rhythm_back_today(), href: "/music" } : undefined,
       };
     }
     status = summary.headline;
@@ -454,7 +454,7 @@
     const answered = grooveDef ? grooveKeys(Object.fromEntries(rows.map((r) => [r.id, markedIn(r.id)]))) : markedIn("notes");
     // An empty grid is not an answer: nothing to grade or save yet.
     if (!answered.length) {
-      status = "Mark the notes you heard on the grid first.";
+      status = m.music_drills_rhythm_dict_empty();
       return;
     }
     writing = false;
@@ -467,15 +467,18 @@
     await run.attempt({ promptId: def.id, correct: r.correct, partialCredit: r.score, metrics: r.metrics, source: "click", target: expected.join(" "), response: answered.join(" "), instrument: null, heard: true });
     const fin = await run.finish({ score: r.score, correct: r.correct, headline: pct(r.score) });
     const right = answered.filter((b) => expected.some((h) => Math.abs(h - b) < 1e-6)).length;
-    const what = groove ? "hits" : "notes";
     summary = {
-      headline: r.correct ? `All ${expected.length} ${what} written right.` : `${right} of ${expected.length} ${what} right${answered.length > right ? `, ${answered.length - right} extra` : ""}.`,
+      headline: r.correct
+        ? (groove ? m.music_drills_rhythm_dict_all_hits : m.music_drills_rhythm_dict_all_notes)({ count: expected.length })
+        : answered.length > right
+          ? (groove ? m.music_drills_rhythm_dict_right_hits_extra : m.music_drills_rhythm_dict_right_notes_extra)({ right, total: expected.length, extra: answered.length - right })
+          : (groove ? m.music_drills_rhythm_dict_right_hits : m.music_drills_rhythm_dict_right_notes)({ right, total: expected.length }),
       metric: pct(r.score),
-      metricLabel: "score",
+      metricLabel: m.music_drills_rhythm_metric_score(),
       delta: fin.delta,
       best: fin.best,
       clean: r.correct && mode === "check",
-      cleanMeans: `every ${groove ? "hit" : "note"} written right, nothing extra`,
+      cleanMeans: groove ? m.music_drills_rhythm_clean_dict_hits() : m.music_drills_rhythm_clean_dict_notes(),
       xp: fin.xp,
       mode,
       rows: [
@@ -483,13 +486,13 @@
           ? rows.map((row) => {
               const want = heardIn(row.id);
               const got = markedIn(row.id).filter((b) => want.some((h) => Math.abs(h - b) < 1e-6)).length;
-              return { label: row.label, value: want.length ? got / want.length : 1, text: `${got} of ${want.length}` };
+              return { label: row.label, value: want.length ? got / want.length : 1, text: m.music_drills_rhythm_of({ n: got, total: want.length }) };
             })
-          : [{ label: "Notes found", value: expected.length ? right / expected.length : 0, text: `${right} of ${expected.length}` }]),
-        { label: "Extra marks", text: String(answered.length - right) },
+          : [{ label: m.music_drills_rhythm_row_notes_found(), value: expected.length ? right / expected.length : 0, text: m.music_drills_rhythm_of({ n: right, total: expected.length }) }]),
+        { label: m.music_drills_rhythm_row_extra_marks(), text: String(answered.length - right) },
       ],
       advance: await advanceAfter(r.score, r.correct),
-      routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
+      routine: page.url.searchParams.get("routine") ? { label: m.music_drills_rhythm_back_today(), href: "/music" } : undefined,
     };
     status = summary.headline;
   }
@@ -498,7 +501,7 @@
     teardown();
     writing = false;
     phase = "ready";
-    status = "Stopped. Nothing saved.";
+    status = m.music_drills_rhythm_stopped();
   }
 
   // ---------------------------------------------------------------------------
@@ -519,7 +522,7 @@
         : demoNotes(plan);
     const h = audio.playSequence(notes, { onNote: (i) => notes[i].event >= 0 && (lit = notes[i].event) });
     demo = h;
-    status = "Demo playing, not scored. The pattern lights as it sounds.";
+    status = m.music_drills_rhythm_demo_playing();
     void h.done.then(() => {
       if (demo === h) stopDemo();
     });
@@ -550,6 +553,9 @@
   /** The strip plot's reach either side of the click; a tap further off pins to its edge. */
   const STRIP_MS = 100;
   const toBeat = (at: number) => (at - downbeat) / beatMs;
+  /** A strum stroke and a tap's verdict, as words. */
+  const STROKE_WORD: Record<string, () => string> = { down: m.music_drills_rhythm_stroke_down, up: m.music_drills_rhythm_stroke_up, mute: m.music_drills_rhythm_stroke_mute };
+  const verdictWord = (v: string) => (v === "early" ? m.music_drills_rhythm_word_early() : v === "late" ? m.music_drills_rhythm_word_late() : m.music_drills_rhythm_word_on_time());
 
   /** A tap against the nearest target in its window: ms off (+ late, - early), or null when none is near. */
   function offset(at: number): number | null {
@@ -570,10 +576,11 @@
   function lastTap(at: number): { kind: VerdictKind; text: string } {
     const k = liveKind(at);
     const e = offset(at);
-    const ms = e === null ? "" : ` ${Math.round(Math.abs(e))} ms`;
-    if (k === "pocket") return { kind: "ontime", text: "On time" };
-    if (k === "early" || k === "late") return { kind: k, text: `${k === "early" ? "Early" : "Late"}${ms}` };
-    return { kind: "wrong", text: k === "rest" ? "In a rest" : "Extra tap" };
+    const ms = e === null ? null : Math.round(Math.abs(e));
+    if (k === "pocket") return { kind: "ontime", text: m.music_drills_rhythm_on_time() };
+    if (k === "early") return { kind: k, text: ms === null ? m.music_drills_rhythm_early() : m.music_drills_rhythm_tap_early_ms({ ms }) };
+    if (k === "late") return { kind: k, text: ms === null ? m.music_drills_rhythm_late() : m.music_drills_rhythm_tap_late_ms({ ms }) };
+    return { kind: "wrong", text: k === "rest" ? m.music_drills_rhythm_tap_in_rest() : m.music_drills_rhythm_tap_extra() };
   }
   /** Practice marks each tap as it lands; Check stays quiet until the end. */
   const tapVerdict = $derived(phase === "running" && mode === "practice" && !writes && hits.length ? lastTap(hits.at(-1)!.at) : null);
@@ -588,7 +595,7 @@
         // A note with no tap: a hollow ring where the tap should have been.
         ...patternResult.grid.flatMap((g, i): GridHit[] => (g.verdict === "missed" && plan.events[i] ? [{ beat: plan.events[i].beat, kind: "missed" }] : [])),
       ];
-    if (phase === "results" && pulseResult) return hits.map((h) => ({ beat: toBeat(h.at), kind: pulseResult!.metrics.some((m) => m.kind === "timing" && m.actualMs === h.at) ? liveKind(h.at) : "extra" }));
+    if (phase === "results" && pulseResult) return hits.map((h) => ({ beat: toBeat(h.at), kind: pulseResult!.metrics.some((x) => x.kind === "timing" && x.actualMs === h.at) ? liveKind(h.at) : "extra" }));
     if (phase === "running" && mode === "practice")
       return [
         ...hits.map((h): GridHit => ({ beat: toBeat(h.at), kind: liveKind(h.at) })),
@@ -601,18 +608,18 @@
     if (patternResult) return patternResult.grid.map((g) => g.verdict);
     if (pulseResult)
       return targetsRel.map((t) => {
-        const m = pulseResult!.metrics.find((x) => x.kind === "timing" && Math.abs(x.expectedMs - (downbeat + t)) < 1);
-        return m && m.kind === "timing" ? timingVerdict(m.errorMs) : "missed";
+        const hit = pulseResult!.metrics.find((x) => x.kind === "timing" && Math.abs(x.expectedMs - (downbeat + t)) < 1);
+        return hit && hit.kind === "timing" ? timingVerdict(hit.errorMs) : "missed";
       });
     return [];
   });
   const perHit = $derived.by(() => {
     if (pulseResult)
       return targetsRel.map((t, i) => {
-        const m = pulseResult!.metrics.find((x) => x.kind === "timing" && Math.abs(x.expectedMs - (downbeat + t)) < 1);
-        return { label: `Beat ${i + 1}`, error: m && m.kind === "timing" ? m.errorMs : null };
+        const hit = pulseResult!.metrics.find((x) => x.kind === "timing" && Math.abs(x.expectedMs - (downbeat + t)) < 1);
+        return { label: m.music_drills_rhythm_beat_n({ n: i + 1 }), error: hit && hit.kind === "timing" ? hit.errorMs : null };
       });
-    if (patternResult) return patternResult.grid.map((g, i) => ({ label: `Note ${i + 1}${g.stroke ? `, ${g.stroke}` : ""}`, error: g.errorMs ?? null }));
+    if (patternResult) return patternResult.grid.map((g, i) => ({ label: g.stroke ? m.music_drills_rhythm_note_n_stroke({ n: i + 1, stroke: STROKE_WORD[g.stroke]?.() ?? g.stroke }) : m.music_drills_rhythm_note_n({ n: i + 1 }), error: g.errorMs ?? null }));
     return [];
   });
   const anyMissed = $derived(perHit.some((h) => h.error === null));
@@ -667,10 +674,10 @@
   let unwrittenMarks = $state<string | null>(null);
   /** What to do now, beside Stop on a phone: the count-in, then where the run is. */
   const cue = $derived.by(() => {
-    if (phase === "countin") return "Count-in: play on the next 1";
+    if (phase === "countin") return m.music_drills_rhythm_cue_countin();
     if (phase !== "running") return "";
-    if (writes) return writing ? `Mark every ${groove ? "hit" : "note"}, then check` : "Listen";
-    if (echo) return now >= downbeat ? "Your turn: tap it back" : "Listen";
+    if (writes) return writing ? (groove ? m.music_drills_rhythm_cue_mark_hits() : m.music_drills_rhythm_cue_mark_notes()) : m.music_drills_rhythm_listen();
+    if (echo) return now >= downbeat ? m.music_drills_rhythm_your_turn_tap_back() : m.music_drills_rhythm_listen();
     // Pulse and reading: the HUD counts the bar and the beat, and the phone keeps its height for the Tap button.
     return "";
   });
@@ -679,25 +686,25 @@
 
   const summaryLine = $derived<SetupClause[]>([
     byEar ? { text: (groove ? grooveLevel : earLevel).title, focus: "level" } : pulse ? { text: lengthText(beats, 4), focus: "beats" } : { text: def.label, focus: "pattern" },
-    ...(pulse ? [] : [{ text: `${plan.bars} bar${plan.bars > 1 ? "s" : ""}` }]),
-    ...(listens ? [{ text: "microphone on", focus: "mic" }] : []),
-    ...(target ? [{ text: "faint target", focus: "target" }] : []),
+    ...(pulse ? [] : [{ text: m.music_drills_rhythm_bars({ count: plan.bars }) }]),
+    ...(listens ? [{ text: m.music_drills_rhythm_summary_mic_on(), focus: "mic" }] : []),
+    ...(target ? [{ text: m.music_drills_rhythm_summary_faint_target(), focus: "target" }] : []),
   ]);
   /**
    * Practice and Check in the shared two lines. By ear the pattern is never on screen until the end in
    * either mode, so Practice names its one hint instead of "Hints shown".
    */
-  const CHECK_NOTE = "No hints. Counts in your skill scores.";
+  const CHECK_NOTE = m.music_drills_rhythm_check_note();
   const modeNotes = $derived(
     echo
-      ? { practice: s.target ? "The rhythm shows faintly as you hear it: a hint. Turn it off in Setup." : "Taps marked as you play. Clean runs move you on.", check: CHECK_NOTE }
+      ? { practice: s.target ? m.music_drills_rhythm_practice_note_target() : m.music_drills_rhythm_practice_note_echo(), check: CHECK_NOTE }
       : writes
-        ? { practice: "Hear it again any time. Clean runs move you on.", check: CHECK_NOTE }
+        ? { practice: m.music_drills_rhythm_practice_note_write(), check: CHECK_NOTE }
         : undefined,
   );
 </script>
 
-<svelte:head><title>Rhythm | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_drills_rhythm_head_title()}</title></svelte:head>
 <svelte:window onkeydown={onKey} />
 
 <!-- The run drawn: the score marked note by note, every beat's offset, a dictation's comparison. -->
@@ -706,13 +713,13 @@
     {#if patternResult && !byEar && unwritten !== def.id}
       <!-- The written rhythm again, each note marked by its grade (on the stage panel, as it was read). -->
       <figure class="stage rounded-2xl p-3">
-        <RhythmNotation pattern={def} cursorBeat={null} states={noteStates} hits={gridHits} label={`${def.label}, each note marked: green on time or close, red missed`} />
+        <RhythmNotation pattern={def} cursorBeat={null} states={noteStates} hits={gridHits} label={m.music_drills_rhythm_fig_notation_label({ pattern: def.label })} />
       </figure>
     {:else if patternResult && echo}
       <!-- The rhythm you echoed, drawn at last, with your taps marked under it. -->
       <figure class="stage rounded-2xl p-3 sm:p-4">
-        <figcaption class="mb-2 text-sm font-semibold text-ws-stage-soft">The rhythm you heard, and your taps</figcaption>
-        <RhythmGrid {bars} {perBar} events={gridEvents} rests={def.rests} hits={gridHits} {verdicts} label={`${def.label}, ${plan.events.length} notes, each tap marked under it`} />
+        <figcaption class="mb-2 text-sm font-semibold text-ws-stage-soft">{m.music_drills_rhythm_fig_echo_caption()}</figcaption>
+        <RhythmGrid {bars} {perBar} events={gridEvents} rests={def.rests} hits={gridHits} {verdicts} label={m.music_drills_rhythm_fig_echo_label({ pattern: def.label, count: plan.events.length })} />
         <TapKey missed={anyMissed} />
       </figure>
     {/if}
@@ -720,15 +727,15 @@
       <!-- Every beat's offset on one strip: up is late, down is early, the band is on time. Off ones are named under it. -->
       {@const off = perHit.flatMap((h, i) => (h.error === null || timingVerdict(h.error) !== "pocket" ? [{ ...h, i }] : []))}
       <section class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="every-hit">
-        <h3 id="every-hit" class="font-display text-base font-semibold">Every beat, in ms from the click</h3>
+        <h3 id="every-hit" class="font-display text-base font-semibold">{m.music_drills_rhythm_every_beat_title()}</h3>
         <div class="mt-3 flex gap-2">
-          <div class="flex h-20 flex-col justify-between text-sm text-ws-soft" aria-hidden="true"><span>Late</span><span>Early</span></div>
-          <ol class="strip min-w-0 flex-1" style:--n={perHit.length} aria-label="Every hit">
+          <div class="flex h-20 flex-col justify-between text-sm text-ws-soft" aria-hidden="true"><span>{m.music_drills_rhythm_late()}</span><span>{m.music_drills_rhythm_early()}</span></div>
+          <ol class="strip min-w-0 flex-1" style:--n={perHit.length} aria-label={m.music_drills_rhythm_every_hit()}>
             {#each perHit as h, i (i)}
               {@const v = h.error === null ? "missed" : timingVerdict(h.error)}
               {@const y = h.error === null ? 0 : Math.max(-1, Math.min(1, h.error / STRIP_MS))}
               <li class="col" data-v={v}>
-                <span class="sr-only">{h.label}: {h.error === null ? "missed" : `${signedMs(h.error)}, ${v === "early" ? "early" : v === "late" ? "late" : "on time"}`}</span>
+                <span class="sr-only">{h.error === null ? m.music_drills_rhythm_hit_sr_missed({ label: h.label }) : m.music_drills_rhythm_hit_sr({ label: h.label, offset: signedMs(h.error), verdict: verdictWord(v) })}</span>
                 <span class="track" aria-hidden="true">
                   {#if h.error !== null && v !== "pocket"}<span class="bar" style:height="{Math.abs(y) * 50}%" style:top={y < 0 ? "50%" : undefined} style:bottom={y > 0 ? "50%" : undefined}></span>{/if}
                   <svg viewBox="-6 -6 12 12" class="glyph" style:top="{50 - y * 50}%">
@@ -743,18 +750,18 @@
         </div>
         <p class="mt-2 text-sm text-ws-soft">
           {#if off.length}
-            {off.map((h) => `${h.label} ${h.error === null ? "missed" : `${h.error > 0 ? "late" : "early"} by ${Math.round(Math.abs(h.error))} ms`}`).join(", ")}. The band is on time, within {POCKET_MS} ms.
+            {m.music_drills_rhythm_off_list({ list: off.map((h) => (h.error === null ? m.music_drills_rhythm_off_missed({ label: h.label }) : (h.error > 0 ? m.music_drills_rhythm_off_late : m.music_drills_rhythm_off_early)({ label: h.label, ms: Math.round(Math.abs(h.error)) }))).join(", "), pocket: POCKET_MS })}
           {:else}
-            Every beat within {POCKET_MS} ms of the click.
+            {m.music_drills_rhythm_off_none({ pocket: POCKET_MS })}
           {/if}
         </p>
       </section>
     {:else if perHit.length && summary?.heard !== false}
       <!-- Every note and how far its tap sat from the click: + late, − early. Off ones stand out. -->
       <section class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-labelledby="every-hit">
-        <h3 id="every-hit" class="font-display text-base font-semibold">Every note, in ms from the click</h3>
-        <p class="text-sm text-ws-soft">+ is late, − is early. Within {POCKET_MS} ms counts as on time.</p>
-        <ol class="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-8" aria-label="Every hit">
+        <h3 id="every-hit" class="font-display text-base font-semibold">{m.music_drills_rhythm_every_note_title()}</h3>
+        <p class="text-sm text-ws-soft">{m.music_drills_rhythm_every_note_key({ pocket: POCKET_MS })}</p>
+        <ol class="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-8" aria-label={m.music_drills_rhythm_every_hit()}>
           {#each perHit as h, i (i)}
             {@const v = h.error === null ? "missed" : timingVerdict(h.error)}
             <li class="chip tnum" data-v={v}>
@@ -763,7 +770,7 @@
                 <svg viewBox="-6 -6 12 12" class="glyph" aria-hidden="true">
                   {#if v === "early"}<path class="chev" d="M1 -5 L-4 0 L1 5 M5 -5 L0 0 L5 5" />{:else if v === "late"}<path class="chev" d="M-1 -5 L4 0 L-1 5 M-5 -5 L0 0 L-5 5" />{:else if v === "pocket"}<path class="tick" d="M-4.5 0 L-1.5 3.5 L4.5 -4" />{:else}<circle r="4.5" class="hollow" />{/if}
                 </svg>
-                {h.error === null ? "Missed" : `${signedMs(h.error).replace(" ms", "")}, ${v === "early" ? "early" : v === "late" ? "late" : "on time"}`}
+                {h.error === null ? m.music_drills_rhythm_chip_missed() : m.music_drills_rhythm_chip_offset({ offset: signedMs(h.error).replace(" ms", ""), verdict: verdictWord(v) })}
               </span>
             </li>
           {/each}
@@ -778,17 +785,17 @@
 
 <DrillShell
   lesson={groove ? { lessons: [grooveDictationLesson()] } : echo || dictation ? { lessons: rhythmLessons(echo ? "echo" : "dictation", earLevel.id) } : null}
-  title="Rhythm"
+  title={m.music_drills_rhythm_title()}
   hue="rhythm"
   blurb={echo
-    ? "Hear a rhythm over the click, then tap it back in the bars after it."
+    ? m.music_drills_rhythm_blurb_echo()
     : groove
-      ? "Hear a drum groove over the click, then put its kick, snare and hats on the grid."
+      ? m.music_drills_rhythm_blurb_groove()
       : dictation
-      ? "Hear a rhythm over the click, then mark where every note fell."
+      ? m.music_drills_rhythm_blurb_dictation()
       : pulse
-        ? "Tap the beat with the click. You'll see whether you sit ahead, behind or in the middle."
-        : "Read the rhythm and tap it. Rests are part of the music: a tap in one costs points."}
+        ? m.music_drills_rhythm_blurb_pulse()
+        : m.music_drills_rhythm_blurb_read()}
   summary={summaryLine}
   trainer={{ options: MODES, value: tab, onpick: (v) => pick({ mode: v }) }}
   {modeNotes}
@@ -804,37 +811,37 @@
   listens={!writes}
   instrumentFree={writes}
   {cue}
-  step={writes && (writing || phase === "running") ? { label: groove ? "Check my groove" : "Check my rhythm", run: checkDictation, disabled: !writing } : null}
+  step={writes && (writing || phase === "running") ? { label: groove ? m.music_drills_rhythm_check_groove() : m.music_drills_rhythm_check_rhythm(), run: checkDictation, disabled: !writing } : null}
 >
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {#if groove}
-        <Choice label="Grooves" setupKey="level" options={GROOVE_LEVELS.map((l) => ({ value: l.id, label: l.title, detail: `${l.bars} bar${l.bars > 1 ? "s" : ""}` }))} value={grooveLevel.id} onchange={(v) => pick({ grooveLevel: v })} />
+        <Choice label={m.music_drills_rhythm_setup_grooves()} setupKey="level" options={GROOVE_LEVELS.map((l) => ({ value: l.id, label: l.title, detail: m.music_drills_rhythm_bars({ count: l.bars }) }))} value={grooveLevel.id} onchange={(v) => pick({ grooveLevel: v })} />
       {:else if byEar}
         <Choice
-          label="Rhythms"
+          label={m.music_drills_rhythm_setup_rhythms()}
           setupKey="level"
           options={EAR_RHYTHM_LEVELS.map((l, i) => ({
             value: l.id,
             label: l.title,
-            detail: `Level ${i + 1}`,
-            hint: dictation && l.perBeat !== 3 && l.cells.includes("triplet") ? "In dictation the triplets stay out: the grid has no place for them." : undefined,
+            detail: m.music_drills_rhythm_level_n({ n: i + 1 }),
+            hint: dictation && l.perBeat !== 3 && l.cells.includes("triplet") ? m.music_drills_rhythm_triplets_hint() : undefined,
           }))}
           value={earLevel.id}
           onchange={(v) => pick({ earLevel: v })}
         />
       {:else if pulse}
-        <Choice label="Length" setupKey="beats" options={[4, 8, 16].map((n) => ({ value: n, label: `${n} beats` }))} value={beats} onchange={(v) => cfg.set({ beats: v })} />
+        <Choice label={m.music_drills_rhythm_setup_length()} setupKey="beats" options={[4, 8, 16].map((n) => ({ value: n, label: m.music_drills_rhythm_length_beats({ count: n }) }))} value={beats} onchange={(v) => cfg.set({ beats: v })} />
       {:else}
-        <Choice label="Pattern" setupKey="pattern" select options={readPatterns(settings.value.activeInstrument)} value={def.id} onchange={(v) => cfg.set({ pattern: v })} />
+        <Choice label={m.music_drills_rhythm_setup_pattern()} setupKey="pattern" select options={readPatterns(settings.value.activeInstrument)} value={def.id} onchange={(v) => cfg.set({ pattern: v })} />
       {/if}
       {#if echo}
         <Choice
-          label="Target"
+          label={m.music_drills_rhythm_setup_target()}
           setupKey="target"
           options={[
-            { value: "on", label: "Faint", hint: "In Practice the rhythm is drawn faintly as you hear it. The run counts as hinted." },
-            { value: "off", label: "Off", hint: "Nothing is drawn until the end." },
+            { value: "on", label: m.music_drills_rhythm_target_faint(), hint: m.music_drills_rhythm_target_faint_hint() },
+            { value: "off", label: m.music_drills_rhythm_off(), hint: m.music_drills_rhythm_target_off_hint() },
           ]}
           value={s.target ? "on" : "off"}
           onchange={(v) => cfg.set({ target: v === "on" })}
@@ -842,11 +849,11 @@
       {/if}
       {#if !writes}
         <Choice
-          label="Microphone"
+          label={m.music_drills_rhythm_setup_mic()}
           setupKey="mic"
           options={[
-            { value: "off", label: "Off", hint: "Taps, MIDI keys and pads count." },
-            { value: "on", label: "On", hint: "Claps and notes the microphone hears count too." },
+            { value: "off", label: m.music_drills_rhythm_off(), hint: m.music_drills_rhythm_mic_off_hint() },
+            { value: "on", label: m.music_drills_rhythm_on(), hint: m.music_drills_rhythm_mic_on_hint() },
           ]}
           value={s.mic ? "on" : "off"}
           onchange={(v) => cfg.set({ mic: v === "on" })}
@@ -854,22 +861,22 @@
       {/if}
     </div>
     <p class="mt-3 text-sm text-ws-soft">
-      Set the tempo in the top bar ({RHYTHM_LIMITS.bpm[0]} to {RHYTHM_LIMITS.bpm[1]} BPM).{#if listens} Use headphones: the click in the speakers would count as a tap.{/if}
+      {m.music_drills_rhythm_tempo_note({ min: RHYTHM_LIMITS.bpm[0], max: RHYTHM_LIMITS.bpm[1] })}{#if listens} {m.music_drills_rhythm_headphones_note()}{/if}
     </p>
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running" && writes}
       <!-- Listen, write, check: the step this run is on. -->
-      <Stat label="Step" value={writing ? "2 of 3: Write it down" : "1 of 3: Listen"} />
+      <Stat label={m.music_drills_rhythm_stat_step()} value={writing ? m.music_drills_rhythm_step_write() : m.music_drills_rhythm_step_listen()} />
     {:else if phase === "running" && echo}
       <!-- Call and response: say which half of the run this is. -->
-      <Stat label="Now" value={now >= downbeat ? "Your turn" : "Listen"} />
+      <Stat label={m.music_drills_rhythm_stat_now()} value={now >= downbeat ? m.music_drills_rhythm_your_turn() : m.music_drills_rhythm_listen()} />
     {:else if phase === "running"}
       <!-- Which bar; the beat inside it is the shell's beat readout beside it. -->
-      <Stat label="Bar" value="{clamp(Math.floor((now - downbeat) / beatMs / perBar) + 1, 1, bars)} of {bars}" />
+      <Stat label={m.music_drills_rhythm_stat_bar()} value={m.music_drills_rhythm_of({ n: clamp(Math.floor((now - downbeat) / beatMs / perBar) + 1, 1, bars), total: bars })} />
     {/if}
-    {#if phase === "running" && !writes}<Stat label="Taps" value={hits.length} />{/if}
+    {#if phase === "running" && !writes}<Stat label={m.music_drills_rhythm_stat_taps()} value={hits.length} />{/if}
   {/snippet}
 
   {#snippet stage()}
@@ -878,22 +885,22 @@
       <!-- By ear, the pattern and its start ride along as data (for tests and tools), never drawn until the end. -->
       <div class="min-w-0 {writes ? '' : 'md:flex-1'}" data-onsets={byEar ? def.events.map((e) => e.beat).join(",") : undefined} data-written={byEar ? heardBeats.join(",") : undefined} data-groove={grooveDef ? JSON.stringify(grooveDef.lanes) : undefined} data-downbeat={phase !== "ready" ? Math.round(downbeat) : undefined} data-beat-ms={beatMs}>
         {#if !pulse && def.chords?.length}
-          <p class="mb-2 text-sm text-ws-stage-soft">↓ down, ↑ up, ✕ muted stroke (a hit with no pitch). Chords are scored when the mic or MIDI hears pitch.</p>
+          <p class="mb-2 text-sm text-ws-stage-soft">{m.music_drills_rhythm_strum_key()}</p>
         {/if}
         {#if writes && phase === "ready"}
           <p class="mb-2 text-sm text-ws-stage-soft">
-            {plan.bars} bar{plan.bars > 1 ? "s" : ""}{groove ? " of drums" : ""} over the click. {groove ? "Then tap the kick, snare and hat cells where each drum hit." : "Then tap a cell for every note you heard."}
+            {(groove ? m.music_drills_rhythm_ready_bars_drums : m.music_drills_rhythm_ready_bars)({ count: plan.bars })} {groove ? m.music_drills_rhythm_ready_then_groove() : m.music_drills_rhythm_ready_then_notes()}
           </p>
         {/if}
         {#if unheard}
-          <p class="mb-2 text-sm text-ws-stage-soft">Nothing was heard, so no taps are marked.</p>
+          <p class="mb-2 text-sm text-ws-stage-soft">{m.music_drills_rhythm_unheard()}</p>
         {/if}
         {#if echo && phase === "running"}
           <!-- Which half of the echo this is, big, over the bar it plays in; the beat inside the bar as dots. -->
           {@const turn = now >= downbeat}
           {@const b = Math.floor((now - (turn ? downbeat : downbeat - plan.lengthMs)) / beatMs)}
           <div class="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2" aria-hidden="true" data-testid="echo-turn">
-            <p class="rounded-xl px-3 py-1 font-display text-3xl font-bold sm:text-4xl {turn ? 'bg-instr-strong text-on-instr' : 'text-ws-stage-ink'}">{turn ? "Your turn" : "Listen"}</p>
+            <p class="rounded-xl px-3 py-1 font-display text-3xl font-bold sm:text-4xl {turn ? 'bg-instr-strong text-on-instr' : 'text-ws-stage-ink'}">{turn ? m.music_drills_rhythm_your_turn() : m.music_drills_rhythm_listen()}</p>
             <span class="flex items-center gap-2.5">
               {#each Array.from({ length: perBar }, (_, i) => i) as i (i)}
                 <span class="size-4 rounded-full {b >= 0 && b % perBar === i ? 'scale-125 bg-instr-strong' : 'bg-ws-stage-ink/45'}"></span>
@@ -909,7 +916,7 @@
               cursorBeat={playhead}
               states={noteStates}
               hits={gridHits}
-              label={`${def.label} in rhythm notation, ${plan.bars} bar${plan.bars > 1 ? "s" : ""}, ${plan.events.length} notes and ${def.rests.length} rests`}
+              label={m.music_drills_rhythm_notation_label({ pattern: def.label, count: plan.bars, notes: plan.events.length, rests: def.rests.length })}
               onfallback={() => (unwritten = def.id)}
             />
           {/if}
@@ -927,31 +934,31 @@
             {playhead}
             {lit}
             ghost={hidden}
-            label={hidden && target ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the rhythm drawn faintly as it is heard` : hidden ? `${plan.bars} bar${plan.bars > 1 ? "s" : ""}, the pattern hidden until the end` : pulse ? `${beats} quarter-note beats` : `${def.label}, ${plan.bars} bars, ${plan.events.length} notes and ${def.rests.length} rests`}
+            label={hidden && target ? m.music_drills_rhythm_grid_label_faint({ count: plan.bars }) : hidden ? m.music_drills_rhythm_grid_label_hidden({ count: plan.bars }) : pulse ? m.music_drills_rhythm_grid_label_pulse({ count: beats }) : m.music_drills_rhythm_grid_label_pattern({ pattern: def.label, bars: plan.bars, notes: plan.events.length, rests: def.rests.length })}
           />
         {/if}
         {#if showKey}<TapKey missed={(phase === "results" && anyMissed) || (phase === "running" && pulse)} />{/if}
         {#if writes}
           {#if dictation && unwrittenMarks !== shownWritten.id}
             <!-- Your marks, written as notes as you go; after the check, what was played. -->
-            <p class="mb-1.5 text-sm font-semibold text-ws-stage-soft">{dictationResult ? "What was played, written" : phase === "ready" ? "Your marks show here as notes" : "Your marks, as notes (not the answer)"}</p>
+            <p class="mb-1.5 text-sm font-semibold text-ws-stage-soft">{dictationResult ? m.music_drills_rhythm_written_played() : phase === "ready" ? m.music_drills_rhythm_written_ready() : m.music_drills_rhythm_written_marks()}</p>
             <RhythmNotation
               pattern={shownWritten}
               compound={grid.perBeat === 3}
               cursorBeat={dictationResult ? null : writePlayhead}
-              label={dictationResult ? `What was played, in rhythm notation: ${heardBeats.length} notes` : `Your rhythm in notation: ${markedIn("notes").length} notes marked`}
+              label={dictationResult ? m.music_drills_rhythm_written_played_label({ count: heardBeats.length }) : m.music_drills_rhythm_written_marks_label({ count: markedIn("notes").length })}
               onfallback={() => (unwrittenMarks = shownWritten.id)}
             />
           {/if}
           {#if writing || phase === "running"}
             <!-- The helpers sit above the grid they act on; Check stays alone below it. -->
             <div class="mt-3 flex flex-wrap items-center gap-2">
-              <button type="button" class={btnStage} disabled={!writing} aria-pressed={againAt !== null} onclick={hearAgain}>Hear it again</button>
-              <button type="button" class={btnStage} disabled={!Object.values(marks).some((r) => r.some(Boolean))} onclick={() => (marks = {})}>Clear</button>
-              <span class="text-sm text-ws-stage-soft">{writing ? `Tap a cell for every ${groove ? "hit" : "note"} you heard.` : "Listen first: the grid opens when it ends."}</span>
+              <button type="button" class={btnStage} disabled={!writing} aria-pressed={againAt !== null} onclick={hearAgain}>{m.music_drills_rhythm_hear_again()}</button>
+              <button type="button" class={btnStage} disabled={!Object.values(marks).some((r) => r.some(Boolean))} onclick={() => (marks = {})}>{m.music_drills_rhythm_clear()}</button>
+              <span class="text-sm text-ws-stage-soft">{writing ? (groove ? m.music_drills_rhythm_tap_cell_hits() : m.music_drills_rhythm_tap_cell_notes()) : m.music_drills_rhythm_listen_first()}</span>
             </div>
           {/if}
-          <div class="mt-3" class:opacity-60={phase === "ready"} role="group" aria-label={groove ? "Your groove" : "Your rhythm"} data-dock={phase === "ready" ? undefined : "music"}>
+          <div class="mt-3" class:opacity-60={phase === "ready"} role="group" aria-label={groove ? m.music_drills_rhythm_your_groove() : m.music_drills_rhythm_your_rhythm()} data-dock={phase === "ready" ? undefined : "music"}>
             <DictationGrid
               bars={plan.bars}
               {rows}
@@ -973,7 +980,7 @@
       {#if writes && (writing || phase === "running")}
         <!-- Under the grid it checks; on a phone it is the dock's step instead. -->
         <div class="flex max-sm:hidden" data-dock="answers">
-          <button type="button" class="{btnPrimary} min-h-12 w-full sm:w-auto sm:min-w-56" disabled={!writing} onclick={checkDictation}>{groove ? "Check my groove" : "Check my rhythm"}</button>
+          <button type="button" class="{btnPrimary} min-h-12 w-full sm:w-auto sm:min-w-56" disabled={!writing} onclick={checkDictation}>{groove ? m.music_drills_rhythm_check_groove() : m.music_drills_rhythm_check_rhythm()}</button>
         </div>
       {/if}
       {#if !writes}
@@ -983,14 +990,14 @@
         <!-- The word for each tap as it lands, over the button it came from. -->
         <Verdict kind={tapVerdict?.kind} text={tapVerdict?.text} key={hits.length} class="flex h-8 items-center" />
         {#if onPads}
-          <div class="w-72 max-w-full"><Pads label="Pads: any pad is a tap" /></div>
-          <p class="text-center text-sm text-ws-stage-soft">Any pad counts, on the MPC or here{listens ? ", and the mic" : ""}. Space too.</p>
+          <div class="w-72 max-w-full"><Pads label={m.music_drills_rhythm_pads_label()} /></div>
+          <p class="text-center text-sm text-ws-stage-soft">{listens ? m.music_drills_rhythm_pads_note_mic() : m.music_drills_rhythm_pads_note()}</p>
         {:else}
         <button
           type="button"
           class="tap"
           class:pressed
-          aria-label="Tap"
+          aria-label={m.music_drills_rhythm_tap()}
           aria-keyshortcuts="Space"
           disabled={!live}
           onpointerdown={(e) => {
@@ -1005,10 +1012,10 @@
             }
           }}
         >
-          <span class="font-display text-2xl font-bold">Tap</span>
-          <span class="text-sm font-medium pointer-coarse:hidden">or Space</span>
+          <span class="font-display text-2xl font-bold">{m.music_drills_rhythm_tap()}</span>
+          <span class="text-sm font-medium pointer-coarse:hidden">{m.music_drills_rhythm_or_space()}</span>
         </button>
-        <p class="max-w-56 text-center text-sm text-ws-stage-soft">{live ? "" : "Starts after the count-in. "}MIDI keys and pads count too{listens ? ", and the mic" : ""}.</p>
+        <p class="max-w-56 text-center text-sm text-ws-stage-soft">{live ? "" : `${m.music_drills_rhythm_starts_after_countin()} `}{listens ? m.music_drills_rhythm_midi_count_mic() : m.music_drills_rhythm_midi_count()}</p>
         {/if}
       </div>
       {/if}

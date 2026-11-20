@@ -1,5 +1,6 @@
 // Rhythm route helpers: turn input into timed hits, and a pattern into the
 // sound of its demo (clicks, taps, strums), with the event each sound lights.
+import { m } from "@repo/i18n/messages.js";
 import type { NoteEvent } from "@repo/music-core";
 import { pc } from "@repo/music-core";
 import type { RhythmPatternDef } from "@repo/music-core/data/index";
@@ -16,10 +17,17 @@ export function readPatterns(instrument: string) {
   ).map((p) => ({
     value: p.id,
     label: p.label.replace(/^(Guitar|Ukulele): /, ""),
-    group: p.chords?.length
-      ? `${instrument[0].toUpperCase()}${instrument.slice(1)} strums`
-      : "Rhythms",
+    group: p.chords?.length ? strumsGroup(instrument) : m.music_drills_rhythm_group_rhythms(),
   }));
+}
+
+/** The heading over an instrument's strums in the pattern list. */
+function strumsGroup(instrument: string): string {
+  if (instrument === "guitar") return m.music_drills_rhythm_group_strums_guitar();
+  if (instrument === "ukulele") return m.music_drills_rhythm_group_strums_ukulele();
+  return m.music_drills_rhythm_group_strums_other({
+    instrument: `${instrument[0].toUpperCase()}${instrument.slice(1)}`,
+  });
 }
 
 export interface Hit extends RhythmHit {
@@ -114,14 +122,19 @@ export function signedMs(ms: number): string {
 /** How much the taps varied beat to beat, in words a player reads: "23 ms, tight". */
 export function spreadText(ms: number): string {
   const n = Math.round(ms);
-  return `${n} ms, ${n <= 25 ? "tight" : n <= 50 ? "a little loose" : "loose"}`;
+  return (
+    n <= 25
+      ? m.music_drills_rhythm_spread_tight
+      : n <= 50
+        ? m.music_drills_rhythm_spread_little_loose
+        : m.music_drills_rhythm_spread_loose
+  )({ ms: n });
 }
 
 /** How long a run is, as the grid draws it: "4 bars of 4", or "6 beats" when it is not whole bars. */
 export function lengthText(beats: number, perBar: number): string {
-  if (beats % perBar) return `${beats} beats`;
-  const bars = beats / perBar;
-  return `${bars} bar${bars === 1 ? "" : "s"} of ${perBar}`;
+  if (beats % perBar) return m.music_drills_rhythm_length_beats({ count: beats });
+  return m.music_drills_rhythm_length_bars({ count: beats / perBar, perBar });
 }
 
 /** A written cell once a dictation is checked: right, extra, missed, or nothing to say. */
@@ -179,7 +192,7 @@ export function marksAsPattern(
   }
   return {
     id: `marks-${sorted.join("_")}`,
-    label: "Your rhythm",
+    label: m.music_drills_rhythm_your_rhythm(),
     meter: { beats: perBar, beatUnit: 4 },
     defaultBars: bars,
     events: sorted.map((beat, i) => ({
@@ -208,13 +221,33 @@ export function landedText(
   const parts = !landed
     ? []
     : landed === t.onTime
-      ? [landed === 1 ? "on time" : "all on time"]
+      ? [
+          landed === 1
+            ? m.music_drills_rhythm_landed_on_time_one()
+            : m.music_drills_rhythm_landed_all_on_time(),
+        ]
       : [
-          ...(t.onTime ? [`${t.onTime} on time`] : []),
-          ...(t.early ? [`${t.early} early`] : []),
-          ...(t.late ? [`${t.late} late`] : []),
+          ...(t.onTime ? [m.music_drills_rhythm_landed_n_on_time({ n: t.onTime })] : []),
+          ...(t.early ? [m.music_drills_rhythm_landed_n_early({ n: t.early })] : []),
+          ...(t.late ? [m.music_drills_rhythm_landed_n_late({ n: t.late })] : []),
         ];
-  return `${landed} of ${total} ${noun} ${verb}${parts.length ? `, ${parts.join(", ")}` : ""}.`;
+  // The two sentences the route says have messages; any other noun and verb stay as given.
+  const said =
+    noun === "beats" && verb === "landed"
+      ? "beats"
+      : noun === "notes" && verb === "tapped"
+        ? "notes"
+        : null;
+  if (!said)
+    return `${landed} of ${total} ${noun} ${verb}${parts.length ? `, ${parts.join(", ")}` : ""}.`;
+  const at = { landed, total, parts: parts.join(", ") };
+  if (said === "beats")
+    return parts.length
+      ? m.music_drills_rhythm_landed_beats_parts(at)
+      : m.music_drills_rhythm_landed_beats(at);
+  return parts.length
+    ? m.music_drills_rhythm_landed_notes_parts(at)
+    : m.music_drills_rhythm_landed_notes(at);
 }
 
 /**

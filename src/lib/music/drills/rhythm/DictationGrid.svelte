@@ -3,6 +3,7 @@
   // each bar in its own box. Cells never narrow below 44 px: on a phone a bar of eighths takes two rows of four;
   // a bar of sixteenths that does not fit wraps at a beat, inside the same box. While the pattern plays, a
   // playhead sweeps the bar and the column under it lights. The drill makes it writable; a lesson shows it read-only.
+  import { m } from "@repo/i18n/messages.js";
   import { beatsPerRow, CELL_GAP } from "./rhythm";
 
   interface Props {
@@ -24,6 +25,13 @@
 
   const COUNTS = { 2: ["", "&"], 3: ["", "&", "a"], 4: ["", "e", "&", "a"] } as const;
   const GLYPH: Record<string, string> = { right: "✓", extra: "✕", missed: "○" };
+  const STATE_WORD: Record<string, () => string> = { right: m.music_drills_rhythm_v_right, extra: m.music_drills_rhythm_v_extra, missed: m.music_drills_rhythm_v_missed };
+  /** The cell's name for a screen reader: "Kick, bar 1, & 2, right". */
+  function cellName(label: string, n: number, i: number, st: string | null) {
+    const at = { bar: n, count: cellLabel(i) || m.music_drills_rhythm_beat_word(), beat: Math.floor((i % cellsPerBar) / perBeat) + 1 };
+    const name = label ? m.music_drills_rhythm_grid_cell_drum({ drum: label, ...at }) : m.music_drills_rhythm_grid_cell(at);
+    return st ? m.music_drills_rhythm_grid_cell_state({ label: name, state: STATE_WORD[st]?.() ?? st }) : name;
+  }
   const cellLabel = (i: number) => {
     const sub = i % perBeat;
     return sub ? COUNTS[perBeat][sub] : String((Math.floor(i / perBeat) % beatsPerBar) + 1);
@@ -51,7 +59,7 @@
   {#each range(bars, 0) as bar (bar)}
     {@const n = barNumbers?.[bar] ?? bar + 1}
     <div class="box" style:padding="{BOX_PAD - 1}px">
-      {#if bars > 1 || segs.length > 1}<p class="mb-1.5 text-sm font-semibold text-ws-stage-soft">Bar {n}</p>{/if}
+      {#if bars > 1 || segs.length > 1}<p class="mb-1.5 text-sm font-semibold text-ws-stage-soft">{m.music_drills_rhythm_bar({ n })}</p>{/if}
       <div class="space-y-2">
         {#each segs as seg (seg)}
           <div class="relative space-y-1">
@@ -70,7 +78,7 @@
                       data-state={st}
                       data-now={i === nowCell || undefined}
                       aria-pressed={on}
-                      aria-label="{row.label ? `${row.label}, b` : 'B'}ar {n}, {cellLabel(i) || 'beat'} {Math.floor((i % cellsPerBar) / perBeat) + 1}{st ? `, ${st}` : ''}"
+                      aria-label={cellName(row.label, n, i, st)}
                       {disabled}
                       onclick={() => ontoggle?.(row.id, i)}
                       ><span>{cellLabel(i)}</span>{#if st}<span class="mark ws-pop" aria-hidden="true">{GLYPH[st]}</span>{:else if on}<svg class="head ws-pop" viewBox="-6 -4 12 8" aria-hidden="true"><ellipse rx="5" ry="3.4" transform="rotate(-22)" /></svg>{/if}</button

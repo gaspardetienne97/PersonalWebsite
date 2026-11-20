@@ -1,6 +1,7 @@
 <script lang="ts">
   // After a dictation: what was heard above what you wrote, a bar at a time, with a tick,
   // a cross or a hollow ring in each cell, so the comparison reads without colour.
+  import { m } from "@repo/i18n/messages.js";
   import { cellVerdict } from "./rhythm";
 
   interface Props {
@@ -15,35 +16,36 @@
 
   const COUNTS = { 2: ["", "&"], 3: ["", "&", "a"], 4: ["", "e", "&", "a"] } as const;
   const GLYPH = { right: "✓", extra: "✕", missed: "○" } as const;
+  const VERDICT = { right: m.music_drills_rhythm_v_right, extra: m.music_drills_rhythm_v_extra, missed: m.music_drills_rhythm_v_missed } as const;
   const cells = $derived(beatsPerBar * perBeat);
   const range = (n: number, from = 0) => Array.from({ length: n }, (_, k) => from + k);
   const count = (k: number) => (k % perBeat ? COUNTS[perBeat][k % perBeat] : String(k / perBeat + 1));
 </script>
 
-<section class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-label="Heard and written, cell by cell" data-testid="dictation-compare">
+<section class="rounded-2xl border border-ws-line bg-ws-surface p-4" aria-label={m.music_drills_rhythm_compare_label()} data-testid="dictation-compare">
   <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-    <h3 class="font-display text-base font-semibold">What you heard, and what you wrote</h3>
-    <p class="text-sm text-ws-soft"><span class="ok">✓</span> right, <span class="bad">✕</span> extra, <span class="bad">○</span> missed</p>
+    <h3 class="font-display text-base font-semibold">{m.music_drills_rhythm_compare_title()}</h3>
+    <p class="text-sm text-ws-soft"><span class="ok">✓</span> {m.music_drills_rhythm_v_right()}, <span class="bad">✕</span> {m.music_drills_rhythm_v_extra()}, <span class="bad">○</span> {m.music_drills_rhythm_v_missed()}</p>
   </div>
   <div class="mt-3 grid gap-4 {bars > 1 ? 'sm:grid-cols-2' : ''}">
     {#each range(bars) as bar (bar)}
-      <div class="sheet" style:--cells={cells} role="table" aria-label="Bar {bar + 1}">
+      <div class="sheet" style:--cells={cells} role="table" aria-label={m.music_drills_rhythm_bar({ n: bar + 1 })}>
         <div class="row" role="row">
-          <span class="lab" role="rowheader">Bar {bar + 1}</span>
+          <span class="lab" role="rowheader">{m.music_drills_rhythm_bar({ n: bar + 1 })}</span>
           {#each range(cells) as k (k)}<span class="cell count" class:beat={k % perBeat === 0} role="columnheader">{count(k)}</span>{/each}
         </div>
         {#each rows as row (row.id)}
           <div class="row" role="row">
-            <span class="lab" role="rowheader">{row.label ? `${row.label} heard` : "Heard"}</span>
+            <span class="lab" role="rowheader">{row.label ? m.music_drills_rhythm_compare_row_heard({ drum: row.label }) : m.music_drills_rhythm_compare_heard()}</span>
             {#each range(cells, bar * cells) as i (i)}
-              <span class="cell" class:beat={i % perBeat === 0} role="cell" aria-label={heard(row.id, i) ? "a note" : "no note"}>{heard(row.id, i) ? "●" : ""}</span>
+              <span class="cell" class:beat={i % perBeat === 0} role="cell" aria-label={heard(row.id, i) ? m.music_drills_rhythm_cell_note() : m.music_drills_rhythm_cell_no_note()}>{heard(row.id, i) ? "●" : ""}</span>
             {/each}
           </div>
           <div class="row yours" role="row">
-            <span class="lab" role="rowheader">You wrote</span>
+            <span class="lab" role="rowheader">{m.music_drills_rhythm_compare_you_wrote()}</span>
             {#each range(cells, bar * cells) as i (i)}
               {@const v = cellVerdict(heard(row.id, i), marked(row.id, i))}
-              <span class="cell" class:beat={i % perBeat === 0} data-v={v} role="cell" aria-label={v ?? "nothing"}>{v ? GLYPH[v] : ""}</span>
+              <span class="cell" class:beat={i % perBeat === 0} data-v={v} role="cell" aria-label={v ? VERDICT[v]() : m.music_drills_rhythm_v_nothing()}>{v ? GLYPH[v] : ""}</span>
             {/each}
           </div>
         {/each}
