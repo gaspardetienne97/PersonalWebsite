@@ -1,5 +1,6 @@
 <script lang="ts">
   import { TUNINGS } from "@repo/music-core/data/index";
+  import { m } from "@repo/i18n/messages.js";
   import { DrillSetup } from "#lib/music/setup.svelte.ts";
   import { settings } from "#lib/music/runtime/index.ts";
   import Flashcards from "#lib/music/drills/reading/Flashcards.svelte";
@@ -20,7 +21,7 @@
   );
 </script>
 
-<svelte:head><title>{activity === "flashcards" ? "Note reading" : "Sight-reading"} | Woodshed</title></svelte:head>
+<svelte:head><title>{activity === "flashcards" ? m.music_drills_reading_page_title_flashcards() : m.music_drills_reading_page_title_sight()}</title></svelte:head>
 
 {#key `${activity}|${instrument}`}
   {#if activity === "flashcards"}

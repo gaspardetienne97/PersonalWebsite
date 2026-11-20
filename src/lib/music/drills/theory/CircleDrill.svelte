@@ -39,14 +39,16 @@
   import { practice } from "#lib/music/practice.svelte.ts";
   import { nextRun } from "#lib/music/advance.svelte.ts";
   import { audio } from "#lib/music/runtime/index.ts";
+  import { m } from "@repo/i18n/messages.js";
+  import { formatNumber } from "@repo/i18n/format";
 
   const LENGTH = 20;
   const tuneName = (id: string) => TUNES.find((t) => t.id === id)?.name ?? id;
   const entry = catalogEntry("circle")!;
   const cfg = new DrillSetup("circle", { mode: "count" as string, band: "near" as string, minor: "major" as string, clefs: "treble" as string, tune: "tune-autumn-leaves" as string });
   const s = $derived(cfg.value);
-  const modeId = $derived((CIRCLE_MODES.find((m) => m.id === s.mode) ?? CIRCLE_MODES[1]).id as CircleMode);
-  const meta = $derived(CIRCLE_MODES.find((m) => m.id === modeId)!);
+  const modeId = $derived((CIRCLE_MODES.find((md) => md.id === s.mode) ?? CIRCLE_MODES[1]).id as CircleMode);
+  const meta = $derived(CIRCLE_MODES.find((md) => md.id === modeId)!);
   const band = $derived((KEY_BANDS.find((b) => b.id === s.band) ?? KEY_BANDS[0]).id as KeyBand);
   const clefs = $derived((s.clefs === "both" ? ["treble", "bass"] : [s.clefs === "bass" ? "bass" : "treble"]) as ("treble" | "bass")[]);
   const usesMinor = $derived(modeId === "count" || modeId === "signature");
@@ -68,23 +70,23 @@
   }
   /** The tab row, first steps first; the shell keeps the rest behind "More exercises". */
   const TAB: Record<CircleMode, string> = {
-    count: "Key signatures",
-    order: "Sharp and flat order",
-    signature: "Read a signature",
-    neighbours: "Neighbour keys",
-    wheel: "Fill in the wheel",
-    chords: "Chords in a key",
-    borrowed: "Borrowed chords",
-    secondary: "Secondary dominants",
-    analysis: "Analyse a tune",
+    count: m.music_drills_circle_tab_count(),
+    order: m.music_drills_circle_tab_order(),
+    signature: m.music_drills_circle_tab_signature(),
+    neighbours: m.music_drills_circle_tab_neighbours(),
+    wheel: m.music_drills_circle_tab_wheel(),
+    chords: m.music_drills_circle_tab_chords(),
+    borrowed: m.music_drills_circle_tab_borrowed(),
+    secondary: m.music_drills_circle_tab_secondary(),
+    analysis: m.music_drills_circle_tab_analysis(),
   };
   const tabs = (Object.keys(TAB) as CircleMode[]).map((id) => ({ id, label: TAB[id] }));
   /** Each key band as the "Up to" button reads it, and as the setup sentence says it. */
   const BAND_TEXT: Record<KeyBand, { label: string; clause: string }> = {
-    near: { label: "C, G and F", clause: "keys C, G and F" },
-    two: { label: "2 sharps or flats", clause: "up to 2 sharps or flats" },
-    four: { label: "4 sharps or flats", clause: "up to 4 sharps or flats" },
-    all: { label: "All 15 keys", clause: "all 15 keys" },
+    near: { label: m.music_drills_circle_band_near(), clause: m.music_drills_circle_band_near_clause() },
+    two: { label: m.music_drills_circle_band_two(), clause: m.music_drills_circle_band_two_clause() },
+    four: { label: m.music_drills_circle_band_four(), clause: m.music_drills_circle_band_four_clause() },
+    all: { label: m.music_drills_circle_band_all(), clause: m.music_drills_circle_band_all_clause() },
   };
 
   let phase = $state<Phase>("ready");
@@ -110,7 +112,7 @@
     current = p;
     step = "answer";
     shownAt = performance.now();
-    status = `${qi + 1} of ${length}. ${p.ask}`;
+    status = m.music_drills_circle_status_ask({ n: qi + 1, total: length, ask: p.ask });
   };
 
   async function start(_ctx: RunContext) {
@@ -122,7 +124,7 @@
     sheet = analysing ? analysisPrompts(tuneId) : [];
     length = analysing ? sheet.length : LENGTH;
     run = practice.beginRun({
-      exerciseId: entry.modes.find((m) => m.id === modeId)!.exerciseId,
+      exerciseId: entry.modes.find((md) => md.id === modeId)!.exerciseId,
       setupKey: analysing ? `${modeId}|${tuneId}` : `${modeId}|${band}|${s.minor}|${s.clefs}`,
       skillIds: ["theory.circle", meta.skillId],
       capabilities: ["reading"],
@@ -154,13 +156,13 @@
       skillIds: p.skillIds,
       instrument: null,
     });
-    const secs = (ms / 1000).toFixed(1);
+    const secs = tenths(ms);
     if (mode === "practice")
       status = g.correct
         ? g.slow
-          ? `Right, in ${secs} s: aim for under ${p.targetMs / 1000} s.`
-          : `Right, in ${secs} s.`
-        : `It was ${shown(p, p.answer)}. ${rule(p)}`;
+          ? m.music_drills_circle_right_slow({ secs, target: seconds(p.targetMs) })
+          : m.music_drills_circle_right_in({ secs })
+        : m.music_drills_circle_it_was_rule({ answer: shown(p, p.answer), rule: rule(p) });
     else nextTimer = setTimeout(next, 350);
   }
 
@@ -190,38 +192,38 @@
     summary = {
       headline: analysing
         ? right === length
-          ? `All ${length} chords of ${tuneName(tuneId)} right.`
-          : `${right} of ${length} chords right: ${half(0)} keys and ${half(1)} functions.`
+          ? m.music_drills_circle_headline_analysis_all({ count: length, tune: tuneName(tuneId) })
+          : m.music_drills_circle_headline_analysis_some({ right, total: length, keys: half(0), fns: half(1) })
         : fluent === length
-          ? `All ${length} right and fast.`
-          : `${right} of ${length} right, ${fluent} within ${meta.targetMs / 1000} s.`,
+          ? m.music_drills_circle_headline_all({ count: length })
+          : m.music_drills_circle_headline_some({ right, total: length, fluent, secs: seconds(meta.targetMs) }),
       metric: pct(score),
-      metricLabel: analysing ? "analysis" : "fluency",
+      metricLabel: analysing ? m.music_drills_circle_metric_analysis() : m.music_drills_circle_metric_fluency(),
       delta: fin.delta,
       best: fin.best,
       clean: mode === "check" && fluent === length,
-      cleanMeans: analysing ? "every chord right" : `every answer right within ${meta.targetMs / 1000} s`,
+      cleanMeans: analysing ? m.music_drills_circle_clean_analysis() : m.music_drills_circle_clean_fluent({ secs: seconds(meta.targetMs) }),
       // A weak run: one tap asks those keys again, most of the time.
       coach:
         !analysing && weakFifths.length && fluent < length
-          ? { label: `Review ${weakFifths.slice(0, 3).map(keyName).join(", ")}`, run: () => reviewKeys(weakFifths) }
+          ? { label: m.music_drills_circle_review({ keys: weakFifths.slice(0, 3).map(keyName).join(", ") }), run: () => reviewKeys(weakFifths) }
           : undefined,
       xp: fin.xp,
       mode,
       rows: analysing
         ? [
-            { label: "Chords right", value: right / length, text: `${right} of ${length}` },
-            { label: "Key centres", value: half(0) / length, text: `${half(0)} of ${length}` },
-            { label: "Functions", value: half(1) / length, text: `${half(1)} of ${length}` },
-            ...(missedBars.length ? [{ label: "Bars to go over", text: missedBars.slice(0, 8).join("; ") }] : []),
+            { label: m.music_drills_circle_row_chords_right(), value: right / length, text: m.music_drills_circle_x_of_y({ n: right, total: length }) },
+            { label: m.music_drills_circle_row_key_centres(), value: half(0) / length, text: m.music_drills_circle_x_of_y({ n: half(0), total: length }) },
+            { label: m.music_drills_circle_row_functions(), value: half(1) / length, text: m.music_drills_circle_x_of_y({ n: half(1), total: length }) },
+            ...(missedBars.length ? [{ label: m.music_drills_circle_row_bars(), text: missedBars.slice(0, 8).join("; ") }] : []),
           ]
         : [
-        { label: "Right", value: right / length, text: `${right} of ${length}` },
-        { label: `Within ${meta.targetMs / 1000} s`, value: fluent / length, text: `${fluent} of ${length}` },
-        { label: "Typical answer", text: median ? (median < 100 ? "under 0.1 s" : `${(median / 1000).toFixed(1)} s`) : "None right yet" },
-        ...(slowKeys.length ? [{ label: "Keys to go over", text: slowKeys.join(", ") }] : []),
+        { label: m.music_drills_circle_row_right(), value: right / length, text: m.music_drills_circle_x_of_y({ n: right, total: length }) },
+        { label: m.music_drills_circle_row_within({ secs: seconds(meta.targetMs) }), value: fluent / length, text: m.music_drills_circle_x_of_y({ n: fluent, total: length }) },
+        { label: m.music_drills_circle_row_typical(), text: median ? (median < 100 ? m.music_drills_circle_under_tenth() : m.music_drills_circle_secs({ secs: tenths(median) })) : m.music_drills_circle_none_right() },
+        ...(slowKeys.length ? [{ label: m.music_drills_circle_row_keys(), text: slowKeys.join(", ") }] : []),
       ],
-      routine: page.url.searchParams.get("routine") ? { label: "Back to Today", href: "/music" } : undefined,
+      routine: page.url.searchParams.get("routine") ? { label: m.music_drills_circle_back_today(), href: "/music" } : undefined,
       // Untimed: wider key bands; the order of sharps and flats has none.
       advance:
         modeId === "order" || analysing
@@ -258,7 +260,7 @@
   function stop() {
     clearTimeout(nextTimer);
     phase = "ready";
-    status = `Stopped after ${records.length} answer${records.length === 1 ? "" : "s"}.`;
+    status = m.music_drills_circle_stopped({ count: records.length });
   }
 
   /** A major key's place on the circle by name ("Eb" is -3), or undefined for anything else. */
@@ -285,40 +287,43 @@
   }
 
   const keyName = (f: number) => `${keyAt(f).major}`;
+  /** Seconds to one decimal ("1.4"), and a target's seconds ("2"), in the reader's number format. */
+  const tenths = (ms: number) => formatNumber(ms / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const seconds = (ms: number) => formatNumber(ms / 1000);
   /** How an answer reads on a button. */
-  const shown = (p: CirclePrompt, t: string) => (p.mode === "analysis" ? t.split("|").join(", ") : p.mode === "wheel" ? `${keyAt(p.fifths).major} at ${Number(t) === 0 ? "the top" : `position ${Number(t) + 1}`}` : t);
+  const shown = (p: CirclePrompt, t: string) => (p.mode === "analysis" ? t.split("|").join(", ") : p.mode === "wheel" ? (Number(t) === 0 ? m.music_drills_circle_wheel_top({ key: keyAt(p.fifths).major }) : m.music_drills_circle_wheel_position({ key: keyAt(p.fifths).major, n: Number(t) + 1 })) : t);
   /** The rule behind the answer, said after a miss. */
   function rule(p: CirclePrompt): string {
     const k = keyAt(p.fifths);
     switch (p.mode) {
       case "order":
-        return "Sharps: Father Charles Goes Down And Ends Battle. Flats: the same backwards (BEAD-GCF).";
+        return m.music_drills_circle_rule_order();
       case "count":
       case "signature":
         return p.fifths > 0
-          ? `${k.major} major has ${accidentalCount(p.fifths)} (${k.accidentals.join(", ")}): the last sharp, ${k.accidentals.at(-1)}, is a half step below ${k.major}. Its relative minor is ${k.minor}.`
+          ? m.music_drills_circle_rule_sharps({ key: k.major, count: accidentalCount(p.fifths), list: k.accidentals.join(", "), last: k.accidentals.at(-1) ?? "", minor: k.minor })
           : p.fifths < -1
-            ? `${k.major} major has ${accidentalCount(p.fifths)} (${k.accidentals.join(", ")}): the second-to-last flat, ${k.accidentals.at(-2)}, names the key. Its relative minor is ${k.minor}.`
-            : `${k.major} major has ${accidentalCount(p.fifths)}. Its relative minor is ${k.minor}.`;
+            ? m.music_drills_circle_rule_flats({ key: k.major, count: accidentalCount(p.fifths), list: k.accidentals.join(", "), prev: k.accidentals.at(-2) ?? "", minor: k.minor })
+            : m.music_drills_circle_rule_plain({ key: k.major, count: accidentalCount(p.fifths), minor: k.minor });
       case "neighbours":
-        return "Clockwise adds a sharp (a fifth up). Counter-clockwise adds a flat (a fourth up). The relative minor is a minor third below.";
+        return m.music_drills_circle_rule_neighbours();
       case "chords":
-        return `${k.major} major: ${diatonicChords(p.fifths).map((c) => `${c.numeral} ${c.name}`).join(", ")}. The wedge: IV I V outside, ii vi iii inside.`;
+        return m.music_drills_circle_rule_chords({ key: k.major, chords: diatonicChords(p.fifths).map((c) => `${c.numeral} ${c.name}`).join(", ") });
       case "wheel":
-        return `From C at the top, clockwise: G D A E B F#, then Db Ab Eb Bb F back to C.`;
+        return m.music_drills_circle_rule_wheel();
       case "borrowed":
-        return `${k.major} major's own chords: ${diatonicChords(p.fifths).map((c) => c.name).join(" ")}. Borrowed from ${k.major} minor: ${["iv", "bVI", "bVII", "bIII"].map((n) => `${n} ${chordIn(p.fifths, n)}`).join(", ")}.`;
+        return m.music_drills_circle_rule_borrowed({ key: k.major, own: diatonicChords(p.fifths).map((c) => c.name).join(" "), borrowed: ["iv", "bVI", "bVII", "bIII"].map((n) => `${n} ${chordIn(p.fifths, n)}`).join(", ") });
       case "analysis":
         return functionRule(p.answer.split("|")[1]);
       case "secondary":
-        return `A secondary dominant is a dominant seventh a fifth above the chord it leads to. In ${k.major}: ${["V/ii", "V/IV", "V/V", "V/vi"].map((n) => `${n} ${chordIn(p.fifths, n)}`).join(", ")}.`;
+        return m.music_drills_circle_rule_secondary({ key: k.major, list: ["V/ii", "V/IV", "V/V", "V/vi"].map((n) => `${n} ${chordIn(p.fifths, n)}`).join(", ") });
     }
   }
 
   const signatureScore = (p: CirclePrompt): Score => sigScore(p.id, p.staff!.fifths, p.staff!.clef);
   const sigScore = (id: string, fifths: number, clef: "treble" | "bass" = "treble"): Score => ({
     id,
-    title: "Key signature",
+    title: m.music_drills_circle_sig_title(),
     bpm: 60,
     keyFifths: fifths,
     meter: { beats: 4, beatUnit: 4 },
@@ -334,42 +339,42 @@
       : step === "feedback"
         ? ""
         : current.mode === "analysis"
-          ? "Pick the key centre, then its function"
+          ? m.music_drills_circle_cue_analysis()
           : current.mode === "wheel"
-            ? "Tap where the key goes"
+            ? m.music_drills_circle_cue_wheel()
             : onWheel(current)
-              ? "Tap the key on the wheel or a button"
-              : "Pick an answer",
+              ? m.music_drills_circle_cue_on_wheel()
+              : m.music_drills_circle_cue_pick(),
   );
   const chordCount = $derived(analysing ? analysisSheet(TUNES.find((t) => t.id === tuneId)!).length : 0);
   const summaryLine = $derived<SetupClause[]>(
     analysing
-      ? [{ text: tuneName(tuneId), focus: "tune" }, { text: `${chordCount} chords, each section once` }, { text: "untimed" }]
-      : [
+      ? [{ text: tuneName(tuneId), focus: "tune" }, { text: m.music_drills_circle_sum_chords({ count: chordCount }) }, { text: m.music_drills_circle_sum_untimed() }]
+      : ([
       modeId !== "order" ? { text: BAND_TEXT[band].clause, focus: "band" } : null,
-      usesMinor ? { text: s.minor === "both" ? "major and minor" : "major only", focus: "minor" } : null,
-      modeId === "signature" ? { text: s.clefs === "both" ? "treble and bass" : `${s.clefs} clef`, focus: "clefs" } : null,
-      { text: `${length} questions` },
-      { text: `fluent: right within ${meta.targetMs / 1000} s` },
-    ].filter((c): c is SetupClause => !!c),
+      usesMinor ? { text: s.minor === "both" ? m.music_drills_circle_sum_major_minor() : m.music_drills_circle_sum_major_only(), focus: "minor" } : null,
+      modeId === "signature" ? { text: s.clefs === "both" ? m.music_drills_circle_sum_treble_bass() : s.clefs === "bass" ? m.music_drills_circle_sum_bass() : m.music_drills_circle_sum_treble(), focus: "clefs" } : null,
+      { text: m.music_drills_circle_sum_questions({ count: length }) },
+      { text: m.music_drills_circle_sum_fluent({ secs: seconds(meta.targetMs) }) },
+    ] as (SetupClause | null)[]).filter((c): c is SetupClause => !!c),
   );
 </script>
 
-<svelte:head><title>Circle of fifths | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_drills_circle_page_title()}</title></svelte:head>
 
 <!-- The results figure: this run's keys on the wheel, ticked when fast and right, crossed to go over. -->
 {#snippet keysFigure()}
   <figure class="circle mx-auto w-full max-w-72 rounded-2xl bg-ws-stage p-3 text-ws-stage-ink">
-    <CircleOfFifths numerals={false} dim={false} marks={runMarks} label="This run's keys: ticked when fast and right, crossed to go over" />
-    <figcaption class="mt-2 text-center text-sm">This run's keys: ✓ fast and right, ✕ to go over</figcaption>
+    <CircleOfFifths numerals={false} dim={false} marks={runMarks} label={m.music_drills_circle_figure_label()} />
+    <figcaption class="mt-2 text-center text-sm">{m.music_drills_circle_figure_caption()}</figcaption>
   </figure>
 {/snippet}
 
 {#snippet verdict(p: CirclePrompt, r: (typeof records)[number], wheel: boolean)}
   <p class="mt-3 text-lg font-semibold">
-    {#if r.correct && p.mode === "analysis"}<span class="verdict" aria-hidden="true">✓</span> Right: {shown(p, p.answer)}.
-    {:else if r.correct}<span class="verdict" class:slow={r.slow} aria-hidden="true">✓</span> {r.slow ? "Right, but slow" : "Right"}: {shown(p, p.answer)}, {(r.ms / 1000).toFixed(1)} s.
-    {:else}<span class="verdict wrong" aria-hidden="true">✕</span> It was {shown(p, p.answer)}.{#if r.answered}{" "}You said {shown(p, r.answered)}.{/if}{/if}
+    {#if r.correct && p.mode === "analysis"}<span class="verdict" aria-hidden="true">✓</span> {m.music_drills_circle_verdict_right({ answer: shown(p, p.answer) })}
+    {:else if r.correct}<span class="verdict" class:slow={r.slow} aria-hidden="true">✓</span> {(r.slow ? m.music_drills_circle_verdict_slow_time : m.music_drills_circle_verdict_right_time)({ answer: shown(p, p.answer), secs: tenths(r.ms) })}
+    {:else}<span class="verdict wrong" aria-hidden="true">✕</span> {m.music_drills_circle_verdict_was({ answer: shown(p, p.answer) })}{#if r.answered}{" "}{m.music_drills_circle_verdict_you_said({ answer: shown(p, r.answered) })}{/if}{/if}
   </p>
   {#if mode === "practice"}
     <!-- One order at every width: the verdict, the rule with its signature, then Continue. -->
@@ -380,37 +385,37 @@
         <!-- Notation is printed paper in both themes: the staff is the card, its caption on the stage. -->
         <figure class="w-fit">
           <div class="w-40 overflow-hidden rounded-xl"><Staff score={sigScore(`${p.id}-sig`, f)} time={false} maxHeight="6rem" /></div>
-          <figcaption class="pt-1 text-center text-sm font-semibold text-ws-stage-ink">{keyAt(f).major} major{keyAt(f).accidentals.length ? `: ${keyAt(f).accidentals.join(" ")}` : ", no sharps or flats"}</figcaption>
+          <figcaption class="pt-1 text-center text-sm font-semibold text-ws-stage-ink">{keyAt(f).accidentals.length ? m.music_drills_circle_sig_caption({ key: keyAt(f).major, accidentals: keyAt(f).accidentals.join(" ") }) : m.music_drills_circle_sig_caption_none({ key: keyAt(f).major })}</figcaption>
         </figure>
       {/if}
       {#if wheel}
-        <div class="w-full max-w-xs"><CircleOfFifths selected={p.fifths} dim={CHORD_MODES.includes(p.mode)} label="The circle, with the key of this question" /></div>
+        <div class="w-full max-w-xs"><CircleOfFifths selected={p.fifths} dim={CHORD_MODES.includes(p.mode)} label={m.music_drills_circle_wheel_label_key()} /></div>
       {/if}
     </div>
     <!-- From sm the card holds Continue; a phone docks it (the shell's step). -->
-    <button type="button" class="{btnPrimary} mt-4 min-h-12 w-full max-sm:hidden sm:w-auto sm:min-w-48" onclick={next}>{qi + 1 < length ? "Next" : "See results"} <kbd class="ml-1 text-sm opacity-70 pointer-coarse:hidden">Enter</kbd></button>
+    <button type="button" class="{btnPrimary} mt-4 min-h-12 w-full max-sm:hidden sm:w-auto sm:min-w-48" onclick={next}>{qi + 1 < length ? m.music_drills_circle_next() : m.music_drills_circle_see_results()} <kbd class="ml-1 text-sm opacity-70 pointer-coarse:hidden">Enter</kbd></button>
   {/if}
 {/snippet}
 
 <svelte:window onkeydown={onKey} />
 
 <DrillShell
-  title="Circle of fifths"
+  title={m.music_drills_circle_title()}
   hue="reading"
-  blurb="Key signatures and their order, fast. Right within 2 s is fluent. Slower means you're still working it out."
+  blurb={m.music_drills_circle_blurb()}
   summary={summaryLine}
   {tabs}
   firstTabs={4}
   tab={modeId}
   lesson={{ lessons: circleLessons(modeId) }}
   ontab={(id) => cfg.set({ mode: id })}
-  modeNotes={{ practice: "Hints shown. Clean runs move you on.", check: "No hints. Counts in your skill scores." }}
+  modeNotes={{ practice: m.music_drills_circle_mode_practice(), check: m.music_drills_circle_mode_check() }}
   bind:phase
   bind:mode
   bind:status
   progress={(qi + 1) / length}
   {cue}
-  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < length ? "Next" : "See results", run: next } : null}
+  step={phase === "running" && step === "feedback" && mode === "practice" ? { label: qi + 1 < length ? m.music_drills_circle_next() : m.music_drills_circle_see_results(), run: next } : null}
   instrumentFree
   onstart={start}
   onstop={stop}
@@ -419,34 +424,34 @@
     <div class="grid gap-4 sm:grid-cols-2">
       {#if analysing}
         <div class="sm:col-span-2">
-          <Choice label="Tune" setupKey="tune" options={ANALYSIS_TUNES.map((id) => ({ value: id, label: tuneName(id) }))} value={tuneId} onchange={(v) => cfg.set({ tune: v })} />
+          <Choice label={m.music_drills_circle_setup_tune()} setupKey="tune" options={ANALYSIS_TUNES.map((id) => ({ value: id, label: tuneName(id) }))} value={tuneId} onchange={(v) => cfg.set({ tune: v })} />
         </div>
       {:else if modeId !== "order"}
-        <Choice label="Up to" setupKey="band" options={KEY_BANDS.map((b) => ({ value: b.id as KeyBand, label: BAND_TEXT[b.id].label }))} value={band} onchange={(v) => cfg.set({ band: v })} />
+        <Choice label={m.music_drills_circle_setup_up_to()} setupKey="band" options={KEY_BANDS.map((b) => ({ value: b.id as KeyBand, label: BAND_TEXT[b.id].label }))} value={band} onchange={(v) => cfg.set({ band: v })} />
       {/if}
       {#if usesMinor}
-        <Choice label="Keys asked" setupKey="minor" options={[{ value: "major", label: "Major" }, { value: "both", label: "Major and minor" }]} value={s.minor} onchange={(v) => cfg.set({ minor: v })} />
+        <Choice label={m.music_drills_circle_setup_keys_asked()} setupKey="minor" options={[{ value: "major", label: m.music_drills_circle_setup_major() }, { value: "both", label: m.music_drills_circle_setup_major_minor() }]} value={s.minor} onchange={(v) => cfg.set({ minor: v })} />
       {/if}
       {#if modeId === "signature"}
-        <Choice label="Clef" setupKey="clefs" options={[{ value: "treble", label: "Treble" }, { value: "bass", label: "Bass" }, { value: "both", label: "Both" }]} value={s.clefs} onchange={(v) => cfg.set({ clefs: v })} />
+        <Choice label={m.music_drills_circle_setup_clef()} setupKey="clefs" options={[{ value: "treble", label: m.music_drills_circle_setup_treble() }, { value: "bass", label: m.music_drills_circle_setup_bass() }, { value: "both", label: m.music_drills_circle_setup_both() }]} value={s.clefs} onchange={(v) => cfg.set({ clefs: v })} />
       {/if}
     </div>
     {#if analysing}
       <p class="mt-3 text-sm text-ws-soft">
-        Each chord of the tune, each section once: pick its key centre, then its function there. The analysis follows three rules. A chord reached from its own V7, tritone sub or backdoor is a new key's I. A ii-V belongs to the key it resolves to. A dominant that resolves to anything else is a V of. After a miss, you see the rule that applies.
+        {m.music_drills_circle_setup_analysis_note()}
       </p>
     {:else}
     <p class="mt-3 text-sm text-ws-soft">
-      Answer with the buttons or the number keys (1 for the first). The <a class="underline underline-offset-4" href="/music/create/reference?section=circle">circle in Studio</a> has every key's signature and chords.
+      {@html m.music_drills_circle_setup_note({ link: `<a class="underline underline-offset-4" href="/music/create/reference?section=circle">${m.music_drills_circle_setup_note_link()}</a>` })}
     </p>
     {/if}
   {/snippet}
 
   {#snippet hud()}
     {#if phase === "running" && current}
-      <Stat label="Question" value="{qi + 1} of {length}" />
-      {#if mode === "practice" && analysing}<Stat label="Right so far" value={records.filter((r) => r.correct).length} />
-      {:else if mode === "practice"}<Stat label="Fast and right" value="{records.filter((r) => r.correct && !r.slow).length} of {length}" />{/if}
+      <Stat label={m.music_drills_circle_stat_question()} value={m.music_drills_circle_x_of_y({ n: qi + 1, total: length })} />
+      {#if mode === "practice" && analysing}<Stat label={m.music_drills_circle_stat_right()} value={records.filter((r) => r.correct).length} />
+      {:else if mode === "practice"}<Stat label={m.music_drills_circle_stat_fast()} value={m.music_drills_circle_x_of_y({ n: records.filter((r) => r.correct && !r.slow).length, total: length })} />{/if}
     {/if}
   {/snippet}
 
@@ -455,7 +460,7 @@
     {#if phase === "running" && current}
       {@const p = current}
       {@const r = step === "feedback" ? records.at(-1) : undefined}
-      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label="Question {qi + 1}" data-mode={p.mode} data-answer={p.answer} data-step={step}>
+      <article class="prompt rounded-2xl p-4 sm:p-5" aria-label={m.music_drills_circle_question_n({ n: qi + 1 })} data-mode={p.mode} data-answer={p.answer} data-step={step}>
         <p class="font-display text-2xl font-semibold sm:text-3xl">{p.ask}</p>
         {#if p.staff}
           <div class="mt-3 max-w-64 overflow-hidden rounded-xl"><Staff score={signatureScore(p)} time={false} maxHeight="8rem" /></div>
@@ -468,13 +473,13 @@
               dim={false}
               onpick={step === "answer" ? (f) => (hearKey(f), choose(String(wheelIndex(f)))) : undefined}
               marks={r ? { [Number(p.answer)]: "right", ...(r.correct ? {} : { [Number(r.answered)]: "wrong" }) } : {}}
-              label="A blank circle of fifths: tap where the key goes"
+              label={m.music_drills_circle_blank_wheel_tap()}
             />
           </div>
         {/if}
         {#if p.analysis}
           <!-- The tune's chart: the chord asked is lit; answered chords show the analysis in Practice. -->
-          <ol class="chart mt-3 flex flex-wrap gap-1.5" aria-label="{tuneName(p.analysis.tune)}, the chords to analyse">
+          <ol class="chart mt-3 flex flex-wrap gap-1.5" aria-label={m.music_drills_circle_chart_label({ tune: tuneName(p.analysis.tune) })}>
             {#each sheet as c, i (c.id)}
               {@const done = records[i]}
               {@const opens = i === 0 || sheet[i - 1].analysis?.section !== c.analysis?.section}
@@ -500,14 +505,14 @@
               dim={false}
               onpick={step === "answer" ? (f) => tapKey(p, f) : undefined}
               marks={r ? { [wheelIndex(af)]: "right", ...(tapped === undefined ? {} : { [wheelIndex(tapped)]: "wrong" }) } : {}}
-              label={r ? "The circle, with the key of this question" : "The circle of fifths: tap the key"}
+              label={r ? m.music_drills_circle_wheel_label_key() : m.music_drills_circle_wheel_tap_key()}
             />
             </div>
             {#if r}<div>{@render verdict(p, r, false)}</div>{/if}
           </div>
         {:else if mode === "check" && p.mode !== "wheel" && p.mode !== "analysis"}
           <!-- Check: the same wheel, every wedge blank, so the layout matches Practice and the keys are recalled. -->
-          <div class="mt-3 max-w-[20rem]" aria-hidden="true"><CircleOfFifths blank={() => true} numerals={false} dim={false} label="A blank circle of fifths" /></div>
+          <div class="mt-3 max-w-[20rem]" aria-hidden="true"><CircleOfFifths blank={() => true} numerals={false} dim={false} label={m.music_drills_circle_blank_wheel()} /></div>
         {:else if r}
           {@render verdict(p, r, p.mode !== "wheel")}
         {/if}
@@ -515,12 +520,12 @@
       {#if p.analysis}
         {@const half = (i: 0 | 1, t: string) => (r && t === p.answer.split("|")[i] ? "expected" : r && t === r.answered.split("|")[i] ? "answered" : (i === 0 ? pickedKey : pickedFn) === t ? "picked" : null)}
         <div class="mt-4 space-y-3" data-dock="answers">
-          <div class="grid grid-cols-3 gap-2 sm:grid-cols-6" role="group" aria-label="Key centre">
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-6" role="group" aria-label={m.music_drills_circle_group_key_centre()}>
             {#each p.analysis.keys as t (t)}
               <button type="button" class="choice min-h-14 rounded-xl px-2 font-display text-lg font-semibold" data-state={half(0, t)} aria-pressed={pickedKey === t} disabled={step !== "answer"} onclick={() => pickHalf("key", t)}>{t}</button>
             {/each}
           </div>
-          <div class="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7" role="group" aria-label="Function">
+          <div class="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7" role="group" aria-label={m.music_drills_circle_group_function()}>
             {#each p.choices as t (t)}
               <button type="button" class="choice min-h-14 rounded-xl px-2 font-display text-base font-semibold" data-state={half(1, t)} aria-pressed={pickedFn === t} disabled={step !== "answer"} onclick={() => pickHalf("fn", t)}>{t}</button>
             {/each}
@@ -530,7 +535,7 @@
         {@const n = p.choices.length}
         {@const short = p.choices.every((t) => t.length <= 4)}
         <!-- Equal columns: five short answers in one row at every width; longer ones two to a row on a phone. -->
-        <div class="mt-4 grid gap-2 {n === 5 && short ? 'grid-cols-5' : n <= 5 ? `grid-cols-2 ${n === 3 ? 'sm:grid-cols-3' : n === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-5'}` : 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-8'}" role="group" aria-label="Answers" data-dock="answers">
+        <div class="mt-4 grid gap-2 {n === 5 && short ? 'grid-cols-5' : n <= 5 ? `grid-cols-2 ${n === 3 ? 'sm:grid-cols-3' : n === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-5'}` : 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-8'}" role="group" aria-label={m.music_drills_circle_group_answers()} data-dock="answers">
           {#each p.choices as t, i (t)}
             {@const state = r && t === p.answer ? "expected" : r && t === r.answered ? "answered" : null}
             <button
@@ -547,13 +552,13 @@
       {/if}
     {:else}
       <div class="grid items-center gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-        <CircleOfFifths selected={0} numerals={false} dim={CHORD_MODES.includes(modeId)} label="The circle of fifths" />
+        <CircleOfFifths selected={0} numerals={false} dim={CHORD_MODES.includes(modeId)} label={m.music_drills_circle_wheel_label()} />
         <div class="space-y-2">
           <p class="font-display text-xl font-semibold">{meta.title}</p>
           {#if analysing}
-            <p class="text-sm text-ws-stage-soft">{tuneName(tuneId)}, chord by chord: name each chord's key centre and its function there. Answers come from a rule-based analysis. Untimed.</p>
+            <p class="text-sm text-ws-stage-soft">{m.music_drills_circle_intro_analysis({ tune: tuneName(tuneId) })}</p>
           {:else}
-            <p class="text-sm text-ws-stage-soft">{entry.blurb} Aim to answer within {meta.targetMs / 1000} seconds: that's recall, not working it out.</p>
+            <p class="text-sm text-ws-stage-soft">{m.music_drills_circle_intro_aim({ blurb: entry.blurb, secs: seconds(meta.targetMs) })}</p>
           {/if}
         </div>
       </div>
