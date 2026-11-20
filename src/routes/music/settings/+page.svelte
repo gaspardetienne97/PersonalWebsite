@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Settings (catalog 5.15): grouped rows, labels left, controls right. Every
   // control here is read by something: the audio graph, the pitch detector, the
   // router offsets, the root attributes for motion and hue. Devices are chosen
@@ -24,6 +25,7 @@
   import Picker from "#lib/music/components/Picker.svelte";
   import { A4_CHOICES } from "#lib/music/hubs/tools/tuner/tuner.ts";
   import { setDayInstrument, splitOptions, WEEKDAYS } from "#lib/music/today.svelte.ts";
+  import { getLocale, locales, setLocale, type Locale } from "@repo/i18n/runtime.js";
 
   const s = $derived(settings.value);
   // One live region for screen readers; the same message is also shown
@@ -37,40 +39,49 @@
   const announceIn = (section: string) => (msg: string) => say(section, msg);
 
   const SOUNDS: { value: PlaybackSound; label: string }[] = [
-    { value: "salamander-piano", label: "Sampled piano" },
-    { value: "warm-synth", label: "Warm synth" },
-    { value: "synth", label: "Synth" },
-    { value: "e-piano", label: "E-piano" },
-    { value: "square", label: "Square" },
-    { value: "saw", label: "Saw" },
+    { value: "salamander-piano", label: m.music_shell_settings_sound_sampled() },
+    { value: "warm-synth", label: m.music_shell_settings_sound_warm() },
+    { value: "synth", label: m.music_shell_settings_sound_synth() },
+    { value: "e-piano", label: m.music_shell_settings_sound_epiano() },
+    { value: "square", label: m.music_shell_settings_sound_square() },
+    { value: "saw", label: m.music_shell_settings_sound_saw() },
   ];
   const LEVELS = [
-    { key: "masterLevel", label: "Overall volume", blurb: "Everything Woodshed plays." },
-    { key: "playbackLevel", label: "Playback and drills", blurb: "Demos, prompts and the instruments you play on screen." },
-    { key: "metronomeLevel", label: "Metronome", blurb: "The click and the count-in." },
+    { key: "masterLevel", label: m.music_shell_settings_level_master(), blurb: m.music_shell_settings_level_master_blurb() },
+    { key: "playbackLevel", label: m.music_shell_settings_level_playback(), blurb: m.music_shell_settings_level_playback_blurb() },
+    { key: "metronomeLevel", label: m.music_shell_settings_level_metronome(), blurb: m.music_shell_settings_level_metronome_blurb() },
   ] as const;
   const SECTIONS = [
-    { id: "audio", label: "Audio", icon: Volume2, hue: "piano" },
-    { id: "input", label: "Instruments", icon: Mic, hue: "guitar" },
-    { id: "latency", label: "Latency", icon: Timer, hue: "rhythm" },
-    { id: "appearance", label: "Appearance", icon: Palette, hue: "ear" },
-    { id: "goals", label: "Goals", icon: Target, hue: "mpc" },
-    { id: "data", label: "Your data", icon: Database, hue: "aerophone" },
+    { id: "audio", label: m.music_shell_settings_sec_audio(), icon: Volume2, hue: "piano" },
+    { id: "input", label: m.music_shell_settings_sec_instruments(), icon: Mic, hue: "guitar" },
+    { id: "latency", label: m.music_shell_settings_sec_latency(), icon: Timer, hue: "rhythm" },
+    { id: "appearance", label: m.music_shell_settings_sec_appearance(), icon: Palette, hue: "ear" },
+    { id: "goals", label: m.music_shell_settings_sec_goals(), icon: Target, hue: "mpc" },
+    { id: "data", label: m.music_shell_settings_sec_data(), icon: Database, hue: "aerophone" },
   ];
   const spy = new SectionSpy(SECTIONS.map((x) => x.id));
   const rowCls = "flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3";
   const listCls = "divide-y divide-ws-line overflow-hidden rounded-2xl border border-ws-line bg-ws-surface";
 
   let latency = $state(audio.latencyInfo());
-  const ms = (v: number | null) => (v === null ? "not reported" : `${v} ms`);
+  const ms = (v: number | null) => (v === null ? m.music_shell_settings_not_reported() : m.music_shell_settings_ms({ value: v }));
+
+  // Language: each named in itself, so anyone can find their own. Choosing one stores it in Paraglide's
+  // cookie and reloads the page in it.
+  const LANGUAGE_NAMES: Record<Locale, string> = { en: "English", es: "Español", fr: "Français", ht: "Kreyòl ayisyen" };
+  const LANGUAGES = locales.map((l) => ({ value: l, label: LANGUAGE_NAMES[l] }));
+  const locale = getLocale();
+  const chooseLanguage = (v: string) => {
+    if (v !== locale) setLocale(v as Locale);
+  };
 
   onMount(() => spy.watch());
   onMount(() => {
     const restored = page.url.searchParams.get("restored");
     if (restored !== null) {
       const files = Number(page.url.searchParams.get("files") ?? 0);
-      say("top", `Restored ${restored} rows from the backup${files ? ` and ${files} media file${files === 1 ? "" : "s"}` : ""}.`);
-    } else if (page.url.searchParams.has("reset")) say("top", "Local data deleted. Woodshed is back to a fresh start.");
+      say("top", files ? m.music_shell_settings_restored_files({ rows: restored, files }) : m.music_shell_settings_restored({ rows: restored }));
+    } else if (page.url.searchParams.has("reset")) say("top", m.music_shell_settings_reset());
   });
 
   // I IV V I in C, block chords: the test that says "this is working".
@@ -84,19 +95,19 @@
   async function playTest() {
     await audio.unlock();
     latency = audio.latencyInfo();
-    if (!audio.unlocked) return say("audio", "Sound didn't start. Tap again: browsers only allow sound after a tap.");
+    if (!audio.unlocked) return say("audio", m.music_shell_settings_sound_failed());
     audio.playSequence(
       CADENCE.flatMap((chord, i) => chord.map((midi) => ({ midi, time: i * 0.7, duration: i === 3 ? 1.4 : 0.65, velocity: 0.7 }))),
     );
-    say("audio", "Playing a C major cadence: C, F, G, C.");
+    say("audio", m.music_shell_settings_cadence());
   }
 
   async function setSound(on: boolean) {
     await settings.update({ muted: !on });
-    if (!on) return say("audio", "Sound is off everywhere in Woodshed. Your levels are kept.");
+    if (!on) return say("audio", m.music_shell_settings_sound_off_all());
     await audio.unlock();
     latency = audio.latencyInfo();
-    say("audio", audio.unlocked ? "Sound is on." : "Sound is on, but the browser is still holding it back. Tap Play test sound.");
+    say("audio", audio.unlocked ? m.music_shell_settings_sound_is_on() : m.music_shell_settings_sound_held());
   }
 
   /** A slider let go: a short sample at the new level (a click for the metronome, a note for the rest). */
@@ -113,33 +124,33 @@
     s.preferredPlaybackSound !== "salamander-piano"
       ? ""
       : audio.sampleState === "loading"
-        ? "Loading the piano samples… Warm synth plays until they arrive."
+        ? m.music_shell_settings_samples_loading()
         : audio.sampleState === "error"
           ? audio.sampleError
           : audio.sampleState === "ready"
-            ? "Piano samples loaded."
-            : "The samples load once sound is on.",
+            ? m.music_shell_settings_samples_ready()
+            : m.music_shell_settings_samples_later(),
   );
 </script>
 
-<svelte:head><title>Settings | Woodshed</title></svelte:head>
+<svelte:head><title>{m.music_shell_settings_title()}</title></svelte:head>
 
 <div class="mx-auto grid max-w-4xl gap-6">
   <header>
-    <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Settings</h1>
-    <p class="mt-1 max-w-prose text-ws-soft">Saved as you change them. Choose devices on <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/connect">Connect</a>.</p>
+    <h1 class="font-display text-4xl font-semibold tracking-tight sm:text-5xl">{m.music_shell_nav_settings()}</h1>
+    <p class="mt-1 max-w-prose text-ws-soft">{@html m.music_shell_settings_intro({ link: `<a class="font-medium text-instr-ink underline underline-offset-4" href="/music/connect">${m.music_shell_nav_connect()}</a>` })}</p>
     <!-- The one thing that can lose work, as a callout with its fix beside it. -->
     <div class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-ws-line bg-instr-wash px-4 py-3">
       <Info class="size-5 shrink-0 text-instr-ink" aria-hidden="true" />
-      <p class="min-w-0 flex-1 basis-56 text-sm">Settings and progress live in this browser only. A backup file keeps a copy.</p>
-      <a class={btn} href="#data">Back up now</a>
+      <p class="min-w-0 flex-1 basis-56 text-sm">{m.music_shell_settings_local_only()}</p>
+      <a class={btn} href="#data">{m.music_shell_settings_back_up_now()}</a>
     </div>
     <div class="mt-3">{@render note("top")}</div>
   </header>
 
   <!-- One row of section anchors above the content (one vertical nav on the page: the app's). On a phone the
        chips scroll sideways in one row; from sm the row wraps and sticks under the strip. -->
-  <nav aria-label="Settings sections" class="min-w-0 sm:sticky sm:top-[var(--ws-strip-h,3.75rem)] sm:z-20 sm:-mx-6 sm:bg-ws-bg sm:px-6 sm:py-2">
+  <nav aria-label={m.music_shell_settings_sections()} class="min-w-0 sm:sticky sm:top-[var(--ws-strip-h,3.75rem)] sm:z-20 sm:-mx-6 sm:bg-ws-bg sm:px-6 sm:py-2">
     <ul class="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 max-sm:[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
       {#each SECTIONS as sec (sec.id)}
         <li>
@@ -158,27 +169,27 @@
 
   <div class="flex min-w-0 flex-col gap-10">
     <section id="audio" aria-labelledby="audio-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("audio-h", "Audio", Volume2)}
+      {@render heading("audio-h", m.music_shell_settings_sec_audio(), Volume2)}
       {@render note("audio")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="font-medium" id="sound-l">Sound</p>
+            <p class="font-medium" id="sound-l">{m.music_shell_input_sound()}</p>
             <p class="text-sm text-ws-soft" data-testid="sound-status">
-              {s.muted ? "Sound off. Nothing in Woodshed plays. Your levels are kept." : audio.unlocked ? "Sound on." : "Sound on. It starts at your first tap."}
+              {s.muted ? m.music_shell_settings_sound_status_off() : audio.unlocked ? m.music_shell_settings_sound_status_on() : m.music_shell_settings_sound_status_first_tap()}
             </p>
           </div>
           <div class="flex items-center gap-2">
-            <button type="button" class={btn} onclick={playTest} disabled={s.muted}>Play test sound</button>
+            <button type="button" class={btn} onclick={playTest} disabled={s.muted}>{m.music_shell_settings_play_test()}</button>
             {@render toggle("sound-l", !s.muted, (v) => void setSound(v))}
           </div>
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <span class="block font-medium">Playback sound</span>
+            <span class="block font-medium">{m.music_shell_settings_playback_sound()}</span>
             {#if sampleNote}<span class="block text-sm {audio.sampleState === 'error' ? 'text-warn' : 'text-ws-soft'}">{sampleNote}</span>{/if}
           </div>
-          <Picker class="w-auto" label="Playback sound" value={s.preferredPlaybackSound} options={SOUNDS} onchange={(v) => settings.update({ preferredPlaybackSound: v as PlaybackSound })} />
+          <Picker class="w-auto" label={m.music_shell_settings_playback_sound()} value={s.preferredPlaybackSound} options={SOUNDS} onchange={(v) => settings.update({ preferredPlaybackSound: v as PlaybackSound })} />
         </li>
         {#each LEVELS as l (l.key)}
           <li class={rowCls}>
@@ -198,50 +209,50 @@
                 oninput={(e) => settings.update({ [l.key]: Number(e.currentTarget.value) })}
                 onchange={() => sample(l.key)}
               />
-              <span class="tnum w-14 shrink-0 text-right font-display text-lg font-semibold" aria-hidden="true">{Math.round(s[l.key] * 100)}%</span>
+              <span class="tnum w-14 shrink-0 text-right font-display text-lg font-semibold" aria-hidden="true">{m.music_shell_pct({ value: Math.round(s[l.key] * 100) })}</span>
             </div>
           </li>
         {/each}
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="font-medium" id="onscreen-l">On-screen instruments make sound</p>
-            <p class="text-sm text-ws-soft">Keys, frets and pads you tap sound like the instrument. MIDI devices make their own sound.</p>
+            <p class="font-medium" id="onscreen-l">{m.music_shell_settings_onscreen()}</p>
+            <p class="text-sm text-ws-soft">{m.music_shell_settings_onscreen_blurb()}</p>
           </div>
           {@render toggle("onscreen-l", s.onscreenSound, (v) => settings.update({ onscreenSound: v }))}
         </li>
         <li class="px-4 py-3 text-sm">
-          <a class="inline-flex min-h-11 items-center font-medium text-instr-ink underline underline-offset-4" href="#latency">If sound feels late, calibrate latency</a>
+          <a class="inline-flex min-h-11 items-center font-medium text-instr-ink underline underline-offset-4" href="#latency">{m.music_shell_settings_late_link()}</a>
         </li>
         <li class="px-4 py-3 text-sm text-ws-soft">
-          Sampled piano: Salamander Grand Piano by Alexander Holm, <a class="font-medium text-instr-ink underline underline-offset-4" href="https://creativecommons.org/licenses/by/3.0/" rel="noopener noreferrer" target="_blank">CC BY 3.0</a>.
+          {@html m.music_shell_settings_credit({ license: `<a class="font-medium text-instr-ink underline underline-offset-4" href="https://creativecommons.org/licenses/by/3.0/" rel="noopener noreferrer" target="_blank">CC BY 3.0</a>` })}
         </li>
       </ul>
     </section>
 
     <section id="input" aria-labelledby="input-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("input-h", "Instruments", Mic, "Choose the microphone and MIDI devices on Connect, with a live test for each. These rows set reading and pitch.")}
+      {@render heading("input-h", m.music_shell_settings_sec_instruments(), Mic, m.music_shell_settings_instruments_hint())}
       {@render note("input")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="font-medium">Devices</p>
+            <p class="font-medium">{m.music_shell_settings_devices()}</p>
             <p class="text-sm text-ws-soft" data-testid="settings-devices">
-              Microphone: <span class="font-medium text-ws-ink">{s.audioInputLabel}</span>{mic.state === "on" ? ", listening" : ""}{s.echoCancellation ? ", echo cancellation on" : ""}.
-              MIDI: <span class="font-medium text-ws-ink">{!midi.enabled ? "off" : `${midi.inputs.length} input${midi.inputs.length === 1 ? "" : "s"}`}</span>.
+              {m.music_shell_settings_mic_label()} <span class="font-medium text-ws-ink">{s.audioInputLabel}</span>{mic.state === "on" ? `, ${m.music_shell_settings_listening()}` : ""}{s.echoCancellation ? `, ${m.music_shell_settings_echo_on()}` : ""}.
+              {m.music_shell_settings_midi_label()} <span class="font-medium text-ws-ink">{!midi.enabled ? m.music_shell_settings_midi_off() : m.music_shell_settings_midi_inputs({ count: midi.inputs.length })}</span>.
             </p>
           </div>
-          <a class={btn} href="/music/connect">Choose in Connect</a>
+          <a class={btn} href="/music/connect">{m.music_shell_settings_choose_connect()}</a>
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="font-medium">Test recordings</p>
-            <p class="text-sm text-ws-soft">Record 42 short clips through each microphone, to test how Woodshed hears your instruments.</p>
+            <p class="font-medium">{m.music_shell_search_clips()}</p>
+            <p class="text-sm text-ws-soft">{m.music_shell_settings_test_recordings_blurb()}</p>
           </div>
-          <a class={btn} href="/music/clips">Record test clips</a>
+          <a class={btn} href="/music/clips">{m.music_shell_settings_record_clips()}</a>
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium"><span id="aero-key-l">Aerophone reading key</span><Hint about="Aerophone reading key" text="Match the AE-20's transpose setting. Staffs and fingerings show the note you read and finger. The Aerophone sends concert pitch either way, and that is what Woodshed scores and plays back." /></p>
+            <p class="flex items-center gap-1 font-medium"><span id="aero-key-l">{m.music_shell_settings_aero_key()}</span><Hint about={m.music_shell_settings_aero_key()} text={m.music_shell_settings_aero_key_hint()} /></p>
           </div>
           <div class="flex gap-1.5" role="group" aria-labelledby="aero-key-l">
             {#each AEROPHONE_READING_KEYS as k (k.id)}
@@ -251,31 +262,31 @@
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium">Reference A4<Hint about="Reference A4" text="The pitch A4 is tuned to. The tuner and every drill that listens to the microphone read notes against it. The Tuner's A4 picker changes this same setting." /></p>
+            <p class="flex items-center gap-1 font-medium">{m.music_shell_settings_a4()}<Hint about={m.music_shell_settings_a4()} text={m.music_shell_settings_a4_hint()} /></p>
           </div>
-          <Picker class="tnum w-auto" label="Reference A4" value={String(s.a4Hz)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: `${hz} Hz${hz === 440 ? " (standard)" : ""}` }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
+          <Picker class="tnum w-auto" label={m.music_shell_settings_a4()} value={String(s.a4Hz)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: hz === 440 ? m.music_shell_settings_hz_standard({ hz }) : m.music_shell_settings_hz({ hz }) }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
         </li>
       </ul>
     </section>
 
     <section id="latency" aria-labelledby="latency-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("latency-h", "Latency calibration", Timer, "The offset is how late your input reaches Woodshed, subtracted from every note before scoring. Tap along to 20 clicks to estimate it (your reaction time is included). Each input and sound output keeps its own offset. Calibrate again on another output, such as Bluetooth speakers.")}
+      {@render heading("latency-h", m.music_shell_settings_latency_heading(), Timer, m.music_shell_settings_latency_hint())}
       {@render note("latency")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium">Browser-reported output latency<Hint about="output latency" text="Diagnostic only, never applied to scoring." /></p>
+            <p class="flex items-center gap-1 font-medium">{m.music_shell_settings_output_latency()}<Hint about={m.music_shell_settings_output_latency_about()} text={m.music_shell_settings_output_latency_hint()} /></p>
           </div>
           <p class="tnum text-sm">
-            Output {ms(latency.outputLatencyMs)}, base {ms(latency.baseLatencyMs)}
+            {m.music_shell_settings_output_base({ output: ms(latency.outputLatencyMs), base: ms(latency.baseLatencyMs) })}
           </p>
         </li>
         <li>
           <CalibrationPanel
             id="mic"
             kind="audio"
-            title="Microphone"
-            blurb="For guitar, ukulele and voice. Clap or pick a muted string on each click."
+            title={m.music_shell_input_microphone()}
+            blurb={m.music_shell_settings_mic_blurb()}
             current={calibration.offset(AUDIO_INPUT)}
             onsave={(v) => calibration.save(AUDIO_INPUT, v)}
             onreset={() => calibration.reset(AUDIO_INPUT)}
@@ -286,8 +297,8 @@
           <CalibrationPanel
             id="midi"
             kind="midi"
-            title="MIDI, all devices"
-            blurb="Used by every MIDI device without its own offset."
+            title={m.music_shell_settings_midi_all()}
+            blurb={m.music_shell_settings_midi_all_blurb()}
             current={midiOffset}
             onsave={(v) => calibration.save(MIDI_INPUT, v)}
             onreset={() => calibration.reset(MIDI_INPUT)}
@@ -303,7 +314,7 @@
               kind="device"
               deviceId={port.id}
               title={profile?.alias || port.name || port.id}
-              blurb={own !== undefined ? "Its own offset overrides the MIDI one." : midiOffset !== undefined ? `Uses the MIDI offset (${signed(midiOffset)}) until you save one here.` : "Not calibrated on this output yet."}
+              blurb={own !== undefined ? m.music_shell_settings_own_offset() : midiOffset !== undefined ? m.music_shell_settings_uses_midi_offset({ offset: signed(midiOffset) }) : m.music_shell_settings_not_calibrated()}
               current={own}
               onsave={(v) => calibration.save(deviceInput(port.id), v)}
               onreset={() => calibration.reset(deviceInput(port.id))}
@@ -312,52 +323,58 @@
           </li>
         {:else}
           <li class="px-4 py-3 text-sm text-ws-soft">
-            {midi.enabled ? "No MIDI devices connected." : "MIDI is off."} Per-device offsets appear here for each connected device. <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/connect">Connect a device</a>
+            {midi.enabled ? m.music_shell_settings_no_midi_devices() : m.music_shell_settings_midi_is_off()} {m.music_shell_settings_per_device()} <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/connect">{m.music_shell_settings_connect_device()}</a>
           </li>
         {/each}
       </ul>
     </section>
 
     <section id="appearance" aria-labelledby="appearance-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("appearance-h", "Appearance", Palette)}
+      {@render heading("appearance-h", m.music_shell_settings_sec_appearance(), Palette)}
       {@render note("appearance")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium"><span id="motion-l">Reduce motion</span><Hint about="Reduce motion" text="Stops animations and transitions everywhere in Woodshed. Woodshed follows your system setting either way." /></p>
+            <p class="flex items-center gap-1 font-medium"><span id="motion-l">{m.music_shell_settings_reduce_motion()}</span><Hint about={m.music_shell_settings_reduce_motion()} text={m.music_shell_settings_reduce_motion_hint()} /></p>
           </div>
           {@render toggle("motion-l", s.reduceMotion, (v) => settings.update({ reduceMotion: v }))}
         </li>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium"><span id="hue-l">Instrument colour coding</span><Hint about="Instrument colour coding" text="Each instrument gets its own colour: piano brass, guitar coral, pads magenta. Off uses one colour throughout." /></p>
+            <p class="flex items-center gap-1 font-medium"><span id="hue-l">{m.music_shell_settings_colour_coding()}</span><Hint about={m.music_shell_settings_colour_coding()} text={m.music_shell_settings_colour_coding_hint()} /></p>
           </div>
           {@render toggle("hue-l", s.instrumentColorCoding, (v) => settings.update({ instrumentColorCoding: v }))}
+        </li>
+        <li class={rowCls}>
+          <div class="min-w-0 flex-1 basis-48">
+            <p class="flex items-center gap-1 font-medium"><span id="language-l">{m.music_shell_settings_language()}</span><Hint about={m.music_shell_settings_language()} text={m.music_shell_settings_language_hint()} /></p>
+          </div>
+          <Picker class="w-auto" label={m.music_shell_settings_language()} value={locale} options={LANGUAGES} onchange={chooseLanguage} />
         </li>
       </ul>
     </section>
 
     <section id="goals" aria-labelledby="goals-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("goals-h", "Goals", Target)}
+      {@render heading("goals-h", m.music_shell_settings_sec_goals(), Target)}
       {@render note("goals")}
       <ul class={listCls}>
         <li class={rowCls}>
           <div class="min-w-0 flex-1 basis-48">
-            <p class="flex items-center gap-1 font-medium"><span id="goal-l">Weekly session goal</span><Hint about="Weekly session goal" text="How many sessions a week counts as a good week." /></p>
+            <p class="flex items-center gap-1 font-medium"><span id="goal-l">{m.music_shell_settings_weekly_goal()}</span><Hint about={m.music_shell_settings_weekly_goal()} text={m.music_shell_settings_weekly_goal_hint()} /></p>
           </div>
           <div class="flex items-center gap-1" role="group" aria-labelledby="goal-l">
-            <button type="button" class="{btn} w-11 px-0" aria-label="One fewer session" disabled={s.weeklySessionGoal <= 1} onclick={() => settings.update({ weeklySessionGoal: s.weeklySessionGoal - 1 })}>−</button>
-            <span class="tnum w-20 text-center font-display text-xl font-semibold" data-testid="weekly-goal">{s.weeklySessionGoal}<span class="ml-1 text-sm font-normal text-ws-soft">a week</span></span>
-            <button type="button" class="{btn} w-11 px-0" aria-label="One more session" disabled={s.weeklySessionGoal >= 14} onclick={() => settings.update({ weeklySessionGoal: s.weeklySessionGoal + 1 })}>+</button>
+            <button type="button" class="{btn} w-11 px-0" aria-label={m.music_shell_settings_one_fewer()} disabled={s.weeklySessionGoal <= 1} onclick={() => settings.update({ weeklySessionGoal: s.weeklySessionGoal - 1 })}>−</button>
+            <span class="tnum w-20 text-center font-display text-xl font-semibold" data-testid="weekly-goal">{s.weeklySessionGoal}<span class="ml-1 text-sm font-normal text-ws-soft">{m.music_shell_settings_a_week()}</span></span>
+            <button type="button" class="{btn} w-11 px-0" aria-label={m.music_shell_settings_one_more()} disabled={s.weeklySessionGoal >= 14} onclick={() => settings.update({ weeklySessionGoal: s.weeklySessionGoal + 1 })}>+</button>
           </div>
         </li>
         <li class="px-4 py-3">
-          <p class="flex items-center gap-1 font-medium">Weekly split<Hint about="Weekly split" text="Today builds each day's set for that day's instrument and its path. The top bar switches instrument when you open a block." /></p>
+          <p class="flex items-center gap-1 font-medium">{m.music_shell_settings_weekly_split()}<Hint about={m.music_shell_settings_weekly_split()} text={m.music_shell_settings_weekly_split_hint()} /></p>
           <ul class="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
             {#each WEEKDAYS as day, i (day)}
               <li class="flex min-h-11 items-center justify-between gap-3">
                 <span class="text-sm">{day}</span>
-                <Picker class="w-auto" label="Instrument on {day}s" value={s.weeklySplit?.[i] ?? ""} options={splitOptions(s.activeInstrument)} onchange={(v) => setDayInstrument(i, v)} />
+                <Picker class="w-auto" label={m.music_shell_settings_instrument_on({ day })} value={s.weeklySplit?.[i] ?? ""} options={splitOptions(s.activeInstrument)} onchange={(v) => setDayInstrument(i, v)} />
               </li>
             {/each}
           </ul>
@@ -366,7 +383,7 @@
     </section>
 
     <section id="data" aria-labelledby="data-h" class="scroll-mt-[calc(var(--ws-strip-h,3.75rem)+1rem)] sm:scroll-mt-[calc(var(--ws-strip-h,3.75rem)+5rem)]">
-      {@render heading("data-h", "Your data", Database, "Everything stays in this browser. Backups are files you keep. There's no account and no server copy.")}
+      {@render heading("data-h", m.music_shell_settings_sec_data(), Database, m.music_shell_settings_data_hint())}
       {@render note("data")}
       <DataSection announce={announceIn("data")} {rowCls} />
     </section>
