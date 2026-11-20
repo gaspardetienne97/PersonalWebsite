@@ -46,6 +46,16 @@ const TUNING_NAME: Record<string, (notes: { note: string; notes: string }) => st
   "ukulele.baritone": m.music_strings_tuning_n_baritone,
 };
 
+/** The letters each curated name is built from. */
+const TUNING_LETTERS: Record<string, string> = {
+  "guitar.drop-d": "D",
+  "guitar.dadgad": "DADGAD",
+  "guitar.open-g": "G",
+  "ukulele.high-g": "G",
+  "ukulele.low-g": "G",
+  "ukulele.baritone": "DGBE",
+};
+
 /**
  * A tuning's name for display. A curated name's notes follow the note-name
  * setting ("Drop D" reads "Drop Re", "DADGAD" "Re La Re Sol La Re"); a player's
@@ -54,8 +64,9 @@ const TUNING_NAME: Record<string, (notes: { note: string; notes: string }) => st
 export function tuningName(t: Pick<Tuning, "id" | "name" | "source">) {
   const name = t.source === "custom" ? undefined : TUNING_NAME[t.id];
   if (!name) return t.name;
-  // The English name ends in its note ("Drop D", "Open G") or its strings ("DADGAD").
-  const last = t.name.split(" ").at(-1) ?? "";
+  // The note in the name ("Drop D", "Open G") or its strings ("DADGAD"), in
+  // letters: core's `t.name` may already be in solfège, so it isn't parsed.
+  const last = TUNING_LETTERS[t.id] ?? "";
   const notes = [...last].map(showKeyName).join(getNoteNaming() === "letters" ? "" : " ");
   return name({ note: showKeyName(last), notes });
 }
