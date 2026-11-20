@@ -1,3 +1,164 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_circle_analysis_fn": "{symbol} es {fn} en {key}.",
+  "music_cards_circle_analysis_iivi_text": "Un acorde menor una cuarta debajo de una dominante es su ii, y la dominante resuelve en el I.",
+  "music_cards_circle_analysis_key_text": "Para cada acorde nombras la tonalidad a la que pertenece y su función en ella, como ii, V o I. El ejemplo es Fly Me to the Moon. Empieza en C.",
+  "music_cards_circle_analysis_key_title": "Tonalidad y función",
+  "music_cards_circle_analysis_related_ii": "{symbol} es el ii relacionado antes de {next}.",
+  "music_cards_circle_analysis_subs_text": "Una dominante un semitono arriba del I en el que resuelve es un sustituto de tritono, como Db7 a C. Una dominante un tono debajo es un backdoor, como Bb7 a C.",
+  "music_cards_circle_analysis_subs_title": "Sustitutos de tritono y backdoors",
+  "music_cards_circle_analysis_title": "Analizar un tema",
+  "music_cards_circle_analysis_v_of": "{symbol} es V de {next}, escrito V/vi.",
+  "music_cards_circle_analysis_v_of_text": "Una dominante que resuelve en un acorde que no es el I de la tonalidad principal es una dominante secundaria, un V de. Un acorde menor antes de ella es un ii relacionado.",
+  "music_cards_circle_analysis_v_of_title": "V de",
+  "music_cards_circle_borrowed_four_text": "Toca cada uno para escuchar el acorde prestado y luego C. Cada uno toma una nota de C menor.",
+  "music_cards_circle_borrowed_four_title": "Cuatro acordes prestados en C",
+  "music_cards_circle_borrowed_minor_has": "C menor tiene {accidentals}: {names}.",
+  "music_cards_circle_borrowed_parallel_text": "Una tonalidad mayor y la menor sobre la misma tónica son paralelas, como C mayor y C menor. La menor tiene tres bemoles más. Los acordes prestados vienen de ella a la tonalidad mayor.",
+  "music_cards_circle_borrowed_parallel_title": "La menor paralela",
+  "music_cards_circle_borrowed_spot_text": "Un acorde prestado tiene una nota fuera de la escala mayor. Busca un 3 bemol, un 6 bemol o un 7 bemol sobre la tónica.",
+  "music_cards_circle_borrowed_spot_title": "Cómo reconocerlos",
+  "music_cards_circle_borrowed_title": "Acordes prestados",
+  "music_cards_circle_chords_any_step": "En {key}: {chords}.",
+  "music_cards_circle_chords_any_text": "Elige cualquier tonalidad y la cuña se mueve con ella. Los acordes cambian, los números romanos no.",
+  "music_cards_circle_chords_any_title": "Cualquier tonalidad, la misma forma",
+  "music_cards_circle_chords_pattern_text": "Los siete acordes de una tonalidad mayor siempre son {numerals}. En C son {names}. Toca Siguiente para escucharlos.",
+  "music_cards_circle_chords_pattern_title": "Un mismo patrón en cada tonalidad mayor",
+  "music_cards_circle_chords_step": "{numeral} es {name}.",
+  "music_cards_circle_chords_title": "Los acordes de una tonalidad",
+  "music_cards_circle_chords_wedge_text": "I, IV y V son la tonalidad y sus dos vecinas. Los acordes menores ii, iii y vi son las relativas menores de IV, V y I.",
+  "music_cards_circle_chords_wedge_title": "La cuña en la rueda",
+  "music_cards_circle_count_flat_one": "{key} mayor tiene 1 bemol, {flat}. No hay penúltimo, así que apréndetela.",
+  "music_cards_circle_count_flat_step": "{accidentals}. El penúltimo es {flat}, así que la tonalidad es {key}.",
+  "music_cards_circle_count_flat_text": "Una tonalidad con bemoles toma su nombre del penúltimo bemol. La excepción es F, con 1 bemol, que tienes que aprenderte.",
+  "music_cards_circle_count_flat_title": "Nombrar una tonalidad con bemoles",
+  "music_cards_circle_count_round_text": "Empieza en C, que no tiene sostenidos ni bemoles. Cada paso en el sentido del reloj agrega un sostenido. Toca Siguiente para dar la vuelta.",
+  "music_cards_circle_count_round_title": "Alrededor de la rueda",
+  "music_cards_circle_count_sharp_step": "{accidentals}. El último es {last}, un semitono arriba está {key}.",
+  "music_cards_circle_count_sharp_text": "La tonalidad mayor está un semitono arriba del último sostenido. Busca el último sostenido de la armadura y sube un semitono.",
+  "music_cards_circle_count_sharp_title": "Nombrar una tonalidad con sostenidos",
+  "music_cards_circle_count_title": "Contar sostenidos y bemoles",
+  "music_cards_circle_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} bemol",
+        "countPlural=other": "{count} bemoles"
+      }
+    }
+  ],
+  "music_cards_circle_key_has": "{key} mayor tiene {accidentals}.",
+  "music_cards_circle_key_has_none": "{key} mayor no tiene sostenidos ni bemoles.",
+  "music_cards_circle_neighbours_ccw_step": "De {from} a {to}: una cuarta arriba, {accidentals}.",
+  "music_cards_circle_neighbours_ccw_text": "Un paso en sentido contrario al reloj es una cuarta arriba y agrega un bemol (o quita un sostenido).",
+  "music_cards_circle_neighbours_ccw_title": "En sentido contrario al reloj",
+  "music_cards_circle_neighbours_cw_step": "De {from} a {to}: una quinta arriba, {accidentals}.",
+  "music_cards_circle_neighbours_cw_text": "Un paso en el sentido del reloj es una quinta arriba y agrega un sostenido (o quita un bemol). Toca Siguiente para ver tres pasos.",
+  "music_cards_circle_neighbours_cw_title": "En el sentido del reloj",
+  "music_cards_circle_neighbours_opposite": "Del otro lado de {key} está {opposite}, a un tritono.",
+  "music_cards_circle_neighbours_opposite_short": "Del otro lado de {key} está {opposite}.",
+  "music_cards_circle_neighbours_rel_step": "{major} mayor tiene a {minor} menor como relativa.",
+  "music_cards_circle_neighbours_rel_text": "La relativa menor está en el anillo del medio, 3 semitonos debajo de la tónica mayor. La tonalidad del otro lado de la rueda está a un tritono.",
+  "music_cards_circle_neighbours_rel_title": "Relativa menor y opuesta",
+  "music_cards_circle_neighbours_title": "Las tonalidades vecinas",
+  "music_cards_circle_order_counting_text": "Una tonalidad con N sostenidos usa los primeros N del orden. Una tonalidad con N bemoles usa los primeros N bemoles.",
+  "music_cards_circle_order_counting_title": "Contar una armadura",
+  "music_cards_circle_order_first": "{note} es el primero.",
+  "music_cards_circle_order_flats_text": "Los bemoles usan las mismas letras al revés: {order}. Lee la frase de los sostenidos desde el final y tienes los bemoles. Toca Siguiente para agregarlos uno por uno.",
+  "music_cards_circle_order_flats_title": "Los bemoles van al revés",
+  "music_cards_circle_order_next": "Sigue {note}. Ahora la armadura tiene {count}.",
+  "music_cards_circle_order_ready_text": "Ahora nombra los sostenidos o bemoles de una tonalidad, en orden: {sharps} para los sostenidos, {flats} para los bemoles. Ve tan rápido como puedas sin equivocarte.",
+  "music_cards_circle_order_sharps_text": "Los sostenidos siempre entran en la armadura en el mismo orden: {order}. Recuérdalo con la frase Fui Con Gabriel De Aventura En Bicicleta. Toca Siguiente para agregarlos uno por uno.",
+  "music_cards_circle_order_sharps_title": "El orden de los sostenidos",
+  "music_cards_circle_order_title": "El orden de los sostenidos y los bemoles",
+  "music_cards_circle_ready_title": "Listo para el quiz",
+  "music_cards_circle_relative_share": "{major} mayor y {minor} menor comparten {accidentals}.",
+  "music_cards_circle_relative_share_none": "{major} mayor y {minor} menor no tienen sostenidos ni bemoles.",
+  "music_cards_circle_relative_text": "Cada tonalidad mayor comparte su armadura con una tonalidad menor 3 semitonos debajo de su tónica. Cuenta 3 semitonos hacia abajo desde la tónica mayor.",
+  "music_cards_circle_relative_title": "La relativa menor",
+  "music_cards_circle_secondary_any_text": "Una dominante secundaria es un acorde de séptima de dominante una quinta arriba del acorde al que lleva. Se escribe V de, o V/ seguido del acorde de llegada.",
+  "music_cards_circle_secondary_any_title": "Una dominante para cualquier acorde",
+  "music_cards_circle_secondary_find_step": "{name}: el acorde de llegada es {target}, una quinta arriba está {root}, así que {dom}.",
+  "music_cards_circle_secondary_find_text": "Nombra el acorde de llegada y sube una quinta. Haz de esa nota un acorde mayor con séptima menor, aunque el acorde de llegada sea menor: E7 antes de Am, no Em7.",
+  "music_cards_circle_secondary_find_title": "Encontrar la dominante",
+  "music_cards_circle_secondary_four_text": "Toca cada una para escuchar cómo la dominante resuelve en su acorde de llegada.",
+  "music_cards_circle_secondary_four_title": "Cuatro en la tonalidad de C",
+  "music_cards_circle_secondary_option": "{name} {dom} a {target}",
+  "music_cards_circle_secondary_title": "Dominantes secundarias",
+  "music_cards_circle_secondary_v_of_c": "G7 es el V de C, una quinta arriba de C.",
+  "music_cards_circle_secondary_v_of_v": "{dom} es V/V: una quinta arriba de G, y lleva a G.",
+  "music_cards_circle_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sostenido",
+        "countPlural=other": "{count} sostenidos"
+      }
+    }
+  ],
+  "music_cards_circle_signature_bass_step": "{key} mayor en clave de fa: {accidentals}.",
+  "music_cards_circle_signature_bass_text": "En clave de fa la misma armadura va en otras líneas. El orden de los sostenidos y bemoles no cambia.",
+  "music_cards_circle_signature_bass_title": "Clave de fa",
+  "music_cards_circle_signature_ready_text": "Ves una armadura y nombras la tonalidad. Primero cuenta, luego aplica la regla de los sostenidos o de los bemoles. La velocidad llega con la práctica.",
+  "music_cards_circle_signature_rule_flat": "{accidentals}, el penúltimo es {flat}. Esa es {key}.",
+  "music_cards_circle_signature_rule_sharp": "{accidentals}, el último es {last}. Un semitono arriba da {key}.",
+  "music_cards_circle_signature_rule_text": "Con sostenidos, la tonalidad está un semitono arriba del último sostenido. Con bemoles, es el penúltimo bemol, y F tiene 1 bemol.",
+  "music_cards_circle_signature_rule_title": "De la armadura a la tonalidad",
+  "music_cards_circle_signature_staff_text": "La armadura va al principio de cada línea, después de la clave. Cuenta los sostenidos o bemoles y sabrás la tonalidad. Toca Siguiente para ver algunas.",
+  "music_cards_circle_signature_staff_title": "Sostenidos y bemoles en el pentagrama",
+  "music_cards_circle_signature_step": "{accidentals}: {key} mayor.",
+  "music_cards_circle_signature_title": "Leer una armadura",
+  "music_cards_circle_wheel_ccw_step": [
+    {
+      "declarations": [
+        "input key",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{key} está a {count} paso de C en sentido contrario al reloj.",
+        "countPlural=other": "{key} está a {count} pasos de C en sentido contrario al reloj."
+      }
+    }
+  ],
+  "music_cards_circle_wheel_cw_step": [
+    {
+      "declarations": [
+        "input key",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{key} está a {count} paso de C en el sentido del reloj.",
+        "countPlural=other": "{key} está a {count} pasos de C en el sentido del reloj."
+      }
+    }
+  ],
+  "music_cards_circle_wheel_cw_text": "En el sentido del reloj desde C, las tonalidades son {keys}. Cada una está una quinta arriba de la anterior. Toca Siguiente para dar la vuelta.",
+  "music_cards_circle_wheel_cw_title": "En el sentido del reloj desde C",
+  "music_cards_circle_wheel_flat_text": "Del otro lado, leídas en el sentido del reloj hacia C, las tonalidades son {keys}. En sentido contrario desde C van F, Bb, Eb, Ab, Db.",
+  "music_cards_circle_wheel_flat_title": "El lado de los bemoles",
+  "music_cards_circle_wheel_meet_text": "Abajo se juntan los nombres con sostenido y con bemol: B o Cb, F# o Gb, Db o C#. La rueda muestra B, F# y Db.",
+  "music_cards_circle_wheel_meet_title": "Donde se juntan los dos lados",
+  "music_cards_circle_wheel_title": "La rueda de memoria",
+  "music_cards_circle_worked_flats": "{key} mayor tiene {count} bemoles: {names}.",
+  "music_cards_circle_worked_sharps": "{key} mayor tiene {count} sostenidos: {names}."
 }

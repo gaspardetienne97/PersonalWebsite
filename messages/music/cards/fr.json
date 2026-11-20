@@ -1,3 +1,164 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_circle_analysis_fn": "{symbol} est {fn} en {key}.",
+  "music_cards_circle_analysis_iivi_text": "Un accord mineur une quarte sous une dominante est son ii, et la dominante se résout sur le I.",
+  "music_cards_circle_analysis_key_text": "Pour chaque accord, vous nommez la tonalité à laquelle il appartient et son rôle dans celle-ci, comme ii, V ou I. L’exemple est Fly Me to the Moon. Il commence en C.",
+  "music_cards_circle_analysis_key_title": "Tonalité et fonction",
+  "music_cards_circle_analysis_related_ii": "{symbol} est le ii associé avant {next}.",
+  "music_cards_circle_analysis_subs_text": "Une dominante un demi-ton au-dessus du I sur lequel elle se résout est une substitution tritonique, comme Db7 vers C. Une dominante un ton en dessous est un backdoor, comme Bb7 vers C.",
+  "music_cards_circle_analysis_subs_title": "Substitutions tritoniques et backdoors",
+  "music_cards_circle_analysis_title": "Analyser un morceau",
+  "music_cards_circle_analysis_v_of": "{symbol} est V de {next}, noté V/vi.",
+  "music_cards_circle_analysis_v_of_text": "Une dominante qui se résout sur un autre accord que le I de la tonalité principale est une dominante secondaire, un V de. Un accord mineur placé avant elle est un ii associé.",
+  "music_cards_circle_analysis_v_of_title": "V de",
+  "music_cards_circle_borrowed_four_text": "Touchez chacun pour entendre l’accord d’emprunt, puis C. Chacun prend une note à C mineur.",
+  "music_cards_circle_borrowed_four_title": "Quatre accords d’emprunt en C",
+  "music_cards_circle_borrowed_minor_has": "C mineur a {accidentals} : {names}.",
+  "music_cards_circle_borrowed_parallel_text": "Une tonalité majeure et la tonalité mineure sur la même tonique sont homonymes, comme C majeur et C mineur. Le mineur a trois bémols de plus. Les accords d’emprunt viennent de lui dans la tonalité majeure.",
+  "music_cards_circle_borrowed_parallel_title": "Le mineur homonyme",
+  "music_cards_circle_borrowed_spot_text": "Un accord d’emprunt contient une note hors de la gamme majeure. Cherchez un 3 bémol, un 6 bémol ou un 7 bémol par rapport à la tonique.",
+  "music_cards_circle_borrowed_spot_title": "Les repérer",
+  "music_cards_circle_borrowed_title": "Accords d’emprunt",
+  "music_cards_circle_chords_any_step": "En {key} : {chords}.",
+  "music_cards_circle_chords_any_text": "Choisissez une tonalité et le triangle se déplace avec elle. Les accords changent, les chiffres romains non.",
+  "music_cards_circle_chords_any_title": "Toute tonalité, même forme",
+  "music_cards_circle_chords_pattern_text": "Les sept accords d’une tonalité majeure sont toujours {numerals}. En C, ce sont {names}. Touchez Suivant pour les écouter.",
+  "music_cards_circle_chords_pattern_title": "Le même modèle dans chaque tonalité majeure",
+  "music_cards_circle_chords_step": "{numeral}, c’est {name}.",
+  "music_cards_circle_chords_title": "Les accords d’une tonalité",
+  "music_cards_circle_chords_wedge_text": "I, IV et V sont la tonalité et ses deux voisines. Les accords mineurs ii, iii et vi sont les relatifs mineurs de IV, V et I.",
+  "music_cards_circle_chords_wedge_title": "Le triangle sur la roue",
+  "music_cards_circle_count_flat_one": "{key} majeur a 1 bémol, {flat}. Il n’y a pas d’avant-dernier, alors apprenez-la par cœur.",
+  "music_cards_circle_count_flat_step": "{accidentals}. L’avant-dernier est {flat}, donc la tonalité est {key}.",
+  "music_cards_circle_count_flat_text": "Une tonalité à bémols prend le nom de l’avant-dernier bémol. L’exception est F, avec 1 bémol, qu’il faut apprendre par cœur.",
+  "music_cards_circle_count_flat_title": "Nommer une tonalité à bémols",
+  "music_cards_circle_count_round_text": "Partez de C, qui n’a ni dièse ni bémol. Chaque pas dans le sens des aiguilles d’une montre ajoute un dièse. Touchez Suivant pour faire le tour.",
+  "music_cards_circle_count_round_title": "Le tour de la roue",
+  "music_cards_circle_count_sharp_step": "{accidentals}. Le dernier est {last}, un demi-ton plus haut, c’est {key}.",
+  "music_cards_circle_count_sharp_text": "La tonalité majeure est un demi-ton au-dessus du dernier dièse. Trouvez le dernier dièse de l’armure, puis montez d’un demi-ton.",
+  "music_cards_circle_count_sharp_title": "Nommer une tonalité à dièses",
+  "music_cards_circle_count_title": "Compter les dièses et les bémols",
+  "music_cards_circle_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} bémol",
+        "countPlural=other": "{count} bémols"
+      }
+    }
+  ],
+  "music_cards_circle_key_has": "{key} majeur a {accidentals}.",
+  "music_cards_circle_key_has_none": "{key} majeur n’a ni dièse ni bémol.",
+  "music_cards_circle_neighbours_ccw_step": "De {from} à {to} : une quarte plus haut, {accidentals}.",
+  "music_cards_circle_neighbours_ccw_text": "Un pas dans le sens inverse, c’est une quarte plus haut : on ajoute un bémol (ou on enlève un dièse).",
+  "music_cards_circle_neighbours_ccw_title": "Dans le sens inverse des aiguilles d’une montre",
+  "music_cards_circle_neighbours_cw_step": "De {from} à {to} : une quinte plus haut, {accidentals}.",
+  "music_cards_circle_neighbours_cw_text": "Un pas dans le sens des aiguilles d’une montre, c’est une quinte plus haut : on ajoute un dièse (ou on enlève un bémol). Touchez Suivant pour voir trois pas.",
+  "music_cards_circle_neighbours_cw_title": "Dans le sens des aiguilles d’une montre",
+  "music_cards_circle_neighbours_opposite": "En face de {key}, il y a {opposite}, à un triton.",
+  "music_cards_circle_neighbours_opposite_short": "En face de {key}, il y a {opposite}.",
+  "music_cards_circle_neighbours_rel_step": "{major} majeur a {minor} mineur pour relatif.",
+  "music_cards_circle_neighbours_rel_text": "Le relatif mineur se trouve sur l’anneau du milieu, 3 demi-tons sous la tonique majeure. La tonalité de l’autre côté de la roue est à un triton.",
+  "music_cards_circle_neighbours_rel_title": "Relatif mineur et tonalité opposée",
+  "music_cards_circle_neighbours_title": "Les tonalités voisines",
+  "music_cards_circle_order_counting_text": "Une tonalité à N dièses prend les N premiers de l’ordre. Une tonalité à N bémols prend les N premiers bémols.",
+  "music_cards_circle_order_counting_title": "Compter une armure",
+  "music_cards_circle_order_first": "{note} est le premier.",
+  "music_cards_circle_order_flats_text": "Les bémols prennent les mêmes lettres à l’envers : {order}. Lisez la phrase des dièses en partant de la fin et vous avez les bémols. Touchez Suivant pour les ajouter un par un.",
+  "music_cards_circle_order_flats_title": "Les bémols vont à l’envers",
+  "music_cards_circle_order_next": "Ensuite vient {note}. L’armure en compte maintenant {count}.",
+  "music_cards_circle_order_ready_text": "Ensuite, nommez les dièses ou les bémols d’une tonalité, dans l’ordre : {sharps} pour les dièses, {flats} pour les bémols. Allez aussi vite que possible sans vous tromper.",
+  "music_cards_circle_order_sharps_text": "Les dièses entrent toujours dans l’armure dans le même ordre : {order}. Retenez-le avec la phrase Félix Court Gaiement Derrière Albert Et Bernard. Touchez Suivant pour les ajouter un par un.",
+  "music_cards_circle_order_sharps_title": "L’ordre des dièses",
+  "music_cards_circle_order_title": "L’ordre des dièses et des bémols",
+  "music_cards_circle_ready_title": "Prêt pour le quiz",
+  "music_cards_circle_relative_share": "{major} majeur et {minor} mineur partagent {accidentals}.",
+  "music_cards_circle_relative_share_none": "{major} majeur et {minor} mineur n’ont ni dièse ni bémol.",
+  "music_cards_circle_relative_text": "Chaque tonalité majeure partage son armure avec une tonalité mineure 3 demi-tons sous sa tonique. Descendez de 3 demi-tons à partir de la tonique majeure.",
+  "music_cards_circle_relative_title": "Le relatif mineur",
+  "music_cards_circle_secondary_any_text": "Une dominante secondaire est un accord de septième de dominante une quinte au-dessus de l’accord vers lequel il mène. On l’écrit V de, ou V/ suivi de l’accord visé.",
+  "music_cards_circle_secondary_any_title": "Une dominante pour chaque accord",
+  "music_cards_circle_secondary_find_step": "{name} : l’accord visé est {target}, une quinte au-dessus, c’est {root}, donc {dom}.",
+  "music_cards_circle_secondary_find_text": "Nommez l’accord visé et montez d’une quinte. Faites-en un accord majeur avec une septième mineure, même si l’accord visé est mineur : E7 avant Am, pas Em7.",
+  "music_cards_circle_secondary_find_title": "Trouver la dominante",
+  "music_cards_circle_secondary_four_text": "Touchez chacune pour entendre la dominante se résoudre sur son accord visé.",
+  "music_cards_circle_secondary_four_title": "Quatre dans la tonalité de C",
+  "music_cards_circle_secondary_option": "{name} {dom} vers {target}",
+  "music_cards_circle_secondary_title": "Dominantes secondaires",
+  "music_cards_circle_secondary_v_of_c": "G7 est le V de C, une quinte au-dessus de C.",
+  "music_cards_circle_secondary_v_of_v": "{dom} est V/V : une quinte au-dessus de G, il mène à G.",
+  "music_cards_circle_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} dièse",
+        "countPlural=other": "{count} dièses"
+      }
+    }
+  ],
+  "music_cards_circle_signature_bass_step": "{key} majeur en clé de fa : {accidentals}.",
+  "music_cards_circle_signature_bass_text": "En clé de fa, la même armure se place sur d’autres lignes. L’ordre des dièses et des bémols ne change pas.",
+  "music_cards_circle_signature_bass_title": "Clé de fa",
+  "music_cards_circle_signature_ready_text": "Vous voyez une armure et vous nommez la tonalité. Comptez d’abord, puis appliquez la règle des dièses ou des bémols. La vitesse vient avec la pratique.",
+  "music_cards_circle_signature_rule_flat": "{accidentals}, l’avant-dernier est {flat}. C’est {key}.",
+  "music_cards_circle_signature_rule_sharp": "{accidentals}, le dernier est {last}. Un demi-ton plus haut donne {key}.",
+  "music_cards_circle_signature_rule_text": "Avec des dièses, la tonalité est un demi-ton au-dessus du dernier dièse. Avec des bémols, c’est l’avant-dernier bémol, et F a 1 bémol.",
+  "music_cards_circle_signature_rule_title": "De l’armure à la tonalité",
+  "music_cards_circle_signature_staff_text": "L’armure se place au début de chaque ligne, après la clé. Comptez les dièses ou les bémols et vous connaissez la tonalité. Touchez Suivant pour en voir quelques-unes.",
+  "music_cards_circle_signature_staff_title": "Dièses et bémols sur la portée",
+  "music_cards_circle_signature_step": "{accidentals} : {key} majeur.",
+  "music_cards_circle_signature_title": "Lire une armure",
+  "music_cards_circle_wheel_ccw_step": [
+    {
+      "declarations": [
+        "input key",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{key} est à {count} pas de C dans le sens inverse des aiguilles d’une montre.",
+        "countPlural=other": "{key} est à {count} pas de C dans le sens inverse des aiguilles d’une montre."
+      }
+    }
+  ],
+  "music_cards_circle_wheel_cw_step": [
+    {
+      "declarations": [
+        "input key",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{key} est à {count} pas de C dans le sens des aiguilles d’une montre.",
+        "countPlural=other": "{key} est à {count} pas de C dans le sens des aiguilles d’une montre."
+      }
+    }
+  ],
+  "music_cards_circle_wheel_cw_text": "Dans le sens des aiguilles d’une montre depuis C, les tonalités sont {keys}. Chacune est une quinte au-dessus de la précédente. Touchez Suivant pour faire le tour.",
+  "music_cards_circle_wheel_cw_title": "Dans le sens des aiguilles d’une montre depuis C",
+  "music_cards_circle_wheel_flat_text": "De l’autre côté, lues dans le sens des aiguilles d’une montre vers C, les tonalités sont {keys}. Dans le sens inverse depuis C, elles vont F, Bb, Eb, Ab, Db.",
+  "music_cards_circle_wheel_flat_title": "Le côté des bémols",
+  "music_cards_circle_wheel_meet_text": "En bas, les noms en dièse et en bémol se rejoignent : B ou Cb, F# ou Gb, Db ou C#. La roue affiche B, F# et Db.",
+  "music_cards_circle_wheel_meet_title": "Là où les deux côtés se rejoignent",
+  "music_cards_circle_wheel_title": "La roue par cœur",
+  "music_cards_circle_worked_flats": "{key} majeur a {count} bémols : {names}.",
+  "music_cards_circle_worked_sharps": "{key} majeur a {count} dièses : {names}."
 }

@@ -2,7 +2,6 @@ import {
   CIRCLE,
   FLAT_ORDER,
   SHARP_ORDER,
-  accidentalCount,
   diatonicChords,
   keyAt,
   neighbour,
@@ -14,6 +13,8 @@ import { parseChordSymbol } from "../theory/chords";
 import { analysisSheet } from "../content/analysis";
 import { TUNES } from "../content/tunes";
 import type { CircleMode } from "../content/circle";
+import { m } from "@repo/i18n/messages.js";
+import { formatList } from "@repo/i18n/format";
 import type { Lesson, LessonFigure, LessonSound, LessonStep } from "./types";
 
 const sig = (
@@ -45,67 +46,76 @@ const play = (...symbols: string[]): LessonSound => ({
   notes: symbols.map((s, i) => ({ midi: chordMidis(s), at: i * 1.3, dur: 1.2 })),
 });
 const list = (a: readonly string[]) => a.join(" ");
+/** "2 sharps", "1 flat": a key's accidentals, never zero (callers word the none case themselves). */
+const acc = (fifths: number) =>
+  fifths > 0
+    ? m.music_cards_circle_sharps({ count: fifths })
+    : m.music_cards_circle_flats({ count: -fifths });
 
 /** One step per accidental added, the staff growing with it. */
 const growing = (order: readonly string[], sign: 1 | -1, mark: "#" | "b"): LessonStep[] =>
   order.map((l, i) => ({
     text:
       i === 0
-        ? `${l}${mark} is the first.`
-        : `${l}${mark} is next. The signature now has ${i + 1}.`,
+        ? m.music_cards_circle_order_first({ note: `${l}${mark}` })
+        : m.music_cards_circle_order_next({ note: `${l}${mark}`, count: i + 1 }),
     figure: sig(sign * (i + 1), i + 1),
   }));
 
 const worked = (fifths: number): LessonStep => {
   const k = keyAt(fifths);
   const n = Math.abs(fifths);
-  const kind = fifths > 0 ? "sharp" : "flat";
   const first = k.accidentals.slice(0, n);
-  const names = n === 2 ? first.join(" and ") : first.join(", ");
-  const text = `${k.major} major has ${n} ${kind}s: ${names}.`;
+  const names = n === 2 ? formatList(first) : first.join(", ");
+  const text = (fifths > 0 ? m.music_cards_circle_worked_sharps : m.music_cards_circle_worked_flats)(
+    { key: k.major, count: n, names },
+  );
   return { text, figure: sig(fifths, n) };
 };
 
-const ORDER: Lesson = {
+const ORDER = (): Lesson => ({
   id: "circle.order",
-  title: "The order of sharps and flats",
+  title: m.music_cards_circle_order_title(),
   screens: [
     {
-      title: "The order of sharps",
-      text: `Sharps always join a key signature in the same order: ${list(SHARP_ORDER)}. Remember it as Father Charles Goes Down And Ends Battle. Tap Next to add them one at a time.`,
+      title: m.music_cards_circle_order_sharps_title(),
+      text: m.music_cards_circle_order_sharps_text({ order: list(SHARP_ORDER) }),
       figure: sig(0, 0),
       steps: growing(SHARP_ORDER, 1, "#"),
     },
     {
-      title: "Flats run backwards",
-      text: `Flats use the same letters in reverse: ${list(FLAT_ORDER)}. Read the sharps sentence from the end and you have the flats. Tap Next to add them one at a time.`,
+      title: m.music_cards_circle_order_flats_title(),
+      text: m.music_cards_circle_order_flats_text({ order: list(FLAT_ORDER) }),
       figure: sig(0, 0),
       steps: growing(FLAT_ORDER, -1, "b"),
     },
     {
-      title: "Counting a signature",
-      text: "A key with N sharps uses the first N in the order. A key with N flats uses the first N flats.",
+      title: m.music_cards_circle_order_counting_title(),
+      text: m.music_cards_circle_order_counting_text(),
       steps: [worked(2), worked(3), worked(-2)],
     },
     {
-      title: "Ready for the quiz",
-      text: `Next, name the sharps or flats of a key, in order: ${list(SHARP_ORDER)} for sharps, ${list(FLAT_ORDER)} for flats. Go as fast as you can stay right.`,
+      title: m.music_cards_circle_ready_title(),
+      text: m.music_cards_circle_order_ready_text({
+        sharps: list(SHARP_ORDER),
+        flats: list(FLAT_ORDER),
+      }),
     },
   ],
-};
+});
 
 const last = (a: readonly string[]) => a[a.length - 1];
 
-const COUNT: Lesson = {
+const COUNT = (): Lesson => ({
   id: "circle.count",
-  title: "Counting sharps and flats",
+  title: m.music_cards_circle_count_title(),
   screens: [
     {
-      title: "Round the wheel",
-      text: "Start at C, which has no sharps or flats. Each step clockwise adds one sharp. Tap Next to walk round.",
+      title: m.music_cards_circle_count_round_title(),
+      text: m.music_cards_circle_count_round_text(),
       figure: wheel(0),
       steps: [1, 2, 3, 4].map((f) => ({
-        text: `${keyAt(f).major} major has ${accidentalCount(f)}.`,
+        text: m.music_cards_circle_key_has({ key: keyAt(f).major, accidentals: acc(f) }),
         figure: wheel(
           f,
           Array.from({ length: f + 1 }, (_, i) => i),
@@ -113,182 +123,231 @@ const COUNT: Lesson = {
       })),
     },
     {
-      title: "Naming a sharp key",
-      text: "The major key is a half step above the last sharp. Find the last sharp in the signature, then go up one half step.",
+      title: m.music_cards_circle_count_sharp_title(),
+      text: m.music_cards_circle_count_sharp_text(),
       steps: [2, 3, 5].map((f) => {
         const k = keyAt(f);
         return {
-          text: `${accidentalCount(f)}. The last is ${last(k.accidentals)}, a half step up is ${k.major}.`,
+          text: m.music_cards_circle_count_sharp_step({
+            accidentals: acc(f),
+            last: last(k.accidentals),
+            key: k.major,
+          }),
           figure: sig(f, f),
         };
       }),
     },
     {
-      title: "Naming a flat key",
-      text: "A flat key takes its name from the second-to-last flat. The exception is F, with 1 flat, which you have to learn.",
+      title: m.music_cards_circle_count_flat_title(),
+      text: m.music_cards_circle_count_flat_text(),
       steps: [-2, -3, -4, -1].map((f) => {
         const k = keyAt(f);
         return {
           text:
             f === -1
-              ? `${k.major} major has 1 flat, ${k.accidentals[0]}. There's no second-to-last, so learn it.`
-              : `${accidentalCount(f)}. The second-to-last is ${k.accidentals[-f - 2]}, so the key is ${k.major}.`,
+              ? m.music_cards_circle_count_flat_one({ key: k.major, flat: k.accidentals[0] })
+              : m.music_cards_circle_count_flat_step({
+                  accidentals: acc(f),
+                  flat: k.accidentals[-f - 2],
+                  key: k.major,
+                }),
           figure: sig(f, -f),
         };
       }),
     },
     {
-      title: "The relative minor",
-      text: "Every major key shares its signature with a minor key 3 half steps below its tonic. Count down 3 half steps from the major tonic.",
-      steps: [0, 1, -1].map((f) => ({
-        text: `${keyAt(f).major} major and ${keyAt(f).minor} minor share ${accidentalCount(f)}.`,
-        figure: sig(f, Math.abs(f)),
-      })),
+      title: m.music_cards_circle_relative_title(),
+      text: m.music_cards_circle_relative_text(),
+      steps: [0, 1, -1].map((f) => {
+        const k = { major: keyAt(f).major, minor: keyAt(f).minor };
+        return {
+          text: f
+            ? m.music_cards_circle_relative_share({ ...k, accidentals: acc(f) })
+            : m.music_cards_circle_relative_share_none(k),
+          figure: sig(f, Math.abs(f)),
+        };
+      }),
     },
   ],
-};
+});
 
-const SIGNATURE: Lesson = {
+const SIGNATURE = (): Lesson => ({
   id: "circle.signature",
-  title: "Reading a key signature",
+  title: m.music_cards_circle_signature_title(),
   screens: [
     {
-      title: "Sharps and flats on the staff",
-      text: "A key signature sits at the start of every line, after the clef. Count the sharps or flats and you know the key. Tap Next to see some.",
+      title: m.music_cards_circle_signature_staff_title(),
+      text: m.music_cards_circle_signature_staff_text(),
       figure: sig(0, 0),
       steps: [2, 4, -2, -3].map((f) => ({
-        text: `${accidentalCount(f)}: ${keyAt(f).major} major.`,
+        text: m.music_cards_circle_signature_step({ accidentals: acc(f), key: keyAt(f).major }),
         figure: sig(f, Math.abs(f)),
       })),
     },
     {
-      title: "Bass clef",
-      text: "In bass clef the same signature sits on different lines. The order of the sharps and flats stays the same.",
+      title: m.music_cards_circle_signature_bass_title(),
+      text: m.music_cards_circle_signature_bass_text(),
       steps: [3, -3].map((f) => ({
-        text: `${keyAt(f).major} major on the bass staff: ${accidentalCount(f)}.`,
+        text: m.music_cards_circle_signature_bass_step({ key: keyAt(f).major, accidentals: acc(f) }),
         figure: sig(f, Math.abs(f), "bass"),
       })),
     },
     {
-      title: "From signature to key",
-      text: "With sharps, the key is a half step above the last sharp. With flats, it's the second-to-last flat, and F has 1 flat.",
+      title: m.music_cards_circle_signature_rule_title(),
+      text: m.music_cards_circle_signature_rule_text(),
       steps: [4, -4].map((f) => {
         const k = keyAt(f);
         return {
           text:
             f > 0
-              ? `${accidentalCount(f)}, the last is ${last(k.accidentals)}. A half step up gives ${k.major}.`
-              : `${accidentalCount(f)}, the second-to-last is ${k.accidentals[-f - 2]}. That's ${k.major}.`,
+              ? m.music_cards_circle_signature_rule_sharp({
+                  accidentals: acc(f),
+                  last: last(k.accidentals),
+                  key: k.major,
+                })
+              : m.music_cards_circle_signature_rule_flat({
+                  accidentals: acc(f),
+                  flat: k.accidentals[-f - 2],
+                  key: k.major,
+                }),
           figure: sig(f, Math.abs(f)),
         };
       }),
     },
     {
-      title: "Ready for the quiz",
-      text: "You see a signature and name the key. Count first, then apply the rule for sharps or flats. Speed comes with practice.",
+      title: m.music_cards_circle_ready_title(),
+      text: m.music_cards_circle_signature_ready_text(),
     },
   ],
-};
+});
 
-const NEIGHBOURS: Lesson = {
+const NEIGHBOURS = (): Lesson => ({
   id: "circle.neighbours",
-  title: "The keys next door",
+  title: m.music_cards_circle_neighbours_title(),
   screens: [
     {
-      title: "Clockwise",
-      text: "One step clockwise is a fifth up and adds one sharp (or removes one flat). Tap Next to see three steps.",
+      title: m.music_cards_circle_neighbours_cw_title(),
+      text: m.music_cards_circle_neighbours_cw_text(),
       figure: wheel(0),
       steps: [0, 1, 2].map((f) => {
         const n = neighbour(f, 1);
         return {
-          text: `${keyAt(f).major} to ${n.major}: a fifth up, ${accidentalCount(n.fifths)}.`,
+          text: m.music_cards_circle_neighbours_cw_step({
+            from: keyAt(f).major,
+            to: n.major,
+            accidentals: acc(n.fifths),
+          }),
           figure: wheel(n.fifths, [f]),
         };
       }),
     },
     {
-      title: "Counter-clockwise",
-      text: "One step counter-clockwise is a fourth up and adds one flat (or removes one sharp).",
+      title: m.music_cards_circle_neighbours_ccw_title(),
+      text: m.music_cards_circle_neighbours_ccw_text(),
       steps: [0, -1, 2].map((f) => {
         const n = neighbour(f, -1);
         return {
-          text: `${keyAt(f).major} to ${n.major}: a fourth up, ${accidentalCount(n.fifths)}.`,
+          text: m.music_cards_circle_neighbours_ccw_step({
+            from: keyAt(f).major,
+            to: n.major,
+            accidentals: acc(n.fifths),
+          }),
           figure: wheel(n.fifths, [f]),
         };
       }),
     },
     {
-      title: "Relative minor and opposite",
-      text: "The relative minor sits on the middle ring, 3 half steps below the major tonic. The key across the wheel is a tritone away.",
+      title: m.music_cards_circle_neighbours_rel_title(),
+      text: m.music_cards_circle_neighbours_rel_text(),
       steps: [
         {
-          text: `${keyAt(0).major} major has ${keyAt(0).minor} minor as its relative.`,
+          text: m.music_cards_circle_neighbours_rel_step({
+            major: keyAt(0).major,
+            minor: keyAt(0).minor,
+          }),
           figure: wheel(0),
         },
         {
-          text: `${keyAt(1).major} major has ${keyAt(1).minor} minor as its relative.`,
+          text: m.music_cards_circle_neighbours_rel_step({
+            major: keyAt(1).major,
+            minor: keyAt(1).minor,
+          }),
           figure: wheel(1),
         },
         {
-          text: `Opposite ${keyAt(0).major} is ${opposite(0).major}, a tritone away.`,
+          text: m.music_cards_circle_neighbours_opposite({
+            key: keyAt(0).major,
+            opposite: opposite(0).major,
+          }),
           figure: wheel(0, [opposite(0).fifths]),
         },
         {
-          text: `Opposite ${keyAt(1).major} is ${opposite(1).major}.`,
+          text: m.music_cards_circle_neighbours_opposite_short({
+            key: keyAt(1).major,
+            opposite: opposite(1).major,
+          }),
           figure: wheel(1, [opposite(1).fifths]),
         },
       ],
     },
   ],
-};
+});
 
-const CHORDS: Lesson = {
+const CHORDS = (): Lesson => ({
   id: "circle.chords",
-  title: "The chords of a key",
+  title: m.music_cards_circle_chords_title(),
   screens: [
     {
-      title: "One pattern in every major key",
-      text: `The seven chords of a major key always run ${diatonicChords(0)
-        .map((c) => c.numeral)
-        .join(" ")}. In C they are ${diatonicChords(0)
-        .map((c) => c.name)
-        .join(", ")}. Tap Next to hear them.`,
+      title: m.music_cards_circle_chords_pattern_title(),
+      text: m.music_cards_circle_chords_pattern_text({
+        numerals: diatonicChords(0)
+          .map((c) => c.numeral)
+          .join(" "),
+        names: diatonicChords(0)
+          .map((c) => c.name)
+          .join(", "),
+      }),
       figure: wheel(0, [-1, 0, 1]),
       steps: diatonicChords(0).map((c) => ({
-        text: `${c.numeral} is ${c.name}.`,
+        text: m.music_cards_circle_chords_step({ numeral: c.numeral, name: c.name }),
         sound: play(c.name),
       })),
     },
     {
-      title: "The wedge on the wheel",
-      text: "I, IV and V are the key and its two neighbours. The minor chords ii, iii and vi are the relative minors of IV, V and I.",
+      title: m.music_cards_circle_chords_wedge_title(),
+      text: m.music_cards_circle_chords_wedge_text(),
       figure: wheel(0, [-1, 0, 1]),
     },
     {
-      title: "Any key, same shape",
-      text: "Pick any key and the wedge moves with it. The chords change, the numerals don't.",
+      title: m.music_cards_circle_chords_any_title(),
+      text: m.music_cards_circle_chords_any_text(),
       steps: [1, -1, 2].map((f) => ({
-        text: `In ${keyAt(f).major}: ${diatonicChords(f)
-          .map((c) => c.name)
-          .join(" ")}.`,
+        text: m.music_cards_circle_chords_any_step({
+          key: keyAt(f).major,
+          chords: diatonicChords(f)
+            .map((c) => c.name)
+            .join(" "),
+        }),
         figure: wheel(f, [f - 1, f, f + 1]),
       })),
     },
   ],
-};
+});
 
-const WHEEL: Lesson = {
+const WHEEL = (): Lesson => ({
   id: "circle.wheel",
-  title: "The wheel by heart",
+  title: m.music_cards_circle_wheel_title(),
   screens: [
     {
-      title: "Clockwise from C",
-      text: `Going clockwise from C the keys are ${CIRCLE.slice(1, 7)
-        .map((k) => k.major)
-        .join(" ")}. Each is a fifth above the last. Tap Next to walk round.`,
+      title: m.music_cards_circle_wheel_cw_title(),
+      text: m.music_cards_circle_wheel_cw_text({
+        keys: CIRCLE.slice(1, 7)
+          .map((k) => k.major)
+          .join(" "),
+      }),
       figure: wheel(0),
       steps: CIRCLE.slice(1, 7).map((k, i) => ({
-        text: `${k.major} is ${i + 1} step${i ? "s" : ""} clockwise from C.`,
+        text: m.music_cards_circle_wheel_cw_step({ key: k.major, count: i + 1 }),
         figure: wheel(
           k.fifths,
           Array.from({ length: i + 2 }, (_, j) => j),
@@ -296,44 +355,49 @@ const WHEEL: Lesson = {
       })),
     },
     {
-      title: "The flat side",
-      text: `On the other side the keys, read clockwise towards C, are ${CIRCLE.slice(7)
-        .map((k) => k.major)
-        .join(" ")}. Counter-clockwise from C they run F, Bb, Eb, Ab, Db.`,
+      title: m.music_cards_circle_wheel_flat_title(),
+      text: m.music_cards_circle_wheel_flat_text({
+        keys: CIRCLE.slice(7)
+          .map((k) => k.major)
+          .join(" "),
+      }),
       figure: wheel(0),
       steps: CIRCLE.slice(7)
         .reverse()
         .map((k, i) => ({
-          text: `${k.major} is ${i + 1} step${i ? "s" : ""} counter-clockwise from C.`,
+          text: m.music_cards_circle_wheel_ccw_step({ key: k.major, count: i + 1 }),
           figure: wheel(k.fifths),
         })),
     },
     {
-      title: "Where the two sides meet",
-      text: "At the bottom the sharp and flat names meet: B or Cb, F# or Gb, Db or C#. The wheel shows B, F# and Db.",
+      title: m.music_cards_circle_wheel_meet_title(),
+      text: m.music_cards_circle_wheel_meet_text(),
       figure: wheel(6),
     },
   ],
-};
+});
 
-const BORROWED: Lesson = {
+const BORROWED = (): Lesson => ({
   id: "circle.borrowed",
-  title: "Borrowed chords",
+  title: m.music_cards_circle_borrowed_title(),
   screens: [
     {
-      title: "The parallel minor",
-      text: "A major key and the minor key on the same tonic are parallels, C major and C minor. The minor has three more flats. Borrowed chords come from it into the major key.",
+      title: m.music_cards_circle_borrowed_parallel_title(),
+      text: m.music_cards_circle_borrowed_parallel_text(),
       steps: [
-        { text: `C major has ${accidentalCount(0)}.`, figure: sig(0, 0) },
+        { text: m.music_cards_circle_key_has_none({ key: "C" }), figure: sig(0, 0) },
         {
-          text: `C minor has ${accidentalCount(-3)}: ${keyAt(-3).accidentals.join(", ")}.`,
+          text: m.music_cards_circle_borrowed_minor_has({
+            accidentals: acc(-3),
+            names: keyAt(-3).accidentals.join(", "),
+          }),
           figure: sig(-3, 3),
         },
       ],
     },
     {
-      title: "Four borrowed chords in C",
-      text: "Tap each to hear the borrowed chord, then C. Each one takes a note from C minor.",
+      title: m.music_cards_circle_borrowed_four_title(),
+      text: m.music_cards_circle_borrowed_four_text(),
       options: [
         { label: `iv ${noteAtFifths(-1)}m`, chord: `${noteAtFifths(-1)}m` },
         { label: `bVI ${noteAtFifths(-4)}`, chord: noteAtFifths(-4) },
@@ -342,11 +406,11 @@ const BORROWED: Lesson = {
       ].map((o) => ({ label: o.label, sound: play(o.chord, "C") })),
     },
     {
-      title: "Spotting them",
-      text: "A borrowed chord holds a note outside the major scale. Look for a flat 3, flat 6 or flat 7 over the tonic.",
+      title: m.music_cards_circle_borrowed_spot_title(),
+      text: m.music_cards_circle_borrowed_spot_text(),
     },
   ],
-};
+});
 
 /** The four secondary dominants in C: the dominant, its target. */
 const SECONDARY_IN_C = [
@@ -356,43 +420,48 @@ const SECONDARY_IN_C = [
   { name: "V/IV", dom: `${noteAtFifths(0)}7`, target: noteAtFifths(-1) },
 ];
 
-const SECONDARY: Lesson = {
+const SECONDARY = (): Lesson => ({
   id: "circle.secondary",
-  title: "Secondary dominants",
+  title: m.music_cards_circle_secondary_title(),
   screens: [
     {
-      title: "A dominant for any chord",
-      text: "A secondary dominant is a dominant seventh a fifth above the chord it leads to. It's written V of, or V/ followed by the target.",
+      title: m.music_cards_circle_secondary_any_title(),
+      text: m.music_cards_circle_secondary_any_text(),
       steps: [
         {
-          text: `G7 is the V of C, a fifth above C.`,
+          text: m.music_cards_circle_secondary_v_of_c(),
           figure: wheel(0, [1]),
           sound: play("G7", "C"),
         },
         {
-          text: `${SECONDARY_IN_C[0].dom} is V/V: a fifth above G, leading to G.`,
+          text: m.music_cards_circle_secondary_v_of_v({ dom: SECONDARY_IN_C[0].dom }),
           figure: wheel(1, [2]),
           sound: play(SECONDARY_IN_C[0].dom, SECONDARY_IN_C[0].target),
         },
       ],
     },
     {
-      title: "Four in the key of C",
-      text: "Tap each to hear the dominant resolve to its target.",
+      title: m.music_cards_circle_secondary_four_title(),
+      text: m.music_cards_circle_secondary_four_text(),
       options: SECONDARY_IN_C.map((s) => ({
-        label: `${s.name} ${s.dom} to ${s.target}`,
+        label: m.music_cards_circle_secondary_option({ name: s.name, dom: s.dom, target: s.target }),
         sound: play(s.dom, s.target),
       })),
     },
     {
-      title: "Finding the dominant",
-      text: "Name the target chord and go up a fifth. Make that a major chord with a flat seventh, even when the target is minor: E7 before Am, not Em7.",
+      title: m.music_cards_circle_secondary_find_title(),
+      text: m.music_cards_circle_secondary_find_text(),
       steps: SECONDARY_IN_C.slice(1).map((s) => ({
-        text: `${s.name}: the target is ${s.target}, a fifth above is ${s.dom.slice(0, -1)}, so ${s.dom}.`,
+        text: m.music_cards_circle_secondary_find_step({
+          name: s.name,
+          target: s.target,
+          root: s.dom.slice(0, -1),
+          dom: s.dom,
+        }),
       })),
     },
   ],
-};
+});
 
 const ANALYSIS_TUNE = "tune-fly-me-to-the-moon";
 
@@ -405,36 +474,36 @@ function analysisLesson(): Lesson {
     return {
       text:
         c.fn === "V of"
-          ? `${c.symbol} is V of ${next}, written V/vi.`
+          ? m.music_cards_circle_analysis_v_of({ symbol: c.symbol, next })
           : c.fn === "Related ii"
-            ? `${c.symbol} is the related ii before ${next}.`
-            : `${c.symbol} is ${c.fn} in ${c.key}.`,
+            ? m.music_cards_circle_analysis_related_ii({ symbol: c.symbol, next })
+            : m.music_cards_circle_analysis_fn({ symbol: c.symbol, fn: c.fn, key: c.key }),
       sound: play(c.symbol),
     };
   };
   return {
     id: "circle.analysis",
-    title: "Analysing a tune",
+    title: m.music_cards_circle_analysis_title(),
     screens: [
       {
-        title: "Key and function",
-        text: "For each chord you name the key it belongs to and its job there, such as ii, V or I. The example is Fly Me to the Moon. It starts in C.",
+        title: m.music_cards_circle_analysis_key_title(),
+        text: m.music_cards_circle_analysis_key_text(),
         figure: wheel(0),
         steps: [0, 3, 4].map(chordStep),
       },
       {
         title: "ii, V, I",
-        text: "A minor chord a fourth below a dominant is its ii, and the dominant resolves to the I.",
+        text: m.music_cards_circle_analysis_iivi_text(),
         steps: [1, 2, 3].map(chordStep),
       },
       {
-        title: "V of",
-        text: "A dominant that resolves to a chord other than the home key's I is a secondary dominant, a V of. A minor chord before it is a related ii.",
+        title: m.music_cards_circle_analysis_v_of_title(),
+        text: m.music_cards_circle_analysis_v_of_text(),
         steps: [5, 6, 7].map(chordStep),
       },
       {
-        title: "Tritone subs and backdoors",
-        text: "A dominant a half step above the I it resolves to is a tritone sub, like Db7 to C. A dominant a whole step below is a backdoor, like Bb7 to C.",
+        title: m.music_cards_circle_analysis_subs_title(),
+        text: m.music_cards_circle_analysis_subs_text(),
       },
     ],
   };
@@ -443,21 +512,21 @@ function analysisLesson(): Lesson {
 export function circleLessons(mode: CircleMode): Lesson[] {
   switch (mode) {
     case "order":
-      return [ORDER];
+      return [ORDER()];
     case "count":
-      return [COUNT];
+      return [COUNT()];
     case "signature":
-      return [COUNT, SIGNATURE];
+      return [COUNT(), SIGNATURE()];
     case "neighbours":
-      return [NEIGHBOURS];
+      return [NEIGHBOURS()];
     case "chords":
-      return [CHORDS];
+      return [CHORDS()];
     case "wheel":
-      return [WHEEL];
+      return [WHEEL()];
     case "borrowed":
-      return [BORROWED];
+      return [BORROWED()];
     case "secondary":
-      return [SECONDARY];
+      return [SECONDARY()];
     case "analysis":
       return [analysisLesson()];
   }

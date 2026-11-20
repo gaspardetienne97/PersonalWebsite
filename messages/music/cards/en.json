@@ -1,3 +1,164 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_cards_circle_analysis_fn": "{symbol} is {fn} in {key}.",
+  "music_cards_circle_analysis_iivi_text": "A minor chord a fourth below a dominant is its ii, and the dominant resolves to the I.",
+  "music_cards_circle_analysis_key_text": "For each chord you name the key it belongs to and its job there, such as ii, V or I. The example is Fly Me to the Moon. It starts in C.",
+  "music_cards_circle_analysis_key_title": "Key and function",
+  "music_cards_circle_analysis_related_ii": "{symbol} is the related ii before {next}.",
+  "music_cards_circle_analysis_subs_text": "A dominant a half step above the I it resolves to is a tritone sub, like Db7 to C. A dominant a whole step below is a backdoor, like Bb7 to C.",
+  "music_cards_circle_analysis_subs_title": "Tritone subs and backdoors",
+  "music_cards_circle_analysis_title": "Analysing a tune",
+  "music_cards_circle_analysis_v_of": "{symbol} is V of {next}, written V/vi.",
+  "music_cards_circle_analysis_v_of_text": "A dominant that resolves to a chord other than the home key's I is a secondary dominant, a V of. A minor chord before it is a related ii.",
+  "music_cards_circle_analysis_v_of_title": "V of",
+  "music_cards_circle_borrowed_four_text": "Tap each to hear the borrowed chord, then C. Each one takes a note from C minor.",
+  "music_cards_circle_borrowed_four_title": "Four borrowed chords in C",
+  "music_cards_circle_borrowed_minor_has": "C minor has {accidentals}: {names}.",
+  "music_cards_circle_borrowed_parallel_text": "A major key and the minor key on the same tonic are parallels, C major and C minor. The minor has three more flats. Borrowed chords come from it into the major key.",
+  "music_cards_circle_borrowed_parallel_title": "The parallel minor",
+  "music_cards_circle_borrowed_spot_text": "A borrowed chord holds a note outside the major scale. Look for a flat 3, flat 6 or flat 7 over the tonic.",
+  "music_cards_circle_borrowed_spot_title": "Spotting them",
+  "music_cards_circle_borrowed_title": "Borrowed chords",
+  "music_cards_circle_chords_any_step": "In {key}: {chords}.",
+  "music_cards_circle_chords_any_text": "Pick any key and the wedge moves with it. The chords change, the numerals don't.",
+  "music_cards_circle_chords_any_title": "Any key, same shape",
+  "music_cards_circle_chords_pattern_text": "The seven chords of a major key always run {numerals}. In C they are {names}. Tap Next to hear them.",
+  "music_cards_circle_chords_pattern_title": "One pattern in every major key",
+  "music_cards_circle_chords_step": "{numeral} is {name}.",
+  "music_cards_circle_chords_title": "The chords of a key",
+  "music_cards_circle_chords_wedge_text": "I, IV and V are the key and its two neighbours. The minor chords ii, iii and vi are the relative minors of IV, V and I.",
+  "music_cards_circle_chords_wedge_title": "The wedge on the wheel",
+  "music_cards_circle_count_flat_one": "{key} major has 1 flat, {flat}. There's no second-to-last, so learn it.",
+  "music_cards_circle_count_flat_step": "{accidentals}. The second-to-last is {flat}, so the key is {key}.",
+  "music_cards_circle_count_flat_text": "A flat key takes its name from the second-to-last flat. The exception is F, with 1 flat, which you have to learn.",
+  "music_cards_circle_count_flat_title": "Naming a flat key",
+  "music_cards_circle_count_round_text": "Start at C, which has no sharps or flats. Each step clockwise adds one sharp. Tap Next to walk round.",
+  "music_cards_circle_count_round_title": "Round the wheel",
+  "music_cards_circle_count_sharp_step": "{accidentals}. The last is {last}, a half step up is {key}.",
+  "music_cards_circle_count_sharp_text": "The major key is a half step above the last sharp. Find the last sharp in the signature, then go up one half step.",
+  "music_cards_circle_count_sharp_title": "Naming a sharp key",
+  "music_cards_circle_count_title": "Counting sharps and flats",
+  "music_cards_circle_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} flat",
+        "countPlural=other": "{count} flats"
+      }
+    }
+  ],
+  "music_cards_circle_key_has": "{key} major has {accidentals}.",
+  "music_cards_circle_key_has_none": "{key} major has no sharps or flats.",
+  "music_cards_circle_neighbours_ccw_step": "{from} to {to}: a fourth up, {accidentals}.",
+  "music_cards_circle_neighbours_ccw_text": "One step counter-clockwise is a fourth up and adds one flat (or removes one sharp).",
+  "music_cards_circle_neighbours_ccw_title": "Counter-clockwise",
+  "music_cards_circle_neighbours_cw_step": "{from} to {to}: a fifth up, {accidentals}.",
+  "music_cards_circle_neighbours_cw_text": "One step clockwise is a fifth up and adds one sharp (or removes one flat). Tap Next to see three steps.",
+  "music_cards_circle_neighbours_cw_title": "Clockwise",
+  "music_cards_circle_neighbours_opposite": "Opposite {key} is {opposite}, a tritone away.",
+  "music_cards_circle_neighbours_opposite_short": "Opposite {key} is {opposite}.",
+  "music_cards_circle_neighbours_rel_step": "{major} major has {minor} minor as its relative.",
+  "music_cards_circle_neighbours_rel_text": "The relative minor sits on the middle ring, 3 half steps below the major tonic. The key across the wheel is a tritone away.",
+  "music_cards_circle_neighbours_rel_title": "Relative minor and opposite",
+  "music_cards_circle_neighbours_title": "The keys next door",
+  "music_cards_circle_order_counting_text": "A key with N sharps uses the first N in the order. A key with N flats uses the first N flats.",
+  "music_cards_circle_order_counting_title": "Counting a signature",
+  "music_cards_circle_order_first": "{note} is the first.",
+  "music_cards_circle_order_flats_text": "Flats use the same letters in reverse: {order}. Read the sharps sentence from the end and you have the flats. Tap Next to add them one at a time.",
+  "music_cards_circle_order_flats_title": "Flats run backwards",
+  "music_cards_circle_order_next": "{note} is next. The signature now has {count}.",
+  "music_cards_circle_order_ready_text": "Next, name the sharps or flats of a key, in order: {sharps} for sharps, {flats} for flats. Go as fast as you can stay right.",
+  "music_cards_circle_order_sharps_text": "Sharps always join a key signature in the same order: {order}. Remember it as Father Charles Goes Down And Ends Battle. Tap Next to add them one at a time.",
+  "music_cards_circle_order_sharps_title": "The order of sharps",
+  "music_cards_circle_order_title": "The order of sharps and flats",
+  "music_cards_circle_ready_title": "Ready for the quiz",
+  "music_cards_circle_relative_share": "{major} major and {minor} minor share {accidentals}.",
+  "music_cards_circle_relative_share_none": "{major} major and {minor} minor share no sharps or flats.",
+  "music_cards_circle_relative_text": "Every major key shares its signature with a minor key 3 half steps below its tonic. Count down 3 half steps from the major tonic.",
+  "music_cards_circle_relative_title": "The relative minor",
+  "music_cards_circle_secondary_any_text": "A secondary dominant is a dominant seventh a fifth above the chord it leads to. It's written V of, or V/ followed by the target.",
+  "music_cards_circle_secondary_any_title": "A dominant for any chord",
+  "music_cards_circle_secondary_find_step": "{name}: the target is {target}, a fifth above is {root}, so {dom}.",
+  "music_cards_circle_secondary_find_text": "Name the target chord and go up a fifth. Make that a major chord with a flat seventh, even when the target is minor: E7 before Am, not Em7.",
+  "music_cards_circle_secondary_find_title": "Finding the dominant",
+  "music_cards_circle_secondary_four_text": "Tap each to hear the dominant resolve to its target.",
+  "music_cards_circle_secondary_four_title": "Four in the key of C",
+  "music_cards_circle_secondary_option": "{name} {dom} to {target}",
+  "music_cards_circle_secondary_title": "Secondary dominants",
+  "music_cards_circle_secondary_v_of_c": "G7 is the V of C, a fifth above C.",
+  "music_cards_circle_secondary_v_of_v": "{dom} is V/V: a fifth above G, leading to G.",
+  "music_cards_circle_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} sharp",
+        "countPlural=other": "{count} sharps"
+      }
+    }
+  ],
+  "music_cards_circle_signature_bass_step": "{key} major on the bass staff: {accidentals}.",
+  "music_cards_circle_signature_bass_text": "In bass clef the same signature sits on different lines. The order of the sharps and flats stays the same.",
+  "music_cards_circle_signature_bass_title": "Bass clef",
+  "music_cards_circle_signature_ready_text": "You see a signature and name the key. Count first, then apply the rule for sharps or flats. Speed comes with practice.",
+  "music_cards_circle_signature_rule_flat": "{accidentals}, the second-to-last is {flat}. That's {key}.",
+  "music_cards_circle_signature_rule_sharp": "{accidentals}, the last is {last}. A half step up gives {key}.",
+  "music_cards_circle_signature_rule_text": "With sharps, the key is a half step above the last sharp. With flats, it's the second-to-last flat, and F has 1 flat.",
+  "music_cards_circle_signature_rule_title": "From signature to key",
+  "music_cards_circle_signature_staff_text": "A key signature sits at the start of every line, after the clef. Count the sharps or flats and you know the key. Tap Next to see some.",
+  "music_cards_circle_signature_staff_title": "Sharps and flats on the staff",
+  "music_cards_circle_signature_step": "{accidentals}: {key} major.",
+  "music_cards_circle_signature_title": "Reading a key signature",
+  "music_cards_circle_wheel_ccw_step": [
+    {
+      "declarations": [
+        "input key",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{key} is {count} step counter-clockwise from C.",
+        "countPlural=other": "{key} is {count} steps counter-clockwise from C."
+      }
+    }
+  ],
+  "music_cards_circle_wheel_cw_step": [
+    {
+      "declarations": [
+        "input key",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{key} is {count} step clockwise from C.",
+        "countPlural=other": "{key} is {count} steps clockwise from C."
+      }
+    }
+  ],
+  "music_cards_circle_wheel_cw_text": "Going clockwise from C the keys are {keys}. Each is a fifth above the last. Tap Next to walk round.",
+  "music_cards_circle_wheel_cw_title": "Clockwise from C",
+  "music_cards_circle_wheel_flat_text": "On the other side the keys, read clockwise towards C, are {keys}. Counter-clockwise from C they run F, Bb, Eb, Ab, Db.",
+  "music_cards_circle_wheel_flat_title": "The flat side",
+  "music_cards_circle_wheel_meet_text": "At the bottom the sharp and flat names meet: B or Cb, F# or Gb, Db or C#. The wheel shows B, F# and Db.",
+  "music_cards_circle_wheel_meet_title": "Where the two sides meet",
+  "music_cards_circle_wheel_title": "The wheel by heart",
+  "music_cards_circle_worked_flats": "{key} major has {count} flats: {names}.",
+  "music_cards_circle_worked_sharps": "{key} major has {count} sharps: {names}."
 }
