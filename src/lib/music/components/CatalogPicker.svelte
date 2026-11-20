@@ -14,6 +14,7 @@
 </script>
 
 <script lang="ts" generics="T extends string | number">
+  import { m } from "@repo/i18n/messages.js";
   // A long catalogue (grooves, phrases, licks, lessons) picked from a sheet,
   // not a dropdown: the setup shows the current item; Change opens a list
   // with search, group filter chips and the last few picks on top.
@@ -35,6 +36,22 @@
     setupKey?: string;
   }
   let { label, items, value, onchange, recentKey, disabled = false, noun = "item", setupKey }: Props = $props();
+
+  // The sentences around the noun, whole, for the nouns the drills pass; any other noun is slotted in.
+  type NounText = { choose: () => string; search: () => string; none: (q: { query: string }) => string };
+  const NOUN_TEXT: Record<string, NounText> = {
+    lick: { choose: m.music_shell_catalog_choose_lick, search: m.music_shell_catalog_search_lick, none: m.music_shell_catalog_none_lick },
+    phrase: { choose: m.music_shell_catalog_choose_phrase, search: m.music_shell_catalog_search_phrase, none: m.music_shell_catalog_none_phrase },
+    groove: { choose: m.music_shell_catalog_choose_groove, search: m.music_shell_catalog_search_groove, none: m.music_shell_catalog_none_groove },
+    item: { choose: m.music_shell_catalog_choose_item, search: m.music_shell_catalog_search_item, none: m.music_shell_catalog_none_item },
+  };
+  const nounText: NounText = $derived(
+    NOUN_TEXT[noun] ?? {
+      choose: () => m.music_shell_catalog_choose_other({ noun }),
+      search: () => m.music_shell_catalog_search_other({ noun }),
+      none: ({ query }: { query: string }) => m.music_shell_catalog_none_other({ noun, query }),
+    },
+  );
 
   let open = $state(false);
   // The sheet renders inside the app's root, where its colours are defined (as Picker's list does).
@@ -89,10 +106,10 @@
     }}
   >
     <span class="min-w-0 flex-1">
-      <span class="block truncate font-semibold">{current?.title ?? `Choose a ${noun}`}</span>
+      <span class="block truncate font-semibold">{current?.title ?? nounText.choose()}</span>
       {#if current?.meta}<span class="block truncate text-[13px] text-ws-soft">{current.meta}</span>{/if}
     </span>
-    <span class="shrink-0 text-sm font-medium text-instr-ink">Change</span>
+    <span class="shrink-0 text-sm font-medium text-instr-ink">{m.music_shell_catalog_change()}</span>
   </button>
 </div>
 
@@ -100,16 +117,16 @@
   <Sheet.Content portalProps={{ to: portalTo }} side="right" class="flex w-full flex-col gap-3 bg-ws-surface p-4 text-ws-ink sm:max-w-md">
     <Sheet.Header class="p-0">
       <Sheet.Title class="font-display text-xl">{label}</Sheet.Title>
-      <Sheet.Description class="text-sm text-ws-soft">{items.length} to choose from.</Sheet.Description>
+      <Sheet.Description class="text-sm text-ws-soft">{m.music_shell_catalog_count({ count: items.length })}</Sheet.Description>
     </Sheet.Header>
     <label class="flex min-h-11 items-center gap-2 rounded-lg border border-ws-line bg-ws-bg px-3 focus-within:border-instr focus-within:ring-2 focus-within:ring-instr/40">
       <Search class="size-4 text-ws-soft" aria-hidden="true" />
-      <span class="sr-only">Search</span>
-      <input class="min-w-0 flex-1 bg-transparent text-sm outline-none focus-visible:outline-none" type="search" placeholder="Search {noun}s" bind:value={query} />
+      <span class="sr-only">{m.music_shell_catalog_search()}</span>
+      <input class="min-w-0 flex-1 bg-transparent text-sm outline-none focus-visible:outline-none" type="search" placeholder={nounText.search()} bind:value={query} />
     </label>
     {#if groups.length > 1}
-      <div class="flex flex-wrap gap-1.5" role="group" aria-label="Filter">
-        <button type="button" class="chip" aria-pressed={group === null} onclick={() => (group = null)}>All</button>
+      <div class="flex flex-wrap gap-1.5" role="group" aria-label={m.music_shell_catalog_filter()}>
+        <button type="button" class="chip" aria-pressed={group === null} onclick={() => (group = null)}>{m.music_shell_catalog_all()}</button>
         {#each groups as g (g)}
           <button type="button" class="chip" aria-pressed={group === g} onclick={() => (group = group === g ? null : g)}>{g}</button>
         {/each}
@@ -117,7 +134,7 @@
     {/if}
     <div class="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
       {#if recents.length}
-        <p class="mb-1 mt-1 text-[13px] font-medium text-ws-soft">Recent</p>
+        <p class="mb-1 mt-1 text-[13px] font-medium text-ws-soft">{m.music_shell_catalog_recent()}</p>
         <ul class="mb-3 flex flex-col gap-1">
           {#each recents as i (`r-${i.value}`)}{@render row(i)}{/each}
         </ul>
@@ -128,7 +145,7 @@
           {#each s.rows as i (i.value)}{@render row(i)}{/each}
         </ul>
       {:else}
-        <p class="py-6 text-center text-sm text-ws-soft">No {noun} matches "{query}".</p>
+        <p class="py-6 text-center text-sm text-ws-soft">{nounText.none({ query })}</p>
       {/each}
     </div>
   </Sheet.Content>

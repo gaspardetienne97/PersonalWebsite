@@ -36,6 +36,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The instrument the practice strip has picked, drawn from one set of
   // keyboard-style marks: a keyboard, a fretboard window around the line, or the
   // Aerophone's fingering for the note now. Drills written for the keyboard use
@@ -48,6 +49,7 @@
   import Fretboard, { type FretMark } from "./Fretboard.svelte";
   import AerophoneKeys from "./AerophoneKeys.svelte";
   import type { CellMarks, Flashes, FlashKind } from "./feedback.svelte";
+  import { INSTRUMENT_LABEL } from "../bench.svelte";
 
   interface Props {
     /** Every pitch the exercise uses: sets the keyboard span and the fret window. */
@@ -118,22 +120,26 @@
 </script>
 
 {#if tuning}
-  <Fretboard openStrings={tuning.openStrings} from={frets.from} to={frets.to} marks={fretMarks} flashes={flashes as Flashes | undefined} flashByPitch {interactive} label="{inst} fretboard, frets {frets.from} to {frets.to}" />
+  <Fretboard openStrings={tuning.openStrings} from={frets.from} to={frets.to} marks={fretMarks} flashes={flashes as Flashes | undefined} flashByPitch {interactive} label={m.music_shell_stage_fretboard({ instrument: INSTRUMENT_LABEL[inst].toLowerCase(), from: frets.from, to: frets.to })} />
 {:else if inst === "aerophone"}
   <div class="flex flex-col items-center gap-1" data-testid="aerophone-fingering">
     <AerophoneKeys midi={Number.isFinite(fingerNote) ? fingerNote : null} heldMidi={held} compact />
     {#if Number.isFinite(fingerNote)}<p class="font-display text-2xl font-semibold">{fingerFor(fingerNote)}</p>{/if}
     {#if roleNotes.length}
-      <ul class="mt-1 flex flex-wrap justify-center gap-1" aria-label="The notes that fit">
+      <ul class="mt-1 flex flex-wrap justify-center gap-1" aria-label={m.music_shell_stage_fit_notes()}>
         {#each roleNotes as [m, mk] (m)}<li class="role-chip rounded-md px-2 py-1 text-sm font-semibold" data-role={mk.role}>{fingerFor(m)}{#if mk.label}<span class="ml-1 text-[0.8125rem]">{mk.label}</span>{/if}</li>{/each}
       </ul>
     {/if}
   </div>
 {:else}
-  <Piano low={pianoLow} high={pianoHigh} fit={pianoFit} {marks} {flashes} {names} {interactive} {fill} {spelling} label="Piano keyboard, {noteName(pianoLow)} to {noteName(pianoHigh)}" />
+  <Piano low={pianoLow} high={pianoHigh} fit={pianoFit} {marks} {flashes} {names} {interactive} {fill} {spelling} label={m.music_shell_stage_piano({ low: noteName(pianoLow), high: noteName(pianoHigh) })} />
 {/if}
 {#if unplayable.length}
-  <p class="mt-1 text-sm text-ws-stage-soft">{[...new Set(unplayable)].map((m) => (inst === "aerophone" ? fingerFor(m) : noteName(m))).join(", ")} {unplayable.length > 1 ? "are" : "is"} out of the {inst}'s range here.</p>
+  <p class="mt-1 text-sm text-ws-stage-soft">{m.music_shell_stage_out_of_range({
+      count: unplayable.length,
+      notes: [...new Set(unplayable)].map((n) => (inst === "aerophone" ? fingerFor(n) : noteName(n))).join(", "),
+      instrument: INSTRUMENT_LABEL[inst].toLowerCase(),
+    })}</p>
 {/if}
 
 <style>

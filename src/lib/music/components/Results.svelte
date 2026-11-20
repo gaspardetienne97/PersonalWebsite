@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { m } from "@repo/i18n/messages.js";
   import type { NextRun } from "../advance.svelte";
   import type { DrillMode } from "./DrillShell.svelte";
   import type { ResultRow, RunTiming } from "@repo/music-core/scoring/evidence";
@@ -42,9 +43,9 @@
     cleanMeans?: string;
   }
 
-  export const NOT_HEARD = "Nothing was heard, so this run wasn't scored.";
+  export const NOT_HEARD = m.music_shell_results_not_heard();
   /** The results of a run where nothing was heard (`FinishResult.heard` false): nothing scored or saved. */
-  export const silentRun = (): RunSummary => ({ headline: NOT_HEARD, metric: "Not measured", metricLabel: "nothing was heard", heard: false, recorded: false });
+  export const silentRun = (): RunSummary => ({ headline: NOT_HEARD, metric: m.music_shell_results_not_measured(), metricLabel: m.music_shell_results_nothing_heard(), heard: false, recorded: false });
 
   // Static confetti for a clean run (three stars): drawn at rest so a still frame (and reduced motion) shows it; motion
   // only adds a short fall. It keeps to the hero's edges (a strip along the top, a band down the right side), behind
@@ -66,7 +67,7 @@
 
 <script lang="ts">
   import { getContext, onMount, tick, type Snippet } from "svelte";
-  import { NEXT_VERB, SHELL_KEY, type ShellApi } from "./DrillShell.svelte";
+  import { nextRunText, SHELL_KEY, type ShellApi } from "./DrillShell.svelte";
   import { ADVANCE } from "@repo/music-core/progress/advance";
   import { gradeTone } from "@repo/music-core";
   import { audio, calibration, input } from "../runtime";
@@ -169,17 +170,17 @@
   );
   /** XP is earned on every run, but only shown from 70% (Progress keeps the total). */
   const showXp = $derived(!!summary.xp && (score === undefined || score >= ADVANCE.fail));
-  const pctOf = (v: number) => `${Math.round(v * 100)}%`;
+  const pctOf = (v: number) => m.music_shell_pct({ value: Math.round(v * 100) });
   const sentence = (t: string) => `${t.charAt(0).toUpperCase()}${t.slice(1)}${t.endsWith(".") ? "" : "."}`;
 
   const total = $derived(summary.timing ? summary.timing.onTime + summary.timing.early + summary.timing.late + summary.timing.missed : 0);
   const timingRows = $derived(
     summary.timing
       ? ([
-          { label: "On time", n: summary.timing.onTime, icon: Check, ink: "text-success", fill: "bg-success", pill: "bg-success text-success-foreground" },
-          { label: "Early", n: summary.timing.early, icon: ChevronsLeft, ink: "text-early", fill: "bg-early", pill: "bg-early" },
-          { label: "Late", n: summary.timing.late, icon: ChevronsRight, ink: "text-late", fill: "bg-late", pill: "bg-late" },
-          { label: "Missed", n: summary.timing.missed, icon: X, ink: "text-destructive", fill: "bg-destructive", pill: "bg-destructive text-[color:var(--on-destructive)]" },
+          { label: m.music_shell_verdict_ontime(), n: summary.timing.onTime, icon: Check, ink: "text-success", fill: "bg-success", pill: "bg-success text-success-foreground" },
+          { label: m.music_shell_verdict_early(), n: summary.timing.early, icon: ChevronsLeft, ink: "text-early", fill: "bg-early", pill: "bg-early" },
+          { label: m.music_shell_verdict_late(), n: summary.timing.late, icon: ChevronsRight, ink: "text-late", fill: "bg-late", pill: "bg-late" },
+          { label: m.music_shell_verdict_miss(), n: summary.timing.missed, icon: X, ink: "text-destructive", fill: "bg-destructive", pill: "bg-destructive text-[color:var(--on-destructive)]" },
         ] as const)
       : [],
   );
@@ -209,7 +210,7 @@
   <!-- A heading, one line, and the input fix, at the top of the free space (never floating mid-screen). -->
   <article class="mx-auto mt-[4vh] w-full max-w-xl self-start rounded-2xl border border-ws-line bg-ws-surface p-5 sm:p-6" data-testid="not-heard">
     <h3 class="font-display text-xl font-semibold leading-snug sm:text-2xl">{summary.headline}</h3>
-    <p class="mt-1 text-sm text-ws-soft">Nothing saved: no XP, nothing added to your progress.</p>
+    <p class="mt-1 text-sm text-ws-soft">{m.music_shell_results_nothing_saved_long()}</p>
     <div class="mt-4"><InputCheck after /></div>
   </article>
 {:else}
@@ -218,8 +219,8 @@
   <div class="relative overflow-hidden px-5 py-3 sm:px-6 sm:py-4 {band}">
     {#if confetti}
       <div class="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
-        {#each CONFETTI as m, i (i)}
-          <span class="confetti {m.dot ? 'size-2 rounded-full' : 'h-2.5 w-1.5 rounded-[2px]'} {m.top ? '' : 'max-sm:hidden'}" style:left="{m.x}%" style:top="{m.y}%" style:background={m.c} style:--r="{m.r}deg" style:animation-delay="{m.d}ms"></span>
+        {#each CONFETTI as cf, i (i)}
+          <span class="confetti {cf.dot ? 'size-2 rounded-full' : 'h-2.5 w-1.5 rounded-[2px]'} {cf.top ? '' : 'max-sm:hidden'}" style:left="{cf.x}%" style:top="{cf.y}%" style:background={cf.c} style:--r="{cf.r}deg" style:animation-delay="{cf.d}ms"></span>
         {/each}
       </div>
     {/if}
@@ -283,7 +284,7 @@
         {:else if delta}
           <p class="text-sm font-medium {delta.up ? 'text-success' : 'text-ws-soft'}">{delta.text}</p>
         {:else}
-          <p class="text-sm text-ws-soft">{summary.recorded === false ? "Nothing saved" : "First run with this setup"}</p>
+          <p class="text-sm text-ws-soft">{summary.recorded === false ? m.music_shell_results_nothing_saved() : m.music_shell_results_first_run()}</p>
         {/if}
       </div>
     </div>
@@ -316,25 +317,25 @@
             </span>
             <span class="text-sm" aria-hidden="true">{pipsText(a)}</span>
           </div>
-          {#if summary.cleanMeans}<p class="text-sm text-ws-soft">A clean run is {summary.cleanMeans}.</p>{/if}
+          {#if summary.cleanMeans}<p class="text-sm text-ws-soft">{m.music_shell_results_clean_is({ means: summary.cleanMeans })}</p>{/if}
           {#if moves}
             <!-- The shell docks the next run as its primary button (in the thumb zone); outside a shell it sits here. -->
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
               {#if shell}
-                <p class="text-sm"><span class="text-ws-soft">Next run:</span> <span class="font-semibold">{a.label}</span>{#if a.passes < a.need}<span class="text-ws-soft">, {a.reason}</span>{/if}<span class="text-ws-soft">.</span></p>
+                <p class="text-sm"><span class="text-ws-soft">{m.music_shell_results_next_run()}</span> <span class="font-semibold">{a.label}</span>{#if a.passes < a.need}<span class="text-ws-soft">, {a.reason}</span>{/if}<span class="text-ws-soft">.</span></p>
               {:else}
-                <button type="button" class="{bigPrimary} max-sm:w-full" onclick={goNext}>{NEXT_VERB[a.kind]} {a.label}</button>
+                <button type="button" class="{bigPrimary} max-sm:w-full" onclick={goNext}>{nextRunText(a.kind, a.label)}</button>
                 {#if a.passes < a.need}<span class="text-sm text-ws-soft">{a.reason[0].toUpperCase()}{a.reason.slice(1)}.</span>{/if}
               {/if}
             </div>
           {:else}
             <!-- After a pass the reason says how many more; after a miss the pips already say it. -->
-            <p class="text-sm"><span class="text-ws-soft">Next run:</span> <span class="font-semibold">same again</span>{#if pass || a.kind === "top"}<span class="text-ws-soft">, {a.reason}</span>{/if}<span class="text-ws-soft">.</span></p>
+            <p class="text-sm"><span class="text-ws-soft">{m.music_shell_results_next_run()}</span> <span class="font-semibold">{m.music_shell_results_same_again()}</span>{#if pass || a.kind === "top"}<span class="text-ws-soft">, {a.reason}</span>{/if}<span class="text-ws-soft">.</span></p>
           {/if}
         </div>
       {:else if summary.next}
         <p class="text-sm max-lg:order-2">
-          <span class="text-ws-soft">Next up:</span>
+          <span class="text-ws-soft">{m.music_shell_results_next_up()}</span>
           <a class="font-semibold text-instr-ink underline-offset-4 hover:underline" href={summary.next.href}>{summary.next.label}</a>
           {#if summary.next.reason}<span class="text-ws-soft">, {summary.next.reason}</span>{/if}
         </p>
@@ -344,7 +345,7 @@
       {#if status || showXp || history.length >= 3}
         <details class="group min-w-0 border-t border-ws-line pt-2 max-lg:order-5 lg:pt-4" bind:open={countedOpen} data-testid="run-counted">
           <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium lg:hidden [&::-webkit-details-marker]:hidden">
-            <ChevronDown class="size-4 shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />How this run counted
+            <ChevronDown class="size-4 shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />{m.music_shell_results_how_counted()}
           </summary>
           <div class="flex min-w-0 flex-wrap items-end justify-between gap-x-6 gap-y-3 max-lg:pt-2">
             <div class="flex max-w-prose flex-col gap-1 text-sm">
@@ -353,7 +354,7 @@
             </div>
             {#if history.length >= 3}
               <figure class="flex flex-col gap-1">
-                <div class="flex gap-1" role="img" aria-label="Your last {history.length} runs with this setup, oldest first: {history.map(pctOf).join(', ')}">
+                <div class="flex gap-1" role="img" aria-label={m.music_shell_results_history_label({ count: history.length, list: history.map(pctOf).join(", ") })}>
                   {#each history as v, i (i)}
                     {@const last = i === history.length - 1}
                     <div class="flex w-10 flex-col items-center gap-0.5" aria-hidden="true">
@@ -361,11 +362,11 @@
                         <span class="tnum text-[0.8125rem] leading-none {last ? 'font-semibold' : 'text-ws-soft'}">{pctOf(v)}</span>
                         <span class="w-6 rounded-t-sm {last ? 'bg-instr-ink' : 'bg-ws-soft'}" style:height="{Math.max(2, Math.min(1, v) * 52)}px"></span>
                       </div>
-                      <span class="w-full border-t border-ws-line pt-0.5 text-center text-[0.8125rem] leading-tight {last ? 'font-semibold' : 'text-ws-soft'}">{last ? "Now" : "\u00a0"}</span>
+                      <span class="w-full border-t border-ws-line pt-0.5 text-center text-[0.8125rem] leading-tight {last ? 'font-semibold' : 'text-ws-soft'}">{last ? m.music_shell_results_now() : "\u00a0"}</span>
                     </div>
                   {/each}
                 </div>
-                <figcaption class="text-[0.8125rem] text-ws-soft" aria-hidden="true">Last {history.length} runs with this setup, oldest first</figcaption>
+                <figcaption class="text-[0.8125rem] text-ws-soft" aria-hidden="true">{m.music_shell_results_history_caption({ count: history.length })}</figcaption>
               </figure>
             {/if}
           </div>
@@ -378,7 +379,7 @@
            line, so colour is never the only cue; a row from too little evidence says Not measured and why. -->
       <div class="flex min-w-0 flex-col gap-4 max-lg:order-4">
         {#if timingRows.length}
-          <dl class="grid gap-2" aria-label="Timing">
+          <dl class="grid gap-2" aria-label={m.music_shell_results_timing()}>
             {#each timingRows as r (r.label)}
               <div class="grid grid-cols-[1.25rem_4.5rem_1fr_2.75rem] items-center gap-2 text-sm">
                 <r.icon class="size-4 {r.ink}" strokeWidth={3} aria-hidden="true" />
@@ -397,12 +398,12 @@
               <div class="min-w-0">
                 <div class="flex items-baseline justify-between gap-3 text-sm">
                   <dt class="flex items-center gap-1.5 {row.tone ? 'font-medium text-ws-ink' : 'text-ws-soft'}">
-                    {#if row.tone}<TriangleAlert class="size-4 shrink-0 {row.tone === 'warn' ? 'text-warn' : 'text-destructive'}" aria-hidden="true" /><span class="sr-only">Weak spot:</span>{/if}{row.label}
+                    {#if row.tone}<TriangleAlert class="size-4 shrink-0 {row.tone === 'warn' ? 'text-warn' : 'text-destructive'}" aria-hidden="true" /><span class="sr-only">{m.music_shell_results_weak_spot()}</span>{/if}{row.label}
                   </dt>
                   {#if row.notMeasured}
-                    <dd class="text-right font-medium">Not measured</dd>
+                    <dd class="text-right font-medium">{m.music_shell_results_not_measured()}</dd>
                   {:else}
-                    <dd class="tnum text-right font-semibold">{row.text ?? `${Math.round((row.value ?? 0) * 100)}%`}</dd>
+                    <dd class="tnum text-right font-semibold">{row.text ?? pctOf(row.value ?? 0)}</dd>
                   {/if}
                 </div>
                 {#if row.notMeasured}
@@ -420,7 +421,7 @@
         {#if unmeasured}<p class="text-sm text-ws-soft" data-testid="not-measured">{unmeasured}</p>{/if}
         {#if uncalibrated}
           <p class="text-sm text-ws-soft" data-testid="timing-uncalibrated">
-            Timing isn't calibrated for this setup. <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/settings#latency">Calibrate</a>
+            {m.music_shell_results_uncalibrated()} <a class="font-medium text-instr-ink underline underline-offset-4" href="/music/settings#latency">{m.music_shell_results_calibrate()}</a>
           </p>
         {/if}
       </div>

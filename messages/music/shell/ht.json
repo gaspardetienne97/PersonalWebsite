@@ -8,6 +8,27 @@
   "music_shell_calib_tap_along": "Tape ansanm",
   "music_shell_calib_the_mic": "mikwo a",
   "music_shell_calib_this_device": "aparèy MIDI sa a",
+  "music_shell_catalog_all": "Tout",
+  "music_shell_catalog_change": "Chanje",
+  "music_shell_catalog_choose_groove": "Chwazi yon groove",
+  "music_shell_catalog_choose_item": "Chwazi yon eleman",
+  "music_shell_catalog_choose_lick": "Chwazi yon lick",
+  "music_shell_catalog_choose_other": "Chwazi: {noun}",
+  "music_shell_catalog_choose_phrase": "Chwazi yon fraz",
+  "music_shell_catalog_count": "{count} pou chwazi.",
+  "music_shell_catalog_filter": "Filtre",
+  "music_shell_catalog_none_groove": "Pa gen groove ki koresponn ak \"{query}\".",
+  "music_shell_catalog_none_item": "Pa gen eleman ki koresponn ak \"{query}\".",
+  "music_shell_catalog_none_lick": "Pa gen lick ki koresponn ak \"{query}\".",
+  "music_shell_catalog_none_other": "Anyen pa koresponn ak \"{query}\".",
+  "music_shell_catalog_none_phrase": "Pa gen fraz ki koresponn ak \"{query}\".",
+  "music_shell_catalog_recent": "Resan",
+  "music_shell_catalog_search": "Chèche",
+  "music_shell_catalog_search_groove": "Chèche groove",
+  "music_shell_catalog_search_item": "Chèche eleman",
+  "music_shell_catalog_search_lick": "Chèche lick",
+  "music_shell_catalog_search_other": "Chèche: {noun}",
+  "music_shell_catalog_search_phrase": "Chèche fraz",
   "music_shell_drill_mode_check": "Esè tès: li konte nan pwen konpetans ou.",
   "music_shell_drill_mode_hinted": "Ou te sèvi ak yon endis, kidonk sa a konte kòm yon esè pratik.",
   "music_shell_drill_mode_practice": "Esè pratik: se sèlman esè tès ki chanje pwen konpetans ou.",
@@ -78,6 +99,117 @@
   "music_shell_key_picker_circle": "{label}: sèk kent yo",
   "music_shell_key_picker_label": "{label}: {key}",
   "music_shell_key_picker_tip": "Yon kent pi wo nan sans revèy la, yon kat pi wo nan lòt sans lan.",
+  "music_shell_lesson_arrows": "Flèch yo fè w avanse.",
+  "music_shell_lesson_back": "Retounen",
+  "music_shell_lesson_bar": "Mezi {bar}",
+  "music_shell_lesson_circle": "Sèk kent yo",
+  "music_shell_lesson_clef_bass": "kle fa",
+  "music_shell_lesson_clef_treble": "kle sol",
+  "music_shell_lesson_eq_boost": "Koub EQ: {freq} ogmante {db} dB, tout rès la plat",
+  "music_shell_lesson_eq_cut": "Koub EQ: {freq} diminye {db} dB, tout rès la plat",
+  "music_shell_lesson_fretboard": "Manch {instrument}",
+  "music_shell_lesson_groove_grid": [
+    {
+      "declarations": [
+        "input bars",
+        "local barsPlural = bars: plural"
+      ],
+      "selectors": [
+        "barsPlural"
+      ],
+      "match": {
+        "barsPlural=one": "Griy groove, {bars} mezi: {lanes}",
+        "barsPlural=other": "Griy groove, {bars} mezi: {lanes}"
+      }
+    }
+  ],
+  "music_shell_lesson_groove_lane": "{drum} sou {counts}",
+  "music_shell_lesson_hear_step": "Koute etap sa a",
+  "music_shell_lesson_next": "Pwochen",
+  "music_shell_lesson_no_counts": "poko gen kontaj",
+  "music_shell_lesson_pads": "Pad MPC: {pads}",
+  "music_shell_lesson_piano_keys": "Touch pyano",
+  "music_shell_lesson_rest": "pòz",
+  "music_shell_lesson_rhythm_grid": [
+    {
+      "declarations": [
+        "input bars",
+        "local barsPlural = bars: plural"
+      ],
+      "selectors": [
+        "barsPlural"
+      ],
+      "match": {
+        "barsPlural=one": "Griy ritm, {bars} mezi, nòt sou {counts}",
+        "barsPlural=other": "Griy ritm, {bars} mezi, nòt sou {counts}"
+      }
+    }
+  ],
+  "music_shell_lesson_screen": "Ekran {at} sou {total}",
+  "music_shell_lesson_sig_flat": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Amati an {clef} ak {count} bemòl",
+        "countPlural=other": "Amati an {clef} ak {count} bemòl"
+      }
+    }
+  ],
+  "music_shell_lesson_sig_sharp": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Amati an {clef} ak {count} dyèz",
+        "countPlural=other": "Amati an {clef} ak {count} dyèz"
+      }
+    }
+  ],
+  "music_shell_lesson_skip": "Sote, mwen konn sa",
+  "music_shell_lesson_staff": "{clef}: {notes}",
+  "music_shell_lesson_staff_flat": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{clef} ak {count} bemòl: {notes}",
+        "countPlural=other": "{clef} ak {count} bemòl: {notes}"
+      }
+    }
+  ],
+  "music_shell_lesson_staff_over": "Sou {chords}, {staff}",
+  "music_shell_lesson_staff_sharp": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{clef} ak {count} dyèz: {notes}",
+        "countPlural=other": "{clef} ak {count} dyèz: {notes}"
+      }
+    }
+  ],
+  "music_shell_lesson_start_quiz": "Kòmanse egzamen an",
   "music_shell_nav_app": "Aplikasyon",
   "music_shell_nav_collapse": "Fèmen",
   "music_shell_nav_collapse_label": "Fèmen navigasyon an",
@@ -99,7 +231,41 @@
   "music_shell_nav_theme_light": "Klè",
   "music_shell_nav_today": "Jodi a",
   "music_shell_nav_toggle_theme": "Chanje tèm",
+  "music_shell_palette_browse": "Gade tout egzèsis yo",
+  "music_shell_palette_last": "Dènye {score}",
+  "music_shell_palette_matches": "Koresponn ak \"{match}\"",
+  "music_shell_palette_next_hint": "Pwochen nan seri jodi a",
+  "music_shell_palette_no_matches": "Pa gen rezilta pou \"{query}\"",
+  "music_shell_palette_not_played": "Poko jwe",
+  "music_shell_palette_placeholder": "Egzèsis, chemen, chante oswa paj",
+  "music_shell_palette_recent": "Resan",
+  "music_shell_palette_results": "Rezilta",
+  "music_shell_palette_search_in": "Chèche nan",
+  "music_shell_palette_songs": "Chante",
+  "music_shell_palette_title": "Chèche nan Woodshed",
+  "music_shell_palette_to_try": "Egzèsis pou eseye",
+  "music_shell_palette_try": "Eseye non yon egzèsis tankou Entèval oswa Gam, oswa yon paj tankou Akòdè.",
+  "music_shell_palette_up_next": "Pwochen an",
   "music_shell_pct": "{value}%",
+  "music_shell_picker_choose": "Chwazi",
+  "music_shell_results_calibrate": "Kalibre",
+  "music_shell_results_clean_is": "Yon esè pwòp se {means}.",
+  "music_shell_results_first_run": "Premye esè ak konfigirasyon sa a",
+  "music_shell_results_history_caption": "{count} dènye esè ak konfigirasyon sa a, depi pi ansyen an",
+  "music_shell_results_history_label": "{count} dènye esè ou ak konfigirasyon sa a, depi pi ansyen an: {list}",
+  "music_shell_results_how_counted": "Kijan esè sa a konte",
+  "music_shell_results_next_run": "Pwochen esè:",
+  "music_shell_results_next_up": "Apre sa:",
+  "music_shell_results_not_heard": "Nou pa t tande anyen, kidonk esè sa a pa t gen nòt.",
+  "music_shell_results_not_measured": "Pa mezire",
+  "music_shell_results_nothing_heard": "nou pa t tande anyen",
+  "music_shell_results_nothing_saved": "Anyen pa anrejistre",
+  "music_shell_results_nothing_saved_long": "Anyen pa anrejistre: pa gen XP, anyen pa ajoute nan pwogrè ou.",
+  "music_shell_results_now": "Kounye a",
+  "music_shell_results_same_again": "menm bagay la ankò",
+  "music_shell_results_timing": "Tan",
+  "music_shell_results_uncalibrated": "Tan an pa kalibre pou konfigirasyon sa a.",
+  "music_shell_results_weak_spot": "Pwen fèb:",
   "music_shell_search_any_instrument": "Nenpòt enstriman",
   "music_shell_search_area_drill": "Egzèsis {area}",
   "music_shell_search_beat_grid": "Griy ritm",
@@ -156,11 +322,120 @@
   "music_shell_search_tuner": "Akòdè",
   "music_shell_search_tuner_kw": "wotè son",
   "music_shell_search_what_next": "Sa k ap vini",
+  "music_shell_shell_again": "Ankò",
+  "music_shell_shell_again_title": "Ankò (Espas)",
+  "music_shell_shell_back_to": "Retounen nan {place}",
+  "music_shell_shell_beat_label": "Tan {beat} sou {total}",
+  "music_shell_shell_check": "Tès",
+  "music_shell_shell_check_run": "Esè tès",
+  "music_shell_shell_click_label": "Klik metwonòm pandan esè yo",
+  "music_shell_shell_click_off": "Klik la etenn. Tape pou tande l.",
+  "music_shell_shell_click_on": "Klik la limen. Tape pou koupe l.",
+  "music_shell_shell_close": "Fèmen epi retounen nan konfigirasyon an",
+  "music_shell_shell_close_title": "Fèmen epi retounen nan konfigirasyon an (Esc)",
+  "music_shell_shell_countin": "Kontaj",
+  "music_shell_shell_countin_bar": "Kontaj, mezi {bar} sou {bars}",
+  "music_shell_shell_countin_beat_html": "Kontaj {beat} sou {total}",
+  "music_shell_shell_countin_beat_label": "Kontaj, tan {beat} sou {total}",
+  "music_shell_shell_countin_status": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Kontaj: {count} mezi.",
+        "countPlural=other": "Kontaj: {count} mezi."
+      }
+    }
+  ],
+  "music_shell_shell_demo_playing": "Demo ap jwe, san nòt.",
+  "music_shell_shell_demo_title": "{label}: yon demo, san nòt",
+  "music_shell_shell_done": "Fini",
+  "music_shell_shell_exercise": "Egzèsis",
+  "music_shell_shell_fewer_exercises": "Mwens egzèsis",
+  "music_shell_shell_go": "Ale.",
+  "music_shell_shell_hear_it": "Koute",
+  "music_shell_shell_hide_setup": "Kache konfigirasyon an",
+  "music_shell_shell_lesson": "Leson",
+  "music_shell_shell_mode": "Mòd",
+  "music_shell_shell_more_below": "Plis anba",
+  "music_shell_shell_more_below_title": "Plis anba: desann",
+  "music_shell_shell_more_exercises": "Plis egzèsis",
+  "music_shell_shell_next_easier": "Fè bak: {label}",
+  "music_shell_shell_next_faster": "Akselere a {label}",
+  "music_shell_shell_next_harder": "Avanse: {label}",
+  "music_shell_shell_next_one": "Jwe sou pwochen 1 an.",
+  "music_shell_shell_next_slower": "Ralanti a {label}",
+  "music_shell_shell_note_check": "Endis etenn. Li konte nan pwen konpetans ou.",
+  "music_shell_shell_note_practice": "Endis limen. Esè pwòp fè w avanse.",
+  "music_shell_shell_open_setup": "Louvri konfigirasyon an",
+  "music_shell_shell_practice": "Pratik",
+  "music_shell_shell_practice_run": "Esè pratik",
+  "music_shell_shell_requirement": "{text}: {action}",
+  "music_shell_shell_results": "Rezilta",
+  "music_shell_shell_run_progress": "Pwogrè esè a",
+  "music_shell_shell_scroll": "Fè egzèsis yo defile",
+  "music_shell_shell_scroll_back": "Fè egzèsis yo defile annaryè",
+  "music_shell_shell_setup_sr": "Konfigirasyon:",
+  "music_shell_shell_start": "Kòmanse",
+  "music_shell_shell_start_check": "Kòmanse yon esè tès",
+  "music_shell_shell_start_title": "Kòmanse (Espas)",
+  "music_shell_shell_stop": "Kanpe",
+  "music_shell_shell_stop_demo": "Kanpe demo a",
+  "music_shell_shell_stop_demo_to_change": "Kanpe demo a pou chanje mòd",
+  "music_shell_shell_stop_title": "Kanpe (Esc)",
+  "music_shell_shell_switched": "{title} se pou {instruments}: nou chanje pou {instrument}.",
+  "music_shell_shell_trainer_label": "Egzèsis {title}",
+  "music_shell_shell_unblock_failed": "\"{label}\" pa t fini. Eseye ankò.",
+  "music_shell_stage_fit_notes": "Nòt ki mache yo",
+  "music_shell_stage_fretboard": "Manch {instrument}, frèt {from} rive {to}",
+  "music_shell_stage_out_of_range": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{notes} pa nan rejis {instrument} la isit la.",
+        "countPlural=other": "{notes} pa nan rejis {instrument} la isit la."
+      }
+    }
+  ],
+  "music_shell_stage_piano": "Klavye pyano, depi {low} rive {high}",
   "music_shell_today_due": "Pou revize",
   "music_shell_today_reason_named": "{why}: {name}.",
   "music_shell_today_split_follow": "Swiv ba anlè a ({instrument})",
   "music_shell_today_try": "Eseye {title}",
   "music_shell_today_weak": "Pwen fèb ou",
+  "music_shell_trend_a_clean_run": "yon esè pwòp",
+  "music_shell_trend_clean_run": "Esè pwòp",
+  "music_shell_trend_down_on_last": "Mwens pase dènye fwa a",
+  "music_shell_trend_good_run": "Bon esè",
+  "music_shell_trend_keep_at_it": "Kontinye",
+  "music_shell_trend_last_time": "Dènye fwa a: {prior}",
+  "music_shell_trend_moving_on": "{reason}: pwochen an ap avanse",
+  "music_shell_trend_nearly": "Ou prèske rive",
+  "music_shell_trend_new_best": "Nouvo rekò",
+  "music_shell_trend_new_best_from": "Nouvo rekò, te {prior} anvan",
+  "music_shell_trend_next_star": "Pwochen etwal: {what}",
+  "music_shell_trend_perfect": "Esè pafè!",
+  "music_shell_trend_pips": "Esè pwòp: {passes} sou {need} pou avanse",
+  "music_shell_trend_same": "Menm jan ak dènye fwa a",
+  "music_shell_trend_speeding_up": "{reason}: pwochen an ap pi vit",
+  "music_shell_trend_stars_0": "0 sou 3 etwal: {fail} bay premye a",
+  "music_shell_trend_stars_1": "1 sou 3 etwal: {fail} oswa plis",
+  "music_shell_trend_stars_2": "2 sou 3 etwal: {pass} oswa plis",
+  "music_shell_trend_stars_3": "3 sou 3 etwal: pase dapre règ egzèsis la, ak {pass} oswa plis",
+  "music_shell_trend_unmeasured": "Antre sa a pa mezire: {list}",
+  "music_shell_trend_up_from": "Monte depi {prior}",
+  "music_shell_trend_up_on_last": "Pi bon pase dènye fwa a",
   "music_shell_verdict_early": "Twò bonè",
   "music_shell_verdict_late": "An reta",
   "music_shell_verdict_miss": "Rate",

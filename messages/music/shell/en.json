@@ -8,6 +8,27 @@
   "music_shell_calib_tap_along": "Tap along",
   "music_shell_calib_the_mic": "the microphone",
   "music_shell_calib_this_device": "this MIDI device",
+  "music_shell_catalog_all": "All",
+  "music_shell_catalog_change": "Change",
+  "music_shell_catalog_choose_groove": "Choose a groove",
+  "music_shell_catalog_choose_item": "Choose a item",
+  "music_shell_catalog_choose_lick": "Choose a lick",
+  "music_shell_catalog_choose_other": "Choose a {noun}",
+  "music_shell_catalog_choose_phrase": "Choose a phrase",
+  "music_shell_catalog_count": "{count} to choose from.",
+  "music_shell_catalog_filter": "Filter",
+  "music_shell_catalog_none_groove": "No groove matches \"{query}\".",
+  "music_shell_catalog_none_item": "No item matches \"{query}\".",
+  "music_shell_catalog_none_lick": "No lick matches \"{query}\".",
+  "music_shell_catalog_none_other": "No {noun} matches \"{query}\".",
+  "music_shell_catalog_none_phrase": "No phrase matches \"{query}\".",
+  "music_shell_catalog_recent": "Recent",
+  "music_shell_catalog_search": "Search",
+  "music_shell_catalog_search_groove": "Search grooves",
+  "music_shell_catalog_search_item": "Search items",
+  "music_shell_catalog_search_lick": "Search licks",
+  "music_shell_catalog_search_other": "Search {noun}s",
+  "music_shell_catalog_search_phrase": "Search phrases",
   "music_shell_drill_mode_check": "Check run: counts in your skill scores.",
   "music_shell_drill_mode_hinted": "You used a hint, so this counts as a Practice run.",
   "music_shell_drill_mode_practice": "Practice run: only Check runs change your skill scores.",
@@ -78,6 +99,117 @@
   "music_shell_key_picker_circle": "{label}: the circle of fifths",
   "music_shell_key_picker_label": "{label}: {key}",
   "music_shell_key_picker_tip": "A fifth up clockwise, a fourth up the other way.",
+  "music_shell_lesson_arrows": "Arrow keys move.",
+  "music_shell_lesson_back": "Back",
+  "music_shell_lesson_bar": "Bar {bar}",
+  "music_shell_lesson_circle": "The circle of fifths",
+  "music_shell_lesson_clef_bass": "bass clef",
+  "music_shell_lesson_clef_treble": "treble clef",
+  "music_shell_lesson_eq_boost": "EQ curve: {freq} boosted by {db} dB, everything else flat",
+  "music_shell_lesson_eq_cut": "EQ curve: {freq} cut by {db} dB, everything else flat",
+  "music_shell_lesson_fretboard": "{instrument} fretboard",
+  "music_shell_lesson_groove_grid": [
+    {
+      "declarations": [
+        "input bars",
+        "local barsPlural = bars: plural"
+      ],
+      "selectors": [
+        "barsPlural"
+      ],
+      "match": {
+        "barsPlural=one": "Groove grid, {bars} bar: {lanes}",
+        "barsPlural=other": "Groove grid, {bars} bars: {lanes}"
+      }
+    }
+  ],
+  "music_shell_lesson_groove_lane": "{drum} on {counts}",
+  "music_shell_lesson_hear_step": "Hear this step",
+  "music_shell_lesson_next": "Next",
+  "music_shell_lesson_no_counts": "no counts yet",
+  "music_shell_lesson_pads": "MPC pads: {pads}",
+  "music_shell_lesson_piano_keys": "Piano keys",
+  "music_shell_lesson_rest": "rest",
+  "music_shell_lesson_rhythm_grid": [
+    {
+      "declarations": [
+        "input bars",
+        "local barsPlural = bars: plural"
+      ],
+      "selectors": [
+        "barsPlural"
+      ],
+      "match": {
+        "barsPlural=one": "Rhythm grid, {bars} bar, notes on {counts}",
+        "barsPlural=other": "Rhythm grid, {bars} bars, notes on {counts}"
+      }
+    }
+  ],
+  "music_shell_lesson_screen": "Screen {at} of {total}",
+  "music_shell_lesson_sig_flat": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{clef} key signature with {count} flat",
+        "countPlural=other": "{clef} key signature with {count} flats"
+      }
+    }
+  ],
+  "music_shell_lesson_sig_sharp": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{clef} key signature with {count} sharp",
+        "countPlural=other": "{clef} key signature with {count} sharps"
+      }
+    }
+  ],
+  "music_shell_lesson_skip": "Skip, I know this",
+  "music_shell_lesson_staff": "{clef}: {notes}",
+  "music_shell_lesson_staff_flat": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{clef} with {count} flat: {notes}",
+        "countPlural=other": "{clef} with {count} flats: {notes}"
+      }
+    }
+  ],
+  "music_shell_lesson_staff_over": "Over {chords}, {staff}",
+  "music_shell_lesson_staff_sharp": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{clef} with {count} sharp: {notes}",
+        "countPlural=other": "{clef} with {count} sharps: {notes}"
+      }
+    }
+  ],
+  "music_shell_lesson_start_quiz": "Start the quiz",
   "music_shell_nav_app": "App",
   "music_shell_nav_collapse": "Collapse",
   "music_shell_nav_collapse_label": "Collapse navigation",
@@ -99,7 +231,41 @@
   "music_shell_nav_theme_light": "Light",
   "music_shell_nav_today": "Today",
   "music_shell_nav_toggle_theme": "Toggle theme",
+  "music_shell_palette_browse": "Browse every drill",
+  "music_shell_palette_last": "Last {score}",
+  "music_shell_palette_matches": "Matches \"{match}\"",
+  "music_shell_palette_next_hint": "Next in Today's set",
+  "music_shell_palette_no_matches": "No matches for \"{query}\"",
+  "music_shell_palette_not_played": "Not played",
+  "music_shell_palette_placeholder": "Drill, path, song or page",
+  "music_shell_palette_recent": "Recent",
+  "music_shell_palette_results": "Results",
+  "music_shell_palette_search_in": "Search in",
+  "music_shell_palette_songs": "Songs",
+  "music_shell_palette_title": "Search Woodshed",
+  "music_shell_palette_to_try": "Drills to try",
+  "music_shell_palette_try": "Try a drill name such as Intervals or Scales, or a page such as Tuner.",
+  "music_shell_palette_up_next": "Up next",
   "music_shell_pct": "{value}%",
+  "music_shell_picker_choose": "Choose",
+  "music_shell_results_calibrate": "Calibrate",
+  "music_shell_results_clean_is": "A clean run is {means}.",
+  "music_shell_results_first_run": "First run with this setup",
+  "music_shell_results_history_caption": "Last {count} runs with this setup, oldest first",
+  "music_shell_results_history_label": "Your last {count} runs with this setup, oldest first: {list}",
+  "music_shell_results_how_counted": "How this run counted",
+  "music_shell_results_next_run": "Next run:",
+  "music_shell_results_next_up": "Next up:",
+  "music_shell_results_not_heard": "Nothing was heard, so this run wasn't scored.",
+  "music_shell_results_not_measured": "Not measured",
+  "music_shell_results_nothing_heard": "nothing was heard",
+  "music_shell_results_nothing_saved": "Nothing saved",
+  "music_shell_results_nothing_saved_long": "Nothing saved: no XP, nothing added to your progress.",
+  "music_shell_results_now": "Now",
+  "music_shell_results_same_again": "same again",
+  "music_shell_results_timing": "Timing",
+  "music_shell_results_uncalibrated": "Timing isn't calibrated for this setup.",
+  "music_shell_results_weak_spot": "Weak spot:",
   "music_shell_search_any_instrument": "Any instrument",
   "music_shell_search_area_drill": "{area} drill",
   "music_shell_search_beat_grid": "Beat grid",
@@ -156,11 +322,120 @@
   "music_shell_search_tuner": "Tuner",
   "music_shell_search_tuner_kw": "pitch",
   "music_shell_search_what_next": "What next",
+  "music_shell_shell_again": "Again",
+  "music_shell_shell_again_title": "Again (Space)",
+  "music_shell_shell_back_to": "Back to {place}",
+  "music_shell_shell_beat_label": "Beat {beat} of {total}",
+  "music_shell_shell_check": "Check",
+  "music_shell_shell_check_run": "Check run",
+  "music_shell_shell_click_label": "Metronome click in runs",
+  "music_shell_shell_click_off": "The click is off. Tap to hear it.",
+  "music_shell_shell_click_on": "The click is on. Tap to mute it.",
+  "music_shell_shell_close": "Close and back to setup",
+  "music_shell_shell_close_title": "Close and back to setup (Esc)",
+  "music_shell_shell_countin": "Count-in",
+  "music_shell_shell_countin_bar": "Count-in, bar {bar} of {bars}",
+  "music_shell_shell_countin_beat_html": "Count-in {beat} of {total}",
+  "music_shell_shell_countin_beat_label": "Count-in, beat {beat} of {total}",
+  "music_shell_shell_countin_status": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Count-in: {count} bar.",
+        "countPlural=other": "Count-in: {count} bars."
+      }
+    }
+  ],
+  "music_shell_shell_demo_playing": "Demo playing, not scored.",
+  "music_shell_shell_demo_title": "{label}: a demo, not scored",
+  "music_shell_shell_done": "Done",
+  "music_shell_shell_exercise": "Exercise",
+  "music_shell_shell_fewer_exercises": "Fewer exercises",
+  "music_shell_shell_go": "Go.",
+  "music_shell_shell_hear_it": "Hear it",
+  "music_shell_shell_hide_setup": "Hide setup",
+  "music_shell_shell_lesson": "Lesson",
+  "music_shell_shell_mode": "Mode",
+  "music_shell_shell_more_below": "More below",
+  "music_shell_shell_more_below_title": "More below: scroll down",
+  "music_shell_shell_more_exercises": "More exercises",
+  "music_shell_shell_next_easier": "Step back: {label}",
+  "music_shell_shell_next_faster": "Speed up to {label}",
+  "music_shell_shell_next_harder": "Move on: {label}",
+  "music_shell_shell_next_one": "Play on the next 1.",
+  "music_shell_shell_next_slower": "Slow to {label}",
+  "music_shell_shell_note_check": "Hints off. Counts in your skill scores.",
+  "music_shell_shell_note_practice": "Hints on. Clean runs move you on.",
+  "music_shell_shell_open_setup": "Open setup",
+  "music_shell_shell_practice": "Practice",
+  "music_shell_shell_practice_run": "Practice run",
+  "music_shell_shell_requirement": "{text}: {action}",
+  "music_shell_shell_results": "Results",
+  "music_shell_shell_run_progress": "Run progress",
+  "music_shell_shell_scroll": "Scroll exercises",
+  "music_shell_shell_scroll_back": "Scroll exercises back",
+  "music_shell_shell_setup_sr": "Setup:",
+  "music_shell_shell_start": "Start",
+  "music_shell_shell_start_check": "Start a Check run",
+  "music_shell_shell_start_title": "Start (Space)",
+  "music_shell_shell_stop": "Stop",
+  "music_shell_shell_stop_demo": "Stop demo",
+  "music_shell_shell_stop_demo_to_change": "Stop the demo to change mode",
+  "music_shell_shell_stop_title": "Stop (Esc)",
+  "music_shell_shell_switched": "{title} is for {instruments}: switched to {instrument}.",
+  "music_shell_shell_trainer_label": "{title} drill",
+  "music_shell_shell_unblock_failed": "\"{label}\" didn't finish. Try it again.",
+  "music_shell_stage_fit_notes": "The notes that fit",
+  "music_shell_stage_fretboard": "{instrument} fretboard, frets {from} to {to}",
+  "music_shell_stage_out_of_range": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{notes} is out of the {instrument}'s range here.",
+        "countPlural=other": "{notes} are out of the {instrument}'s range here."
+      }
+    }
+  ],
+  "music_shell_stage_piano": "Piano keyboard, {low} to {high}",
   "music_shell_today_due": "Due for review",
   "music_shell_today_reason_named": "{why}: {name}.",
   "music_shell_today_split_follow": "Follows the top bar ({instrument})",
   "music_shell_today_try": "Try {title}",
   "music_shell_today_weak": "Your weak spot",
+  "music_shell_trend_a_clean_run": "a clean run",
+  "music_shell_trend_clean_run": "Clean run",
+  "music_shell_trend_down_on_last": "Down on last time",
+  "music_shell_trend_good_run": "Good run",
+  "music_shell_trend_keep_at_it": "Keep at it",
+  "music_shell_trend_last_time": "Last time: {prior}",
+  "music_shell_trend_moving_on": "{reason}: moving on next",
+  "music_shell_trend_nearly": "Nearly there",
+  "music_shell_trend_new_best": "New best",
+  "music_shell_trend_new_best_from": "New best, up from {prior}",
+  "music_shell_trend_next_star": "Next star: {what}",
+  "music_shell_trend_perfect": "Perfect run!",
+  "music_shell_trend_pips": "Clean runs: {passes} of {need} to move on",
+  "music_shell_trend_same": "Same as last time",
+  "music_shell_trend_speeding_up": "{reason}: speeding up next",
+  "music_shell_trend_stars_0": "0 of 3 stars: {fail} earns the first",
+  "music_shell_trend_stars_1": "1 of 3 stars: {fail} or better",
+  "music_shell_trend_stars_2": "2 of 3 stars: {pass} or better",
+  "music_shell_trend_stars_3": "3 of 3 stars: a pass by the drill's own rule at {pass} or better",
+  "music_shell_trend_unmeasured": "Not measured with this input: {list}",
+  "music_shell_trend_up_from": "Up from {prior}",
+  "music_shell_trend_up_on_last": "Up on last time",
   "music_shell_verdict_early": "Early",
   "music_shell_verdict_late": "Late",
   "music_shell_verdict_miss": "Missed",

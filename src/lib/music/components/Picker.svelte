@@ -13,6 +13,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // The app's one dropdown: @repo/ui's Select (bits-ui) in Woodshed's colours,
   // in place of the browser's own <select>, whose open list ignores the theme.
   // `tone="stage"` sits on the dark stage panels; `tone="bare"` inside a pill
@@ -27,7 +28,7 @@
     options,
     onchange,
     label,
-    placeholder = "Choose",
+    placeholder = m.music_shell_picker_choose(),
     tone = "surface",
     action = false,
     disabled = false,

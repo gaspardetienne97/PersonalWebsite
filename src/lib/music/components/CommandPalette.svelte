@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // ⌘K / Ctrl-K: one flat index over hubs, drills and paths. Arrows move, Enter goes.
   // Empty, it opens on today's next block and the drills played last.
   import * as Dialog from "@repo/ui/dialog";
@@ -35,28 +36,28 @@
   let allPages = $state(false);
   // Scope chips: every kind, or only drills, paths, songs or pages.
   const SCOPES = [
-    { id: "all", label: "All" },
-    { id: "drill", label: "Drills" },
-    { id: "path", label: "Paths" },
-    { id: "song", label: "Songs" },
-    { id: "page", label: "Pages" },
+    { id: "all", label: m.music_shell_catalog_all() },
+    { id: "drill", label: m.music_shell_nav_drills() },
+    { id: "path", label: m.music_shell_home_paths() },
+    { id: "song", label: m.music_shell_palette_songs() },
+    { id: "page", label: m.music_shell_search_pages() },
   ] as const;
   let scope = $state<(typeof SCOPES)[number]["id"]>("all");
   // Today's plan loads with the palette's first opening, not with every page.
   let plan = $state<typeof import("../today.svelte")>();
   $effect(() => {
-    if (palette.isOpen && !plan) void import("../today.svelte").then((m) => (plan = m));
+    if (palette.isOpen && !plan) void import("../today.svelte").then((mod) => (plan = mod));
   });
   const lead = $derived.by((): SearchItem[] => {
     if (!palette.isOpen || query.trim()) return [];
     const played = recentDrills(practice.sessions.flatMap((s) => s.runs));
     const recent = played.length
-      ? played.map((i) => ({ ...i, group: "Recent" }))
-      : drillsFor(settings.value.activeInstrument).map((i) => ({ ...i, group: "Drills to try" }));
+      ? played.map((i) => ({ ...i, group: m.music_shell_palette_recent() }))
+      : drillsFor(settings.value.activeInstrument).map((i) => ({ ...i, group: m.music_shell_palette_to_try() }));
     if (!plan) return recent;
     const today = plan.todayPlan(settings.value.activeInstrument, settings.value.routineBudgetMinutes);
     const next = today.routine.steps.find((st) => !today.done.includes(st.n));
-    return [...(next ? [{ label: next.label, href: next.href, hint: "Next in Today's set", group: "Up next" }] : []), ...recent];
+    return [...(next ? [{ label: next.label, href: next.href, hint: m.music_shell_palette_next_hint(), group: m.music_shell_palette_up_next() }] : []), ...recent];
   });
   // A scope with no words lists every item of its kind; with words, the matches of that kind.
   const items = $derived(
@@ -93,7 +94,7 @@
     if (item.kind === "path") return { Icon: Route };
     if (item.kind === "song" || route.startsWith("/music/songs")) return { Icon: Music };
     const entry = CATALOG.find((e) => e.route === route);
-    if (item.drill || entry || item.group === "Up next")
+    if (item.drill || entry || item.group === m.music_shell_palette_up_next())
       return { Icon: (entry && DRILL_ICON[entry.id]) || HUE_ICON[hueForRoute(route, settings.value.activeInstrument)] };
     if (item.href.includes("tab=drills")) return { Icon: LayoutGrid };
     if (item.href.includes("tab=paths")) return { Icon: Route };
@@ -148,18 +149,18 @@
   <Dialog.Content
     class="top-[20%] max-w-xl translate-y-0 gap-2 p-3 max-sm:inset-0 max-sm:h-dvh max-sm:max-w-none max-sm:translate-x-0 max-sm:grid-rows-[auto_auto_minmax(0,1fr)] max-sm:border-0"
   >
-    <Dialog.Title class="sr-only">Search Woodshed</Dialog.Title>
+    <Dialog.Title class="sr-only">{m.music_shell_palette_title()}</Dialog.Title>
     <input
       bind:value={query}
       onkeydown={onKey}
-      placeholder="Drill, path, song or page"
-      aria-label="Search"
+      placeholder={m.music_shell_palette_placeholder()}
+      aria-label={m.music_shell_catalog_search()}
       aria-controls="palette-results"
       aria-activedescendant={items[active] ? `palette-${active}` : undefined}
       class="h-12 w-full rounded-md border border-input bg-background pl-3 pr-10 text-base"
     />
     <!-- Scope: one row of chips, scrolling sideways on a narrow screen. -->
-    <div role="group" aria-label="Search in" class="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+    <div role="group" aria-label={m.music_shell_palette_search_in()} class="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
       {#each SCOPES as sc (sc.id)}
         <button
           type="button"
@@ -171,7 +172,7 @@
         >
       {/each}
     </div>
-    <ul id="palette-results" role="listbox" aria-label="Results" class="results max-h-[50vh] overflow-y-auto pb-6 max-sm:max-h-none">
+    <ul id="palette-results" role="listbox" aria-label={m.music_shell_palette_results()} class="results max-h-[50vh] overflow-y-auto pb-6 max-sm:max-h-none">
       {#each items as item, i (item.href + item.label)}
         {@const ic = iconFor(item)}
         {@const [pre, hit, post] = splitMatch(item.label, query)}
@@ -191,7 +192,7 @@
           <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-foreground" aria-hidden="true"><ic.Icon class="size-4" /></span>
           <span class="min-w-0 flex-1">
             <span class="block font-medium {item.kind === 'all' ? 'text-instr-ink' : ''}">{pre}{#if hit}<strong class="font-bold underline decoration-2 underline-offset-2">{hit}</strong>{/if}{post}</span>
-            {#if item.match}<span class="block text-[13px] text-muted-foreground">Matches "{item.match}"</span>{/if}
+            {#if item.match}<span class="block text-[13px] text-muted-foreground">{m.music_shell_palette_matches({ match: item.match })}</span>{/if}
             <!-- What and where: on a phone the hint joins this line instead of a column beside the title. -->
             {#if item.detail || item.hint}
               <span class="block text-[13px] text-muted-foreground {item.detail ? '' : 'sm:hidden'}"
@@ -200,18 +201,18 @@
             {/if}
           </span>
           {#if lastScore(item) !== undefined}
-            <span class="tnum shrink-0 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[13px] font-semibold">Last {pct(lastScore(item) ?? 0)}</span>
+            <span class="tnum shrink-0 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[13px] font-semibold">{m.music_shell_palette_last({ score: pct(lastScore(item) ?? 0) })}</span>
           {:else if item.drill}
-            <span class="shrink-0 whitespace-nowrap text-[13px] text-muted-foreground">Not played</span>
+            <span class="shrink-0 whitespace-nowrap text-[13px] text-muted-foreground">{m.music_shell_palette_not_played()}</span>
           {/if}
           {#if item.hint}<span class="shrink-0 whitespace-nowrap text-muted-foreground max-sm:hidden">{item.hint}</span>{/if}
         </li>
       {:else}
         <li class="flex flex-col items-center gap-2 px-3 py-6 text-center text-sm" role="presentation">
           <SearchX class="size-6 text-muted-foreground" aria-hidden="true" />
-          <span class="font-medium">No matches for "{query}"</span>
-          <span class="text-muted-foreground">Try a drill name such as Intervals or Scales, or a page such as Tuner.</span>
-          <button type="button" class="mt-1 inline-flex min-h-11 items-center rounded-full border border-input px-4 font-medium hover:bg-accent" onclick={() => go({ label: "All drills", href: "/music?tab=drills" })}>Browse every drill</button>
+          <span class="font-medium">{m.music_shell_palette_no_matches({ query })}</span>
+          <span class="text-muted-foreground">{m.music_shell_palette_try()}</span>
+          <button type="button" class="mt-1 inline-flex min-h-11 items-center rounded-full border border-input px-4 font-medium hover:bg-accent" onclick={() => go({ label: m.music_shell_home_all_drills(), href: "/music?tab=drills" })}>{m.music_shell_palette_browse()}</button>
         </li>
       {/each}
     </ul>

@@ -1,7 +1,14 @@
 <script lang="ts" module>
   import type { NextRun } from "../advance.svelte";
-  /** The next-run button's verb, by the kind of move. */
-  export const NEXT_VERB: Record<string, string> = { faster: "Speed up to", slower: "Slow to", harder: "Move on:", easier: "Step back:" };
+  import { m } from "@repo/i18n/messages.js";
+  /** The next-run button's words, by the kind of move: "Speed up to 90 BPM". */
+  const NEXT_TEXT: Record<string, (i: { label: string }) => string> = {
+    faster: m.music_shell_shell_next_faster,
+    slower: m.music_shell_shell_next_slower,
+    harder: m.music_shell_shell_next_harder,
+    easier: m.music_shell_shell_next_easier,
+  };
+  export const nextRunText = (kind: string, label: string) => NEXT_TEXT[kind]?.({ label }) ?? label;
   export type Phase = "ready" | "countin" | "running" | "results";
   export type DrillMode = "practice" | "check";
 
@@ -173,11 +180,11 @@
     results,
     actions,
     ondemo,
-    demoLabel = "Hear it",
+    demoLabel = m.music_shell_shell_hear_it(),
     demoPlaying = false,
     onstart,
     onstop,
-    startLabel = "Start",
+    startLabel = m.music_shell_shell_start(),
     blocked = null,
     tabs,
     firstTabs,
@@ -192,7 +199,7 @@
     cue = "",
     step = null,
     review = false,
-    modeNotes = { practice: "Hints on. Clean runs move you on.", check: "Hints off. Counts in your skill scores." },
+    modeNotes = { practice: m.music_shell_shell_note_practice(), check: m.music_shell_shell_note_check() },
   }: Props = $props();
 
   // Back to where the drill was opened from (Today, Drills, Paths...).
@@ -221,7 +228,7 @@
     try {
       await unblock.run();
     } catch (e) {
-      status = e instanceof Error && e.message ? e.message : `"${unblock.label}" didn't finish. Try it again.`;
+      status = e instanceof Error && e.message ? e.message : m.music_shell_shell_unblock_failed({ label: unblock.label });
     } finally {
       unblockBusy = false;
     }
@@ -254,7 +261,7 @@
   }
   /** The setup as one sentence, the mode last ("C major, 80 BPM, Practice"). */
   const sentence = $derived(
-    [...(typeof summary === "string" ? [summary] : summary.map((c) => c.text)), ...(checkable ? [mode === "check" ? "Check" : "Practice"] : [])]
+    [...(typeof summary === "string" ? [summary] : summary.map((c) => c.text)), ...(checkable ? [mode === "check" ? m.music_shell_shell_check() : m.music_shell_shell_practice()] : [])]
       .filter(Boolean)
       .join(", "),
   );
@@ -381,7 +388,7 @@
     void settings.ready.then(() => {
       if (ok?.length && !bench.locked && !ok.includes(settings.value.activeInstrument)) {
         void settings.update({ activeInstrument: ok[0] });
-        if (phase === "ready") status = `${title} is for ${ok.map((i) => INSTRUMENT_LABEL[i]).join(", ")}: switched to ${INSTRUMENT_LABEL[ok[0]]}.`;
+        if (phase === "ready") status = m.music_shell_shell_switched({ title, instruments: ok.map((i) => INSTRUMENT_LABEL[i]).join(", "), instrument: INSTRUMENT_LABEL[ok[0]] });
       }
     });
   });
@@ -469,7 +476,7 @@
     countBeats = 0;
     countBars = bars;
     counting = bars > 0;
-    if (bars > 0) status = `Count-in: ${bars} bar${bars > 1 ? "s" : ""}.`;
+    if (bars > 0) status = m.music_shell_shell_countin_status({ count: bars });
     const handle = audio.metronome.start({
       bpm: clock.bpm,
       beatsPerBar: clock.beatsPerBar,
@@ -482,7 +489,7 @@
           // The downbeat: the count-in leaves the screen and says go, on the beat.
           counting = false;
           go();
-          status = "Go.";
+          status = m.music_shell_shell_go();
         }
       },
     });
@@ -597,7 +604,7 @@
     {#if afterRun && results}
       <!-- The results own the screen; a silent run's card sits at the top of it. -->
       <div class="results-enter">
-        <h2 bind:this={resultsHeading} tabindex="-1" class="sr-only">Results</h2>
+        <h2 bind:this={resultsHeading} tabindex="-1" class="sr-only">{m.music_shell_shell_results()}</h2>
         {@render results()}
       </div>
     {/if}
@@ -615,10 +622,10 @@
       {#if !session}
         <div class="rail -mt-1 mb-1 flex items-center gap-3 sm:-mr-2 sm:-mt-2">
           <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-sm empty:hidden">
-            {#if demoPlaying}<p class="text-ws-stage-soft">Demo playing, not scored.</p>{/if}
+            {#if demoPlaying}<p class="text-ws-stage-soft">{m.music_shell_shell_demo_playing()}</p>{/if}
             {#if hud}{@render hud()}{/if}
             {#each requires as r (r.text)}
-              <button type="button" class="-mx-1.5 inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-left font-medium text-instr-ink hover:bg-instr-wash" title="{r.text}: {r.action.label}" aria-label="{r.text}: {r.action.label}" onclick={r.action.run}><Alert class="size-4 shrink-0" aria-hidden="true" />{r.text}</button>
+              <button type="button" class="-mx-1.5 inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 text-left font-medium text-instr-ink hover:bg-instr-wash" title={m.music_shell_shell_requirement({ text: r.text, action: r.action.label })} aria-label={m.music_shell_shell_requirement({ text: r.text, action: r.action.label })} onclick={r.action.run}><Alert class="size-4 shrink-0" aria-hidden="true" />{r.text}</button>
             {/each}
             {#if needsInput}<InputCheck inline required={!!blocked} />{/if}
           </div>
@@ -627,7 +634,7 @@
               type="button"
               class="ml-auto grid size-11 shrink-0 place-items-center rounded-full border border-ws-stage-ink/15 bg-ws-stage-ink/8 text-ws-stage-ink hover:bg-ws-stage-ink/15"
               aria-label={demoLabel}
-              title="{demoLabel}: a demo, not scored"
+              title={m.music_shell_shell_demo_title({ label: demoLabel })}
               onclick={ondemo}><Headphones class="size-5" aria-hidden="true" /></button
             >
           {/if}
@@ -647,14 +654,14 @@
              the beat in big type, the bar's clicks as dots. Taps pass through to the stage. -->
         <div class="countin pointer-events-none absolute inset-0 z-20 grid place-items-center" aria-hidden="true" out:fade={{ duration: 150 }}>
           <div class="flex flex-col items-center gap-3 text-center">
-            <span class="text-sm font-semibold tracking-wide text-ws-stage-ink/80">Count-in{countBars > 1 && countBeats ? `, bar ${Math.min(countBars, Math.ceil(countBeats / bench.beatsPerBar))} of ${countBars}` : ""}</span>
+            <span class="text-sm font-semibold tracking-wide text-ws-stage-ink/80">{countBars > 1 && countBeats ? m.music_shell_shell_countin_bar({ bar: Math.min(countBars, Math.ceil(countBeats / bench.beatsPerBar)), bars: countBars }) : m.music_shell_shell_countin()}</span>
             {#key countBeats}<span class="count font-display text-8xl font-bold leading-none tnum">{bench.beat || ""}</span>{/key}
             <span class="flex items-center gap-2.5">
               {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
                 <span class="size-4 rounded-full {bench.beat >= b && countBeats ? 'bg-warn' : 'bg-ws-stage-ink/25'}"></span>
               {/each}
             </span>
-            <span class="text-sm text-ws-stage-ink/80">Play on the next 1.</span>
+            <span class="text-sm text-ws-stage-ink/80">{m.music_shell_shell_next_one()}</span>
           </div>
         </div>
       {/if}
@@ -688,20 +695,20 @@
 {#snippet readyHeader()}
   <header class="flex flex-col gap-1" bind:clientWidth={headW}>
     <div class="flex items-center gap-1 sm:gap-2">
-      <a class="-ml-2.5 grid size-11 shrink-0 place-items-center rounded-full text-instr-ink hover:bg-instr-wash" href={back.href} title="Back to {back.label}">
-        <ArrowLeft class="size-5" aria-hidden="true" /><span class="sr-only">Back to {back.label}</span>
+      <a class="-ml-2.5 grid size-11 shrink-0 place-items-center rounded-full text-instr-ink hover:bg-instr-wash" href={back.href} title={m.music_shell_shell_back_to({ place: back.label })}>
+        <ArrowLeft class="size-5" aria-hidden="true" /><span class="sr-only">{m.music_shell_shell_back_to({ place: back.label })}</span>
       </a>
       <h1 id="drill-title" bind:this={heading} tabindex="-1" class="ws-title min-w-0 font-display font-semibold tracking-tight {trainer ? 'shrink-0' : 'flex-1'}" class:fold={trainer?.fold}>
         {title}
       </h1>
       {#if trainer}
         <!-- A trainer: the mode is part of the title, and tapping it picks another. -->
-        <TrainerSwitch label="{title} drill" options={trainer.options} value={trainer.value} onpick={trainer.onpick} />
+        <TrainerSwitch label={m.music_shell_shell_trainer_label({ title })} options={trainer.options} value={trainer.value} onpick={trainer.onpick} />
         <span class="flex-1"></span>
       {/if}
       {#if lesson?.lessons.length}
         <button type="button" class={ghost} onclick={() => (revisitFor = lessonIds)}>
-          <BookOpen class="size-4" aria-hidden="true" />Lesson
+          <BookOpen class="size-4" aria-hidden="true" />{m.music_shell_shell_lesson()}
         </button>
       {/if}
     </div>
@@ -722,7 +729,7 @@
       class="relative -mx-1 flex max-w-[calc(100%+0.5rem)] snap-x scroll-px-1 overflow-x-auto border-b border-ws-line px-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible"
       style:mask-image={fadeL || fadeR ? `linear-gradient(to right, ${fadeL ? "transparent 0.5rem, black 3rem" : "black"}, ${fadeR ? "black calc(100% - 3rem), transparent calc(100% - 0.5rem)" : "black"})` : undefined}
       role="group"
-      aria-label="Exercise"
+      aria-label={m.music_shell_shell_exercise()}
     >
       {#each shownTabs as x (x.id)}
         <button
@@ -740,19 +747,19 @@
           aria-expanded={allTabs}
           aria-controls="drill-exercises"
           onclick={toggleTabs}
-          >{allTabs ? "Fewer exercises" : "More exercises"}{#if !allTabs}<span class="tnum text-[13px] text-ws-soft" aria-hidden="true">+{hiddenTabs}</span>{/if}</button
+          >{allTabs ? m.music_shell_shell_fewer_exercises() : m.music_shell_shell_more_exercises()}{#if !allTabs}<span class="tnum text-[13px] text-ws-soft" aria-hidden="true">+{hiddenTabs}</span>{/if}</button
         >
       {/if}
     </div>
     {#if fadeL}
       <!-- More exercises to the left: the fade sits under this chevron, and one tap scrolls back a page. -->
-      <button type="button" class="absolute left-0 top-0 grid size-11 place-items-center rounded-full bg-ws-bg text-ws-soft shadow-sm hover:text-ws-ink sm:hidden" aria-label="Scroll exercises back" onclick={() => tabRow?.scrollBy({ left: -tabRow.clientWidth * 0.8, behavior: "smooth" })}>
+      <button type="button" class="absolute left-0 top-0 grid size-11 place-items-center rounded-full bg-ws-bg text-ws-soft shadow-sm hover:text-ws-ink sm:hidden" aria-label={m.music_shell_shell_scroll_back()} onclick={() => tabRow?.scrollBy({ left: -tabRow.clientWidth * 0.8, behavior: "smooth" })}>
         <ChevronLeft class="size-5" aria-hidden="true" />
       </button>
     {/if}
     {#if fadeR}
       <!-- A phone row that runs on: one tap scrolls it a page. -->
-      <button type="button" class="absolute right-0 top-0 grid size-11 place-items-center rounded-full bg-ws-bg text-ws-soft shadow-sm hover:text-ws-ink sm:hidden" aria-label="Scroll exercises" onclick={() => tabRow?.scrollBy({ left: tabRow.clientWidth * 0.8, behavior: "smooth" })}>
+      <button type="button" class="absolute right-0 top-0 grid size-11 place-items-center rounded-full bg-ws-bg text-ws-soft shadow-sm hover:text-ws-ink sm:hidden" aria-label={m.music_shell_shell_scroll()} onclick={() => tabRow?.scrollBy({ left: tabRow.clientWidth * 0.8, behavior: "smooth" })}>
         <ChevronRight class="size-5" aria-hidden="true" />
       </button>
     {/if}
@@ -772,16 +779,16 @@
         data-mode={checkable ? mode : undefined}
         aria-expanded={setupOpen}
         aria-controls="drill-setup"
-        title={setupOpen ? "Hide setup" : "Open setup"}
+        title={setupOpen ? m.music_shell_shell_hide_setup() : m.music_shell_shell_open_setup()}
         onclick={() => (setupOpen = !setupOpen)}
       >
         <Settings2 class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />
-        <span class="min-w-0 flex-1 font-medium leading-snug" bind:this={lineEl}><span class="sr-only">Setup: </span>{sentence}</span>
+        <span class="min-w-0 flex-1 font-medium leading-snug" bind:this={lineEl}><span class="sr-only">{m.music_shell_shell_setup_sr()} </span>{sentence}</span>
         {#if setupOpen}<ChevronUp class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />{:else}<ChevronDown class="size-4 shrink-0 text-ws-soft" aria-hidden="true" />{/if}
       </button>
     {:else}
       <p class="flex min-h-12 min-w-0 flex-1 items-center text-base font-medium leading-snug" data-testid="setup-line">
-        <span><span class="sr-only">Setup: </span>{sentence}</span>
+        <span><span class="sr-only">{m.music_shell_shell_setup_sr()} </span>{sentence}</span>
       </p>
     {/if}
     {#if phase === "ready"}
@@ -796,13 +803,13 @@
       {#if checkable}
         <!-- Practice or Check, first in Setup. The names stay "Practice" and "Check"; a demo holds the mode
              until it stops. The current mode's effect sits on one line beside it. -->
-        <div class="flex flex-wrap items-end gap-x-4 gap-y-1" title={demoPlaying ? "Stop the demo to change mode" : undefined}>
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-1" title={demoPlaying ? m.music_shell_shell_stop_demo_to_change() : undefined}>
           <Choice
-            label="Mode"
+            label={m.music_shell_shell_mode()}
             setupKey="run-mode"
             options={[
-              { value: "practice", label: "Practice" },
-              { value: "check", label: "Check" },
+              { value: "practice", label: m.music_shell_shell_practice() },
+              { value: "check", label: m.music_shell_shell_check() },
             ]}
             value={mode}
             disabled={demoPlaying}
@@ -818,14 +825,14 @@
 
 {#snippet startButton(cls: string)}
   {#if demoPlaying && ondemo}
-    <button type="button" class="{primary} {cls}" aria-pressed="true" onclick={ondemo}><Square class="size-4 fill-current" aria-hidden="true" />Stop demo</button>
+    <button type="button" class="{primary} {cls}" aria-pressed="true" onclick={ondemo}><Square class="size-4 fill-current" aria-hidden="true" />{m.music_shell_shell_stop_demo()}</button>
   {:else if unblocking && unblock}
     <!-- What Start waits for, one tap away; Start comes back here once it is done. -->
     <button type="button" data-start data-unblock class="{primary} {cls}" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>
       {unblock.label}
     </button>
   {:else}
-    <button type="button" data-start class="{primary} {cls}" disabled={!!blocked} onclick={start} title="Start (Space)" aria-keyshortcuts="Space">
+    <button type="button" data-start class="{primary} {cls}" disabled={!!blocked} onclick={start} title={m.music_shell_shell_start_title()} aria-keyshortcuts="Space">
       <Play class="size-5 fill-current" aria-hidden="true" />{startLabel}
     </button>
   {/if}
@@ -840,17 +847,17 @@
     <div class="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-2 gap-y-0.5 px-4 pt-1.5 pb-2.5 sm:flex-nowrap sm:gap-x-3 sm:pb-1.5 sm:px-6 lg:px-8">
       {#if live}
         <!-- One exit, top left, at every width (Close takes this place on results and lessons). -->
-        <button type="button" class="-ml-1 flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-ws-raised px-4 text-sm font-semibold hover:bg-ws-line" onclick={stop} title="Stop (Esc)" aria-keyshortcuts="Escape">
-          <Square class="size-3.5 fill-current" aria-hidden="true" />Stop
+        <button type="button" class="-ml-1 flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-ws-raised px-4 text-sm font-semibold hover:bg-ws-line" onclick={stop} title={m.music_shell_shell_stop_title()} aria-keyshortcuts="Escape">
+          <Square class="size-3.5 fill-current" aria-hidden="true" />{m.music_shell_shell_stop()}
         </button>
       {:else}
-        <button type="button" class="-ml-2 grid size-11 shrink-0 place-items-center rounded-full bg-ws-raised hover:bg-ws-line" aria-label="Close and back to setup" title="Close and back to setup (Esc)" aria-keyshortcuts="Escape" onclick={close}>
+        <button type="button" class="-ml-2 grid size-11 shrink-0 place-items-center rounded-full bg-ws-raised hover:bg-ws-line" aria-label={m.music_shell_shell_close()} title={m.music_shell_shell_close_title()} aria-keyshortcuts="Escape" onclick={close}>
           <X class="size-5" aria-hidden="true" />
         </button>
       {/if}
       <h1 id="drill-title" bind:this={hudHeading} tabindex="-1" class="ws-hud font-display font-semibold leading-tight sm:flex-none">{title}{#if trainerLabel}<span class="font-medium text-ws-soft">, {trainerLabel}</span>{/if}</h1>
       {#if checkable && !showing}
-        {@const modeText = mode === "check" ? "Check run" : "Practice run"}
+        {@const modeText = mode === "check" ? m.music_shell_shell_check_run() : m.music_shell_shell_practice_run()}
         <span class="flex shrink-0 items-center gap-1.5 text-sm text-ws-soft sm:order-last" title={modeText}>
           {#if mode === "check"}<EyeOff class="size-4" aria-hidden="true" />{:else}<Eye class="size-4" aria-hidden="true" />{/if}<span class="max-sm:sr-only">{modeText}</span>
         </span>
@@ -860,8 +867,8 @@
           type="button"
           class="grid size-11 shrink-0 place-items-center rounded-full hover:bg-ws-raised max-sm:-mr-2 max-sm:ml-auto sm:order-last {bench.clickDuringRun ? '' : 'text-ws-soft'}"
           aria-pressed={bench.clickDuringRun}
-          aria-label="Metronome click in runs"
-          title={bench.clickDuringRun ? "The click is on. Tap to mute it." : "The click is off. Tap to hear it."}
+          aria-label={m.music_shell_shell_click_label()}
+          title={bench.clickDuringRun ? m.music_shell_shell_click_on() : m.music_shell_shell_click_off()}
           onclick={() => settings.update({ metronomeEnabled: !bench.clickDuringRun })}
         >
           {#if bench.clickDuringRun}<Timer class="size-5" aria-hidden="true" />{:else}<TimerOff class="size-5" aria-hidden="true" />{/if}
@@ -874,7 +881,7 @@
       </div>
     </div>
     {#if live && progress !== null}
-      <div class="absolute inset-x-0 bottom-0 h-1 bg-ws-line" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
+      <div class="absolute inset-x-0 bottom-0 h-1 bg-ws-line" role="progressbar" aria-label={m.music_shell_shell_run_progress()} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(progress * 100)}>
         <div class="h-full bg-instr transition-[width]" style:width="{progress * 100}%"></div>
       </div>
     {/if}
@@ -883,8 +890,8 @@
 
 <!-- The beat in words ("Beat 2 of 4"), then one dot a beat: idle 12 px, the current one 24 px and numbered. -->
 {#snippet beatReadout()}
-  <span class="flex shrink-0 items-center gap-1.5" role="img" aria-label="{bench.countingIn ? 'Count-in, beat' : 'Beat'} {bench.beat || 1} of {bench.beatsPerBar}">
-    <span class="ws-hud whitespace-nowrap text-ws-soft tnum" aria-hidden="true">{bench.countingIn ? "Count-in" : "Beat"} <span class="font-semibold text-ws-ink">{bench.beat || 1}</span> of {bench.beatsPerBar}</span>
+  <span class="flex shrink-0 items-center gap-1.5" role="img" aria-label={(bench.countingIn ? m.music_shell_shell_countin_beat_label : m.music_shell_shell_beat_label)({ beat: bench.beat || 1, total: bench.beatsPerBar })}>
+    <span class="ws-hud whitespace-nowrap text-ws-soft tnum" aria-hidden="true">{@html (bench.countingIn ? m.music_shell_shell_countin_beat_html : m.music_shell_shell_beat_label)({ beat: `<span class="font-semibold text-ws-ink">${bench.beat || 1}</span>`, total: bench.beatsPerBar })}</span>
     {#each Array.from({ length: bench.beatsPerBar }, (_, i) => i + 1) as b (b)}
       <span class="grid size-6 place-items-center" aria-hidden="true">
         {#if bench.beat === b}
@@ -926,12 +933,12 @@
     <div class="ws-bar ws-bar-bottom sticky bottom-0 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8" data-testid="drill-bar">
       <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-2 sm:gap-3">
         {#if blocked && !unblocking}<span class="basis-full text-sm text-ws-soft sm:order-last sm:basis-auto">{blocked}</span>{/if}
-        <button type="button" class="{quiet} {small}" onclick={close}>Done</button>
+        <button type="button" class="{quiet} {small}" onclick={close}>{m.music_shell_shell_done()}</button>
         {#if !againLeads}
-          <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5 max-sm:hidden" aria-hidden="true" />Again</button>
+          <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={start} title={m.music_shell_shell_again_title()} aria-keyshortcuts="Space"><Play class="size-5 max-sm:hidden" aria-hidden="true" />{m.music_shell_shell_again()}</button>
         {/if}
         {#if checkable && checkRun && mode === "practice" && !silent}
-          <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5 max-sm:hidden" aria-hidden="true" />Start a Check run</button>
+          <button type="button" class="{quiet} {small}" disabled={!!blocked} onclick={runInCheck}><EyeOff class="size-5 max-sm:hidden" aria-hidden="true" />{m.music_shell_shell_start_check()}</button>
         {/if}
         <span class="flex-1 max-sm:hidden"></span>
         <!-- Phone, row 1: "More below" (when there is more), then the primary filling the rest of the row. -->
@@ -939,9 +946,9 @@
         {#if unblocking && unblock}
           <button type="button" class="{primary} {lead}" disabled={unblockBusy} aria-busy={unblockBusy} onclick={runUnblock}>{unblock.label}</button>
         {:else if next}
-          <button type="button" class="{primary} min-w-0 whitespace-nowrap {lead}" disabled={!!blocked} onclick={goNext}><span class="truncate">{NEXT_VERB[next.kind]} {next.label}</span></button>
+          <button type="button" class="{primary} min-w-0 whitespace-nowrap {lead}" disabled={!!blocked} onclick={goNext}><span class="truncate">{nextRunText(next.kind, next.label)}</span></button>
         {:else}
-          <button type="button" class="{primary} {lead}" disabled={!!blocked} onclick={start} title="Again (Space)" aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />Again</button>
+          <button type="button" class="{primary} {lead}" disabled={!!blocked} onclick={start} title={m.music_shell_shell_again_title()} aria-keyshortcuts="Space"><Play class="size-5" aria-hidden="true" />{m.music_shell_shell_again()}</button>
         {/if}
       </div>
     </div>
@@ -955,10 +962,10 @@
     <button
       type="button"
       class="{quiet} shrink-0 whitespace-nowrap max-sm:min-h-12 {words ? 'ml-auto' : 'max-sm:size-12 max-sm:px-0'} {cls}"
-      aria-label="More below"
-      title="More below: scroll down"
+      aria-label={m.music_shell_shell_more_below()}
+      title={m.music_shell_shell_more_below_title()}
       onclick={scrollMore}
-      data-more><ChevronDown class="size-5" aria-hidden="true" /><span class={words ? "" : "max-sm:hidden"}>More below</span></button
+      data-more><ChevronDown class="size-5" aria-hidden="true" /><span class={words ? "" : "max-sm:hidden"}>{m.music_shell_shell_more_below()}</span></button
     >
   {/if}
 {/snippet}

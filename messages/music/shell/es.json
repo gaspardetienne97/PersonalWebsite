@@ -8,6 +8,27 @@
   "music_shell_calib_tap_along": "Tocar junto",
   "music_shell_calib_the_mic": "el micrófono",
   "music_shell_calib_this_device": "este dispositivo MIDI",
+  "music_shell_catalog_all": "Todos",
+  "music_shell_catalog_change": "Cambiar",
+  "music_shell_catalog_choose_groove": "Elegir un groove",
+  "music_shell_catalog_choose_item": "Elegir un elemento",
+  "music_shell_catalog_choose_lick": "Elegir un lick",
+  "music_shell_catalog_choose_other": "Elegir: {noun}",
+  "music_shell_catalog_choose_phrase": "Elegir una frase",
+  "music_shell_catalog_count": "{count} para elegir.",
+  "music_shell_catalog_filter": "Filtrar",
+  "music_shell_catalog_none_groove": "Ningún groove coincide con «{query}».",
+  "music_shell_catalog_none_item": "Ningún elemento coincide con «{query}».",
+  "music_shell_catalog_none_lick": "Ningún lick coincide con «{query}».",
+  "music_shell_catalog_none_other": "Nada coincide con «{query}».",
+  "music_shell_catalog_none_phrase": "Ninguna frase coincide con «{query}».",
+  "music_shell_catalog_recent": "Recientes",
+  "music_shell_catalog_search": "Buscar",
+  "music_shell_catalog_search_groove": "Buscar grooves",
+  "music_shell_catalog_search_item": "Buscar elementos",
+  "music_shell_catalog_search_lick": "Buscar licks",
+  "music_shell_catalog_search_other": "Buscar: {noun}",
+  "music_shell_catalog_search_phrase": "Buscar frases",
   "music_shell_drill_mode_check": "Ronda de prueba: cuenta en tus puntajes de habilidad.",
   "music_shell_drill_mode_hinted": "Usaste una pista, así que esto cuenta como una ronda de práctica.",
   "music_shell_drill_mode_practice": "Ronda de práctica: solo las rondas de prueba cambian tus puntajes de habilidad.",
@@ -78,6 +99,117 @@
   "music_shell_key_picker_circle": "{label}: el círculo de quintas",
   "music_shell_key_picker_label": "{label}: {key}",
   "music_shell_key_picker_tip": "Una quinta arriba en el sentido del reloj, una cuarta arriba en el otro sentido.",
+  "music_shell_lesson_arrows": "Las flechas te mueven.",
+  "music_shell_lesson_back": "Atrás",
+  "music_shell_lesson_bar": "Compás {bar}",
+  "music_shell_lesson_circle": "El círculo de quintas",
+  "music_shell_lesson_clef_bass": "clave de fa",
+  "music_shell_lesson_clef_treble": "clave de sol",
+  "music_shell_lesson_eq_boost": "Curva de EQ: {freq} realzado {db} dB, todo lo demás plano",
+  "music_shell_lesson_eq_cut": "Curva de EQ: {freq} recortado {db} dB, todo lo demás plano",
+  "music_shell_lesson_fretboard": "Diapasón de {instrument}",
+  "music_shell_lesson_groove_grid": [
+    {
+      "declarations": [
+        "input bars",
+        "local barsPlural = bars: plural"
+      ],
+      "selectors": [
+        "barsPlural"
+      ],
+      "match": {
+        "barsPlural=one": "Cuadrícula de groove, {bars} compás: {lanes}",
+        "barsPlural=other": "Cuadrícula de groove, {bars} compases: {lanes}"
+      }
+    }
+  ],
+  "music_shell_lesson_groove_lane": "{drum} en {counts}",
+  "music_shell_lesson_hear_step": "Escuchar este paso",
+  "music_shell_lesson_next": "Siguiente",
+  "music_shell_lesson_no_counts": "todavía sin conteos",
+  "music_shell_lesson_pads": "Pads MPC: {pads}",
+  "music_shell_lesson_piano_keys": "Teclas de piano",
+  "music_shell_lesson_rest": "silencio",
+  "music_shell_lesson_rhythm_grid": [
+    {
+      "declarations": [
+        "input bars",
+        "local barsPlural = bars: plural"
+      ],
+      "selectors": [
+        "barsPlural"
+      ],
+      "match": {
+        "barsPlural=one": "Cuadrícula de ritmo, {bars} compás, notas en {counts}",
+        "barsPlural=other": "Cuadrícula de ritmo, {bars} compases, notas en {counts}"
+      }
+    }
+  ],
+  "music_shell_lesson_screen": "Pantalla {at} de {total}",
+  "music_shell_lesson_sig_flat": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Armadura en {clef} con {count} bemol",
+        "countPlural=other": "Armadura en {clef} con {count} bemoles"
+      }
+    }
+  ],
+  "music_shell_lesson_sig_sharp": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Armadura en {clef} con {count} sostenido",
+        "countPlural=other": "Armadura en {clef} con {count} sostenidos"
+      }
+    }
+  ],
+  "music_shell_lesson_skip": "Omitir, ya lo sé",
+  "music_shell_lesson_staff": "{clef}: {notes}",
+  "music_shell_lesson_staff_flat": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{clef} con {count} bemol: {notes}",
+        "countPlural=other": "{clef} con {count} bemoles: {notes}"
+      }
+    }
+  ],
+  "music_shell_lesson_staff_over": "Sobre {chords}, {staff}",
+  "music_shell_lesson_staff_sharp": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{clef} con {count} sostenido: {notes}",
+        "countPlural=other": "{clef} con {count} sostenidos: {notes}"
+      }
+    }
+  ],
+  "music_shell_lesson_start_quiz": "Empezar el cuestionario",
   "music_shell_nav_app": "App",
   "music_shell_nav_collapse": "Contraer",
   "music_shell_nav_collapse_label": "Contraer navegación",
@@ -99,7 +231,41 @@
   "music_shell_nav_theme_light": "Claro",
   "music_shell_nav_today": "Hoy",
   "music_shell_nav_toggle_theme": "Cambiar tema",
+  "music_shell_palette_browse": "Ver todos los ejercicios",
+  "music_shell_palette_last": "Último {score}",
+  "music_shell_palette_matches": "Coincide con «{match}»",
+  "music_shell_palette_next_hint": "Lo siguiente en la sesión de hoy",
+  "music_shell_palette_no_matches": "No hay resultados para «{query}»",
+  "music_shell_palette_not_played": "Sin jugar",
+  "music_shell_palette_placeholder": "Ejercicio, ruta, canción o página",
+  "music_shell_palette_recent": "Recientes",
+  "music_shell_palette_results": "Resultados",
+  "music_shell_palette_search_in": "Buscar en",
+  "music_shell_palette_songs": "Canciones",
+  "music_shell_palette_title": "Buscar en Woodshed",
+  "music_shell_palette_to_try": "Ejercicios para probar",
+  "music_shell_palette_try": "Prueba con el nombre de un ejercicio, como Intervalos o Escalas, o de una página, como Afinador.",
+  "music_shell_palette_up_next": "A continuación",
   "music_shell_pct": "{value}%",
+  "music_shell_picker_choose": "Elegir",
+  "music_shell_results_calibrate": "Calibrar",
+  "music_shell_results_clean_is": "Una ronda limpia es {means}.",
+  "music_shell_results_first_run": "Primera ronda con esta configuración",
+  "music_shell_results_history_caption": "Últimas {count} rondas con esta configuración, de la más antigua a la más reciente",
+  "music_shell_results_history_label": "Tus últimas {count} rondas con esta configuración, de la más antigua a la más reciente: {list}",
+  "music_shell_results_how_counted": "Cómo contó esta ronda",
+  "music_shell_results_next_run": "Próxima ronda:",
+  "music_shell_results_next_up": "A continuación:",
+  "music_shell_results_not_heard": "No se oyó nada, así que esta ronda no se calificó.",
+  "music_shell_results_not_measured": "No medido",
+  "music_shell_results_nothing_heard": "no se oyó nada",
+  "music_shell_results_nothing_saved": "No se guardó nada",
+  "music_shell_results_nothing_saved_long": "No se guardó nada: sin XP, nada se sumó a tu progreso.",
+  "music_shell_results_now": "Ahora",
+  "music_shell_results_same_again": "lo mismo otra vez",
+  "music_shell_results_timing": "Tiempo",
+  "music_shell_results_uncalibrated": "El tiempo no está calibrado para esta configuración.",
+  "music_shell_results_weak_spot": "Punto débil:",
   "music_shell_search_any_instrument": "Cualquier instrumento",
   "music_shell_search_area_drill": "Ejercicio de {area}",
   "music_shell_search_beat_grid": "Cuadrícula de ritmos",
@@ -156,11 +322,120 @@
   "music_shell_search_tuner": "Afinador",
   "music_shell_search_tuner_kw": "afinación tono",
   "music_shell_search_what_next": "Qué sigue",
+  "music_shell_shell_again": "Otra vez",
+  "music_shell_shell_again_title": "Otra vez (Espacio)",
+  "music_shell_shell_back_to": "Volver a {place}",
+  "music_shell_shell_beat_label": "Pulso {beat} de {total}",
+  "music_shell_shell_check": "Prueba",
+  "music_shell_shell_check_run": "Ronda de prueba",
+  "music_shell_shell_click_label": "Clic del metrónomo en las rondas",
+  "music_shell_shell_click_off": "El clic está desactivado. Toca para oírlo.",
+  "music_shell_shell_click_on": "El clic está activado. Toca para silenciarlo.",
+  "music_shell_shell_close": "Cerrar y volver a la configuración",
+  "music_shell_shell_close_title": "Cerrar y volver a la configuración (Esc)",
+  "music_shell_shell_countin": "Cuenta previa",
+  "music_shell_shell_countin_bar": "Cuenta previa, compás {bar} de {bars}",
+  "music_shell_shell_countin_beat_html": "Cuenta previa {beat} de {total}",
+  "music_shell_shell_countin_beat_label": "Cuenta previa, pulso {beat} de {total}",
+  "music_shell_shell_countin_status": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Cuenta previa: {count} compás.",
+        "countPlural=other": "Cuenta previa: {count} compases."
+      }
+    }
+  ],
+  "music_shell_shell_demo_playing": "Demostración en curso, sin calificar.",
+  "music_shell_shell_demo_title": "{label}: una demostración, sin calificar",
+  "music_shell_shell_done": "Listo",
+  "music_shell_shell_exercise": "Ejercicio",
+  "music_shell_shell_fewer_exercises": "Menos ejercicios",
+  "music_shell_shell_go": "¡Ya!",
+  "music_shell_shell_hear_it": "Escuchar",
+  "music_shell_shell_hide_setup": "Ocultar configuración",
+  "music_shell_shell_lesson": "Lección",
+  "music_shell_shell_mode": "Modo",
+  "music_shell_shell_more_below": "Más abajo",
+  "music_shell_shell_more_below_title": "Más abajo: desplázate hacia abajo",
+  "music_shell_shell_more_exercises": "Más ejercicios",
+  "music_shell_shell_next_easier": "Retroceder: {label}",
+  "music_shell_shell_next_faster": "Acelerar a {label}",
+  "music_shell_shell_next_harder": "Avanzar: {label}",
+  "music_shell_shell_next_one": "Toca en el próximo 1.",
+  "music_shell_shell_next_slower": "Bajar a {label}",
+  "music_shell_shell_note_check": "Pistas desactivadas. Cuenta en tus puntajes de habilidad.",
+  "music_shell_shell_note_practice": "Pistas activadas. Las rondas limpias te hacen avanzar.",
+  "music_shell_shell_open_setup": "Abrir configuración",
+  "music_shell_shell_practice": "Práctica",
+  "music_shell_shell_practice_run": "Ronda de práctica",
+  "music_shell_shell_requirement": "{text}: {action}",
+  "music_shell_shell_results": "Resultados",
+  "music_shell_shell_run_progress": "Progreso de la ronda",
+  "music_shell_shell_scroll": "Desplazar ejercicios",
+  "music_shell_shell_scroll_back": "Desplazar ejercicios hacia atrás",
+  "music_shell_shell_setup_sr": "Configuración:",
+  "music_shell_shell_start": "Empezar",
+  "music_shell_shell_start_check": "Empezar una ronda de prueba",
+  "music_shell_shell_start_title": "Empezar (Espacio)",
+  "music_shell_shell_stop": "Detener",
+  "music_shell_shell_stop_demo": "Detener demostración",
+  "music_shell_shell_stop_demo_to_change": "Detén la demostración para cambiar de modo",
+  "music_shell_shell_stop_title": "Detener (Esc)",
+  "music_shell_shell_switched": "{title} es para {instruments}: se cambió a {instrument}.",
+  "music_shell_shell_trainer_label": "Ejercicio {title}",
+  "music_shell_shell_unblock_failed": "«{label}» no terminó. Inténtalo de nuevo.",
+  "music_shell_stage_fit_notes": "Las notas que encajan",
+  "music_shell_stage_fretboard": "Diapasón de {instrument}, trastes {from} a {to}",
+  "music_shell_stage_out_of_range": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{notes} está fuera del registro de {instrument} aquí.",
+        "countPlural=other": "{notes} están fuera del registro de {instrument} aquí."
+      }
+    }
+  ],
+  "music_shell_stage_piano": "Teclado de piano, de {low} a {high}",
   "music_shell_today_due": "Toca repasar",
   "music_shell_today_reason_named": "{why}: {name}.",
   "music_shell_today_split_follow": "Sigue la barra superior ({instrument})",
   "music_shell_today_try": "Prueba {title}",
   "music_shell_today_weak": "Tu punto débil",
+  "music_shell_trend_a_clean_run": "una ronda limpia",
+  "music_shell_trend_clean_run": "Ronda limpia",
+  "music_shell_trend_down_on_last": "Menos que la vez pasada",
+  "music_shell_trend_good_run": "Buena ronda",
+  "music_shell_trend_keep_at_it": "Sigue así",
+  "music_shell_trend_last_time": "La vez pasada: {prior}",
+  "music_shell_trend_moving_on": "{reason}: la próxima avanza",
+  "music_shell_trend_nearly": "Ya casi",
+  "music_shell_trend_new_best": "Nuevo récord",
+  "music_shell_trend_new_best_from": "Nuevo récord, antes {prior}",
+  "music_shell_trend_next_star": "Próxima estrella: {what}",
+  "music_shell_trend_perfect": "¡Ronda perfecta!",
+  "music_shell_trend_pips": "Rondas limpias: {passes} de {need} para avanzar",
+  "music_shell_trend_same": "Igual que la vez pasada",
+  "music_shell_trend_speeding_up": "{reason}: la próxima va más rápido",
+  "music_shell_trend_stars_0": "0 de 3 estrellas: {fail} gana la primera",
+  "music_shell_trend_stars_1": "1 de 3 estrellas: {fail} o más",
+  "music_shell_trend_stars_2": "2 de 3 estrellas: {pass} o más",
+  "music_shell_trend_stars_3": "3 de 3 estrellas: aprobado según la regla del ejercicio, con {pass} o más",
+  "music_shell_trend_unmeasured": "No se mide con esta entrada: {list}",
+  "music_shell_trend_up_from": "Sube desde {prior}",
+  "music_shell_trend_up_on_last": "Mejor que la vez pasada",
   "music_shell_verdict_early": "Adelantado",
   "music_shell_verdict_late": "Atrasado",
   "music_shell_verdict_miss": "Fallada",
