@@ -6,6 +6,7 @@
   import { m } from "@repo/i18n/messages.js";
   import { onDestroy } from "svelte";
   import { noteName } from "@repo/music-core";
+  import { note } from "#lib/music/names.svelte.ts";
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { midiAt } from "@repo/music-core/theory/fretboard";
   import { analyseBend, analyseVibrato, BEND, BEND_PROMPT_MS, BEND_SETTLE_MS, type BendResult, type PitchPoint, type VibratoResult } from "@repo/music-core/scoring/bends";
@@ -70,7 +71,7 @@
 
   const summaryLine = $derived([
     { text: EXERCISES.find((e) => e.value === exercise)!.label, focus: "exercise" },
-    { text: vibrato ? m.music_strings_bend_where({ string, fret, from: noteName(fromMidi) }) : m.music_strings_bend_where_to({ string, fret, from: noteName(fromMidi), to: noteName(toMidi) }) },
+    { text: vibrato ? m.music_strings_bend_where({ string, fret, from: note(noteName(fromMidi)) }) : m.music_strings_bend_where_to({ string, fret, from: note(noteName(fromMidi)), to: note(noteName(toMidi)) }) },
     { text: m.music_strings_n_times({ n: reps }), focus: "reps" },
   ]);
 
@@ -79,8 +80,8 @@
     judging = false;
     promptAt = performance.now();
     status = vibrato
-      ? m.music_strings_bend_prompt_vibrato({ n: rep + 1, total: reps, note: noteName(fromMidi), seconds: VIBRATO_MS / 1000 })
-      : m.music_strings_bend_prompt_bend({ n: rep + 1, total: reps, from: noteName(fromMidi), to: noteName(toMidi) });
+      ? m.music_strings_bend_prompt_vibrato({ n: rep + 1, total: reps, note: note(noteName(fromMidi)), seconds: VIBRATO_MS / 1000 })
+      : m.music_strings_bend_prompt_bend({ n: rep + 1, total: reps, from: note(noteName(fromMidi)), to: note(noteName(toMidi)) });
     clearTimeout(timer);
     timer = setTimeout(() => judge(), PROMPT_MS);
   }
@@ -196,7 +197,7 @@
       }
       summary = {
         headline: correct
-          ? m.music_strings_bend_all_in_tune({ cents: BEND.inTune, note: noteName(toMidi) })
+          ? m.music_strings_bend_all_in_tune({ cents: BEND.inTune, note: note(noteName(toMidi)) })
           : held.length
             ? (Math.abs(meanErr) > BEND.inTune ? (meanErr < 0 ? m.music_strings_bend_avg_push : m.music_strings_bend_avg_ease) : m.music_strings_bend_avg)({ n: inTune, total: bends.length, where: centsText(meanErr) })
             : m.music_strings_bend_none_held(),
@@ -289,12 +290,12 @@
 
   {#snippet stage()}
     <figure class="mb-3 rounded-xl bg-ws-stage-ink/6 p-3">
-      <svg viewBox="0 0 {W} {H}" class="h-36 w-full" preserveAspectRatio="none" role="img" aria-label={vibrato ? m.music_strings_bend_trace({ from: noteName(fromMidi) }) : m.music_strings_bend_trace_to({ from: noteName(fromMidi), to: noteName(toMidi) })}>
+      <svg viewBox="0 0 {W} {H}" class="h-36 w-full" preserveAspectRatio="none" role="img" aria-label={vibrato ? m.music_strings_bend_trace({ from: note(noteName(fromMidi)) }) : m.music_strings_bend_trace_to({ from: note(noteName(fromMidi)), to: note(noteName(toMidi)) })}>
         <line x1="0" x2={W} y1={yOf(0)} y2={yOf(0)} class="base" vector-effect="non-scaling-stroke" />
         {#if !vibrato}<line x1="0" x2={W} y1={yOf((toMidi - fromMidi) * 100)} y2={yOf((toMidi - fromMidi) * 100)} class="target" vector-effect="non-scaling-stroke" />{/if}
         {#if path}<path d={path} class="trace" vector-effect="non-scaling-stroke" />{/if}
       </svg>
-      <figcaption class="flex justify-between text-[13px] text-ws-stage-soft"><span>{m.music_strings_bend_fretted_note({ note: noteName(fromMidi) })}</span>{#if !vibrato}<span>{m.music_strings_bend_dashed({ note: noteName(toMidi) })}</span>{/if}</figcaption>
+      <figcaption class="flex justify-between text-[13px] text-ws-stage-soft"><span>{m.music_strings_bend_fretted_note({ note: note(noteName(fromMidi)) })}</span>{#if !vibrato}<span>{m.music_strings_bend_dashed({ note: note(noteName(toMidi)) })}</span>{/if}</figcaption>
     </figure>
     {@const picking = phase === "ready"}
     <Fretboard

@@ -1,7 +1,7 @@
 // Chord shapes for one instrument, the chords they sound (root and quality,
 // spelled as guitarists spell them), their positions on the player's tuning, and
 // the per-pair history the Changes mode keeps.
-import { pc } from "@repo/music-core";
+import { pc, showChord } from "@repo/music-core";
 import {
   CHORD_SHAPES,
   type ChordPosition,
@@ -138,7 +138,7 @@ export function shellPositions(c: ChordRef, tuning: Tuning): ChordPosition[] {
   const third = c.quality === "m7" ? 3 : 4;
   const seventh = c.quality === "maj7" ? 11 : 10;
   const id = `shell.guitar.${pc(c.root)}.${c.quality}`;
-  const name = m.music_strings_shell_name({ chord: chordLabel(c) });
+  const name = m.music_strings_shell_name({ chord: showChord(chordLabel(c)) });
   return SHELL_FORMS.map((form, i): ChordPosition => {
     const open = (s: number) => tuning.openStrings[s - 1];
     const r = pc(c.root - open(form.strings[0]));

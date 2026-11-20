@@ -8,6 +8,7 @@
   import PositionPicker from "./PositionPicker.svelte";
   import { chordId, chordLabel, chordRef, MAX_CYCLE, nextChordId, positionsOn, positionText, shortPosition, type ChordRef } from "./chords";
   import type { Fretted } from "./fretted";
+  import { chord } from "#lib/music/names.svelte.ts";
 
   interface Props {
     instrument: Fretted;
@@ -25,7 +26,8 @@
   let editing = $state(0);
   const n = $derived(refs.length);
   const edit = $derived(Math.min(editing, n - 1));
-  const names = $derived(refs.map(chordLabel));
+  /** Each chord as the player reads note names. */
+  const names = $derived(refs.map((r) => chord(chordLabel(r))));
   const ids = $derived(refs.map((r) => chordId(instrument, r)));
   const choices = $derived(positionsOn(ids[edit], tuning));
   /** The position on show for the chord being edited (the drill's default when none was chosen). */

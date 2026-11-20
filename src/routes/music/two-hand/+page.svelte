@@ -32,6 +32,7 @@
   import { nextRun, tempoAnd } from "#lib/music/advance.svelte.ts";
   import { evennessRow } from "@repo/music-core";
   import { formatList } from "@repo/i18n/format";
+  import { keyName, note, useNamingKey } from "#lib/music/names.svelte.ts";
 
   const TEMPO = { min: 50, max: 140 };
   const BARS = 2;
@@ -54,6 +55,8 @@
   const s = $derived(cfg.value);
   const pattern = $derived((TWO_HAND_PATTERNS.some((p) => p.id === s.pattern) ? s.pattern : "lh-pulse-rh-line") as TwoHandPatternId);
   const tonic = $derived(TWO_HAND_TONICS.find((t) => t.name === s.tonic)?.midi ?? 60);
+  // The patterns are in the tonic's major key (the staff's signature): movable do counts from it.
+  useNamingKey(() => ({ tonic: noteName(tonic, "flat", false) }));
   const hand = $derived((["both", "left", "right"].includes(s.hand) ? s.hand : "both") as HandMode);
   const bpm = $derived(Math.min(TEMPO.max, Math.max(TEMPO.min, settings.value.bpm)));
   const rendering = $derived(twoHandPattern({ pattern, tonic, bars: BARS, handMode: hand }));
@@ -135,7 +138,7 @@
         mark: h === "left" ? "L" : "R",
         label: h === "left" ? m.music_strings_left_hand_cap() : m.music_strings_right_hand_cap(),
         hand: h,
-        notes: notes.filter((n) => n.hand === h).map((n) => ({ beat: n.beat, dur: n.dur, text: noteName(n.midi, "flat", false) })),
+        notes: notes.filter((n) => n.hand === h).map((n) => ({ beat: n.beat, dur: n.dur, text: note(noteName(n.midi, "flat", false)) })),
       }))
       .reverse(),
   );
@@ -154,12 +157,13 @@
     const b = transport.beat;
     const at = { bar: Math.min(BARS, Math.floor(b / 4) + 1), beat: (Math.floor(b) % 4) + 1 };
     if (mode !== "practice") return m.music_strings_th_cue_check(at);
-    const names = [...new Set(due(b).sort((x, y) => x.midi - y.midi).map((n) => noteName(n.midi, "flat", false)))];
+    const names = [...new Set(due(b).sort((x, y) => x.midi - y.midi).map((n) => note(noteName(n.midi, "flat", false))))];
     return names.length ? m.music_strings_th_cue_notes({ beat: at.beat, notes: names.reduce((a, b) => m.music_strings_and_pair({ a, b })) }) : m.music_strings_th_cue_where(at);
   });
 
   const patternLabel = $derived(TWO_HAND_PATTERNS.find((p) => p.id === pattern)?.label ?? pattern);
-  const tonicName = $derived(noteName(tonic, "flat", false));
+  /** The tonic names the key, so it reads as a key: absolute, even in movable do. */
+  const tonicName = $derived(keyName(noteName(tonic, "flat", false)));
   const about = $derived(ABOUT(tonicName));
   const summaryLine = $derived<SetupClause[]>([
     { text: m.music_strings_th_pattern_from({ pattern: patternLabel, tonic: tonicName }), focus: "pattern" },
@@ -195,7 +199,7 @@
   /** "Wrong note: Bb4, wanted E4": the due note nearest the one played, when there is one. */
   const wrongText = (midi: number, dueNow: readonly TimedNote[]) => {
     const near = [...dueNow].sort((a, b) => Math.abs(a.midi - midi) - Math.abs(b.midi - midi))[0];
-    return near ? m.music_strings_th_wrong_wanted({ played: noteName(midi, "flat"), want: noteName(near.midi, "flat") }) : m.music_strings_th_wrong({ played: noteName(midi, "flat") });
+    return near ? m.music_strings_th_wrong_wanted({ played: note(noteName(midi, "flat")), want: note(noteName(near.midi, "flat")) }) : m.music_strings_th_wrong({ played: note(noteName(midi, "flat")) });
   };
 
   function start(ctx: RunContext) {
@@ -359,7 +363,7 @@
   {#snippet setup()}
     <div class="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
       <Choice label={m.music_strings_pattern()} setupKey="pattern" options={TWO_HAND_PATTERNS.map((p) => ({ value: p.id as string, label: p.label, hint: about[p.id] }))} value={pattern} onchange={(v) => cfg.set({ pattern: v })} />
-      <Choice label={m.music_strings_tonic()} options={TWO_HAND_TONICS.map((t) => ({ value: t.name, label: noteName(t.midi, "flat", false) }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
+      <Choice label={m.music_strings_tonic()} options={TWO_HAND_TONICS.map((t) => ({ value: t.name, label: keyName(noteName(t.midi, "flat", false)) }))} value={s.tonic} onchange={(v) => cfg.set({ tonic: v })} />
       <Choice label={m.music_strings_hands()} setupKey="hand" options={TWO_HAND_MODES.map((x) => ({ value: x.id as string, label: x.id === "both" ? m.music_strings_both_hands_cap() : x.id === "left" ? m.music_strings_left_only() : m.music_strings_right_only() }))} value={hand} onchange={(v) => cfg.set({ hand: v })} />
     </div>
     <div class="mt-4 sm:max-w-sm">
@@ -386,7 +390,7 @@
 
   {#snippet stage()}
     {@const live = phase === "running" || phase === "countin"}
-    {@const pianoLabel = m.music_strings_th_piano_label({ low: noteName(span.low), high: noteName(span.high) })}
+    {@const pianoLabel = m.music_strings_th_piano_label({ low: note(noteName(span.low)), high: note(noteName(span.high)) })}
     {#if falling && (mode === "practice" || transport.playing || phase === "results")}
       {#if !live}<div class="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">{@render about_()}<ViewSwitch /></div>{/if}
       <FallingKeys score={fallScore} low={span.low} high={span.high} beat={transport.beat} {marks} {flashes} label={pianoLabel} />

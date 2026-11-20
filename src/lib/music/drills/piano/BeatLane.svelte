@@ -17,6 +17,7 @@
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
   import type { LaneOutcome } from "./lane-outcomes";
+  import { chord } from "#lib/music/names.svelte.ts";
   import Check from "@lucide/svelte/icons/check";
   import X from "@lucide/svelte/icons/x";
   import ChevronsLeft from "@lucide/svelte/icons/chevrons-left";
@@ -91,6 +92,7 @@
   const live = (n: LaneNote) => beat !== null && beat >= n.beat && beat < n.beat + Math.max(0.2, n.dur * 0.9);
   /** The chord sounding now (or at the start), pinned at the lane's left edge so it never scrolls away. */
   const nowChord = $derived(chords.length ? chords.filter((c) => c.beat <= Math.max(0, beat ?? 0)).at(-1)?.symbol ?? chords[0].symbol : null);
+  const shown = (symbol: string | null | undefined) => (symbol ? chord(symbol) : "");
 </script>
 
 <!-- The region a live stage grows (DrillShell, S3): the rows take the free height, up to a comfortable size, and
@@ -140,10 +142,10 @@
     <!-- A wrapped row draws the chord row only where a chord changes in it (the first row always). -->
     {#if chords.length && (!wrap || b0 === 0 || chords.some((c) => c.beat >= b0 && c.beat < b1))}
       <div class="flex h-6 text-sm font-semibold text-ws-stage-ink">
-        <span class="gutter now-chord" aria-hidden="true">{wrap ? (b0 > 0 && !chords.some((c) => c.beat === b0) ? (chords.filter((c) => c.beat < b0).at(-1)?.symbol ?? "") : "") : scrolled ? nowChord : ""}</span>
+        <span class="gutter now-chord" aria-hidden="true">{wrap ? (b0 > 0 && !chords.some((c) => c.beat === b0) ? shown(chords.filter((c) => c.beat < b0).at(-1)?.symbol) : "") : scrolled ? shown(nowChord) : ""}</span>
         <div class="relative flex-1">
           {#each chords.filter((c) => c.beat >= b0 && c.beat < b1) as c (c.beat)}
-            <span class="absolute top-0 whitespace-nowrap" style:left={pos(c.beat)}>{c.symbol}</span>
+            <span class="absolute top-0 whitespace-nowrap" style:left={pos(c.beat)}>{chord(c.symbol)}</span>
           {/each}
         </div>
       </div>

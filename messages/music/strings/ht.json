@@ -590,7 +590,7 @@
   "music_strings_right_hand_only": "men dwat sèlman",
   "music_strings_right_only": "Dwat sèlman",
   "music_strings_round_circle": "Fè wonn sèk la",
-  "music_strings_round_circle_hint": "Apre yon egzèsis pwòp nan Tès, tonik la monte yon kent: C, G, D epi konsa pou tout 12 yo.",
+  "music_strings_round_circle_hint": "Apre yon egzèsis pwòp nan Tès, tonik la monte yon kent: {keys} epi konsa pou tout 12 yo.",
   "music_strings_row_other_notes": "Lòt nòt ki sonnen",
   "music_strings_row_timing_error": "Erè ritm",
   "music_strings_row_tone_clean": "Pwòpte son an",
@@ -801,7 +801,7 @@
   "music_strings_strum_any_help": "Nenpòt grate: sa ki konte se chak akò sonnen sou mezi pa l. Chwazi yon modèl nan Konfigirasyon pou pratike youn.",
   "music_strings_strum_bar_label": "Mezi {n}, {chord}",
   "music_strings_strum_blurb": "Grate modèl la sou tout tablo akò a pandan mikwo a ap swiv chak akò.",
-  "music_strings_strum_chart_help": "Uit mezi an C ou poko janm wè: li yo yon fwa, epi grate yo. Gen kèk mezi ki chanje akò sou tan 3.",
+  "music_strings_strum_chart_help": "Uit mezi an {key} ou poko janm wè: li yo yon fwa, epi grate yo. Gen kèk mezi ki chanje akò sou tan 3.",
   "music_strings_strum_chords_line": "{n} akò sou {total} swiv.",
   "music_strings_strum_choruses": [
     {
@@ -977,7 +977,6 @@
   "music_strings_tuning_frets": "Frèt",
   "music_strings_tuning_label": "Akòdaj",
   "music_strings_tuning_name": "Non",
-  "music_strings_tuning_name_placeholder": "Open D",
   "music_strings_tuning_open_strings": "Kòd lib yo, soti nan grav rive nan egi ({count})",
   "music_strings_tuning_save": "Anrejistre akòdaj la",
   "music_strings_tuning_summary": [
@@ -1058,7 +1057,7 @@
   "music_strings_voicing_rootless_b": "San rasin B (7 9 3 5)",
   "music_strings_voicing_rootless_half_dim": "San rasin A pou ii mwatye dimine a (b3 b5 b7 1)",
   "music_strings_voicing_start_root": "Kòmanse nan pozisyon rasin.",
-  "music_strings_voicing_top_near_g": "Kenbe nòt anwo a toupre G. Deplase chak vwa pa chemen ki pi kout la.",
+  "music_strings_voicing_top_near_g": "Kenbe nòt anwo a toupre {note}. Deplase chak vwa pa chemen ki pi kout la.",
   "music_strings_voicing_upper_structure": "Estrikti siperyè {triad} sou yon shell 1 3 7, li ajoute {adds}",
   "music_strings_voicing_us_hint": "Estrikti siperyè ki pi popilè a: yon triyad majè yon ton pi wo pase rasin lan.",
   "music_strings_voicing_v7_hint": "Twa nòt: rasin, tyès ak sèt, san kent lan. Apre sa sèt la desann sou tyès tonik la.",
@@ -1074,5 +1073,12 @@
   "music_strings_find_iv_minor_third": "yon tyès minè",
   "music_strings_find_iv_major_third": "yon tyès majè",
   "music_strings_find_iv_perfect_fifth": "yon kent jis",
-  "music_strings_find_iv_octave": "yon oktav"
+  "music_strings_find_iv_octave": "yon oktav",
+  "music_strings_tuning_n_standard": "Estanda",
+  "music_strings_tuning_n_drop": "Drop {note}",
+  "music_strings_tuning_n_spelled": "{notes}",
+  "music_strings_tuning_n_open": "{note} ouvè",
+  "music_strings_tuning_n_high": "{note} wo",
+  "music_strings_tuning_n_low": "{note} ba",
+  "music_strings_tuning_n_baritone": "Bariton {notes}"
 }

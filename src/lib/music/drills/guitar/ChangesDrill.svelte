@@ -29,6 +29,7 @@
   import { exerciseFor, neckLabel, skillsFor } from "./fretted";
   import { formatList, formatNumber, intlLocale } from "@repo/i18n/format";
   import { fretted, tuningFor } from "./instrument.svelte";
+  import { chord, note } from "#lib/music/names.svelte.ts";
   import { chordId, chordLabel, chordRef, cyclePositions, cycleRefs, groupChanges, groupedNotes, hardestPairs, mergePairRuns, PAIR_HISTORY_KEY, positionsOn, shapesFor, type ChordRef, type HardPair, type PairRun } from "./chords";
   import { ChordListener } from "./strum.svelte";
   import MicPanel from "./MicPanel.svelte";
@@ -74,7 +75,9 @@
   );
   const from = $derived(shapes[0]);
   const pcs = $derived(shapes.map((sh) => shapePcs(sh, tuning)));
-  const names = $derived(refs.map(chordLabel));
+  /** The chords in letters (the saved run's target), and as the player reads note names. */
+  const symbols = $derived(refs.map(chordLabel));
+  const names = $derived(symbols.map((x) => chord(x)));
   /** Two chords go there and back (a round trip); more go round the cycle. */
   const roundsText = (k: number) => (n === 2 ? m.music_strings_changes_round_trips({ k }) : m.music_strings_changes_times_round({ k }));
   const cycleText = $derived(n === 2 ? formatList([names[0], names[1]]) : names.join(", "));
@@ -124,7 +127,7 @@
   /** The five slowest pairs on this instrument; a run on one of them records `hardest`. */
   const hardest = $derived(hardestPairs(history, instr));
   const inHardest = $derived(n === 2 && hardest.some((h) => h.key === cycleKey));
-  const pairName = (h: HardPair) => h.chords.split(",").map((id) => { const r = chordRef(id); return r ? chordLabel(r) : id; });
+  const pairName = (h: HardPair) => h.chords.split(",").map((id) => { const r = chordRef(id); return r ? chord(chordLabel(r)) : id; });
   const pairText = (h: HardPair) => formatList(pairName(h));
   const useHard = (h: HardPair) => cfg.set({ chords: h.chords, positions: h.positions });
   // A link with ?hardest (a path's) opens on the slowest pair once the history is read.
@@ -284,7 +287,7 @@
       metrics: r.metrics,
       source: usedMic ? "audio" : runSource(src),
       instrument: runInstrument(src, instr) ?? null,
-      target: names.join(" "),
+      target: symbols.join(" "),
       response: `${r.completed} changes`,
       heard: notes.length > 0,
     });
@@ -429,7 +432,7 @@
       <div class="mb-3">
         <NoteHighway
           chords={blocks}
-          strings={tuning.openStrings.map((m) => noteName(m, "flat", false))}
+          strings={tuning.openStrings.map((m) => note(noteName(m, "flat", false)))}
           beat={live && periodMs ? ((now - downbeat) / periodMs) * beatsPerChord : null}
           chordHits={blockHits}
           judge={phase === "running"}

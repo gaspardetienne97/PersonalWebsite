@@ -2,10 +2,10 @@
   // Curated tunings plus the player's own, with a small form to add one
   // (validated by validateCustomTuning: custom. id, 6 or 4 strings, 1 to 36 frets).
   import { m } from "@repo/i18n/messages.js";
-  import { noteName } from "@repo/music-core";
   import Choice from "#lib/music/components/Choice.svelte";
   import { btn } from "#lib/music/components/ui.ts";
-  import { customTuningId, parseTuningNotes, type Fretted } from "./fretted";
+  import { customTuningId, parseTuningNotes, tuningName, tuningNotes, type Fretted } from "./fretted";
+  import { keyName } from "#lib/music/names.svelte.ts";
   import { tunings } from "./instrument.svelte";
 
   let { instrument, value, onchange }: { instrument: Fretted; value: string; onchange: (id: string) => void } = $props();
@@ -16,9 +16,9 @@
   let frets = $state(0);
   let problem = $state("");
 
-  const options = $derived(tunings.for(instrument).map((t) => ({ value: t.id, label: t.source === "custom" ? m.music_strings_tuning_yours({ name: t.name }) : t.name })));
+  const options = $derived(tunings.for(instrument).map((t) => ({ value: t.id, label: t.source === "custom" ? m.music_strings_tuning_yours({ name: t.name }) : tuningName(t) })));
   const current = $derived(tunings.pick(value, instrument));
-  const spelled = $derived([...current.openStrings].reverse().map((m) => noteName(m, "flat")).join(" "));
+  const spelled = $derived(tuningNotes(current));
 
   async function save(e: SubmitEvent) {
     e.preventDefault();
@@ -54,7 +54,7 @@
     <form class="grid gap-2 rounded-lg border border-ws-line p-3" onsubmit={save}>
       <label class="flex flex-col gap-1 text-sm">
         <span class="font-medium">{m.music_strings_tuning_name()}</span>
-        <input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={name} placeholder={m.music_strings_tuning_name_placeholder()} />
+        <input class="min-h-11 rounded-lg border border-ws-line bg-ws-surface px-3" bind:value={name} placeholder={m.music_strings_tuning_n_open({ note: keyName("D") })} />
       </label>
       <label class="flex flex-col gap-1 text-sm">
         <span class="font-medium">{m.music_strings_tuning_open_strings({ count: instrument === "guitar" ? 6 : 4 })}</span>

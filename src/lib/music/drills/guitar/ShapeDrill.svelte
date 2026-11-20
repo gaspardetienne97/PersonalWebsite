@@ -32,6 +32,7 @@
   import ShapeBoard from "./ShapeBoard.svelte";
   import ChordDiagram from "#lib/music/components/ChordDiagram.svelte";
   import { CHORD_MODES, openMode } from "./modes";
+  import { chord, note } from "#lib/music/names.svelte.ts";
 
   let { kind }: { kind: "build" | "pick" } = $props();
   // svelte-ignore state_referenced_locally
@@ -49,7 +50,10 @@
   const positions = $derived(positionsOn(baseId, tuning));
   const posIndex = $derived(Math.min(s.position, Math.max(0, positions.length - 1)));
   const shape = $derived(positions[posIndex] ?? positions[0] ?? shapesFor(instr)[0]);
-  const symbol = $derived(chordLabel(ref));
+  /** The chord as the player reads note names (display only). */
+  const symbol = $derived(chord(chordLabel(ref)));
+  /** A chord tone in the chord's own spelling, as the player reads note names. */
+  const spell = (midi: number, withOctave = true) => note(toneName(midi, ref, withOctave));
   const targets = $derived(chordPerfectTargets(shape, tuning));
   const key = $derived(`${kind}:${shape.id}`);
   const bpm = () => Math.min(160, Math.max(40, settings.value.bpm));
@@ -123,8 +127,8 @@
       // Say what is really wrong: the tuning (a quarter tone off), the octave, or the note. Check never names the target.
       const near = e.source === "audio" ? nearMiss(e.midi, e.cents, targets.filter((_, i) => !matched[i]).map((t) => t.midi)) : null;
       // One plain message, in the chord's own spelling, naming the string to play: no octave numbers.
-      const heardName = toneName(e.midi, ref, false);
-      const where = (t: (typeof targets)[number]) => (t.fret ? m.music_strings_shape_where_fret({ string: t.string, fret: t.fret, note: toneName(t.midi, ref, false) }) : m.music_strings_shape_where_open({ string: t.string, note: toneName(t.midi, ref, false) }));
+      const heardName = spell(e.midi, false);
+      const where = (t: (typeof targets)[number]) => (t.fret ? m.music_strings_shape_where_fret({ string: t.string, fret: t.fret, note: spell(t.midi, false) }) : m.music_strings_shape_where_open({ string: t.string, note: spell(t.midi, false) }));
       miss = near
         ? (near.cents > 0 ? m.music_strings_shape_near_sharp : m.music_strings_shape_near_flat)({ heard: heardName, cents: Math.abs(near.cents) })
         : mode === "check"
@@ -214,7 +218,7 @@
         ? m.music_strings_shape_nothing_heard()
         : r.correct
           ? (mode === "check" ? m.music_strings_shape_all_matched_check : m.music_strings_shape_all_matched)({ total: r.total, symbol })
-          : m.music_strings_shape_some_matched({ n: r.matched, total: r.total, missed: missedTargets.map((t) => m.music_strings_shape_string_note({ string: t.string, note: toneName(t.midi, ref) })).join(", ") }),
+          : m.music_strings_shape_some_matched({ n: r.matched, total: r.total, missed: missedTargets.map((t) => m.music_strings_shape_string_note({ string: t.string, note: spell(t.midi) })).join(", ") }),
       metric: `${r.matched}/${r.total}`,
       metricLabel: m.music_strings_shape_metric_label(),
       delta: fin.delta,
@@ -225,7 +229,7 @@
       mode,
       rows: [
         { label: m.music_strings_shape_row_matched(), value: r.score, text: m.music_strings_n_of_total({ n: r.matched, total: r.total }) },
-        { label: m.music_strings_row_other_notes(), text: r.extra.length ? r.extra.map((x) => noteName(x)).join(", ") : m.music_strings_none() },
+        { label: m.music_strings_row_other_notes(), text: r.extra.length ? r.extra.map((x) => note(noteName(x))).join(", ") : m.music_strings_none() },
         ...(line
           ? [
               evennessRow(line.evenness, line.clean, line.total),
@@ -268,7 +272,7 @@
   const cue = $derived.by(() => {
     const t = targets[Math.max(0, cursor)];
     if (phase !== "running" || !t || cursor >= targets.length) return "";
-    if (mode === "practice") return (isPick ? m.music_strings_shape_cue_pick_note : m.music_strings_shape_cue_sound_note)({ string: t.string, note: toneName(t.midi, ref) });
+    if (mode === "practice") return (isPick ? m.music_strings_shape_cue_pick_note : m.music_strings_shape_cue_sound_note)({ string: t.string, note: spell(t.midi) });
     return (isPick ? m.music_strings_shape_cue_pick : m.music_strings_shape_cue_sound)({ string: t.string });
   });
 </script>
@@ -309,7 +313,7 @@
     {#if phase === "running"}
       <Stat label={m.music_strings_target_notes()} value={m.music_strings_n_of_total({ n: matched.filter(Boolean).length, total: targets.length })} />
       <!-- A match only: a miss is said once, in plain words on the stage. -->
-      {#if heard !== null && !miss}<Stat label={m.music_strings_heard()} value="✓ {toneName(heard, ref, false)}" />{/if}
+      {#if heard !== null && !miss}<Stat label={m.music_strings_heard()} value="✓ {spell(heard, false)}" />{/if}
     {/if}
   {/snippet}
 
@@ -352,7 +356,7 @@
                 : 'border-ws-stage-ink/25 text-ws-stage-soft'}"
         >
           <span>{m.music_strings_string_n({ n: t.string })}</span>
-          <span class="font-semibold">{showShape || done ? toneName(t.midi, ref) : "?"}</span>
+          <span class="font-semibold">{showShape || done ? spell(t.midi) : "?"}</span>
           {#if done}<span aria-hidden="true">✓</span><span class="sr-only">{m.music_strings_matched()}</span>{:else if live && i === cursor}<span class="sr-only">{m.music_strings_next()}</span>{/if}
         </li>
       {/each}
@@ -378,7 +382,7 @@
               {@const ok = !missedStrings.includes(t.string)}
               <li class="flex items-center gap-2">
                 <span class="grid size-6 place-items-center rounded-full text-[13px] font-bold {ok ? 'bg-success text-success-foreground' : 'bg-destructive text-[color:var(--on-destructive)]'}" aria-hidden="true">{ok ? "✓" : "✕"}</span>
-                <span>{@html m.music_strings_string_note({ string: t.string, note: `<span class="font-semibold">${toneName(t.midi, ref)}</span>` })}</span>
+                <span>{@html m.music_strings_string_note({ string: t.string, note: `<span class="font-semibold">${spell(t.midi)}</span>` })}</span>
                 <span class="sr-only">{ok ? m.music_strings_matched() : m.music_strings_fretmark_missed()}</span>
               </li>
             {/each}
