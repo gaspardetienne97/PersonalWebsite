@@ -6,6 +6,7 @@ import type { LearningPath, PathId, PathLink, PathStep } from "./paths";
 import { dayKey } from "./rewards";
 import type { LadderCriterion } from "./ladder";
 import { m } from "@repo/i18n/messages.js";
+import { pathString } from "./path-text";
 
 type Message = (inputs?: object, options?: { locale?: "en" }) => string;
 /**
@@ -167,6 +168,27 @@ const shelfMatch = (href?: string) => {
   return m ? { shelf: `${m[1]}/${m[2]}` } : undefined;
 };
 
+/** A link whose label reads in the loaded language. */
+const localLink = <T extends { label: string }>(link: T): T => ({
+  ...link,
+  get label() {
+    return pathString(link.label);
+  },
+});
+
+/** A shelf song whose descriptions read in the loaded language; title and artist stay. */
+const localSong = (song: ShelfSong): ShelfSong => ({
+  ...song,
+  get teaches() {
+    return pathString(song.teaches);
+  },
+  get detail() {
+    return pathString(song.detail);
+  },
+  scores: song.scores.map(localLink),
+  ...(song.fallback ? { fallback: localLink(song.fallback) } : {}),
+});
+
 export function levelPath(raw: RawLevelPath): LearningPath {
   const instruments = raw.instruments ?? [];
   let order = 0;
@@ -177,12 +199,19 @@ export function levelPath(raw: RawLevelPath): LearningPath {
       return {
         id: `${raw.id}.${s.id}`,
         order: ++order,
-        title: s.title,
-        summary: s.setup,
-        detail: s.done,
+        // Getters, so the text is read in the language loaded by `loadPathText`.
+        get title() {
+          return pathString(s.title);
+        },
+        get summary() {
+          return pathString(s.setup);
+        },
+        get detail() {
+          return pathString(s.done);
+        },
         kind: s.needs ? "new" : graded && (exercises.length || s.ladder) ? "drill" : "reference",
         href: s.href ?? "",
-        links: s.links ?? [],
+        links: (s.links ?? []).map(localLink),
         skillIds: graded ? (s.skillIds ?? []) : [],
         exerciseIds: graded ? exercises : [],
         // A shelf song link counts that song's Song Studio runs.
@@ -199,7 +228,9 @@ export function levelPath(raw: RawLevelPath): LearningPath {
         instruments: instruments.length ? instruments : undefined,
         level: level.id,
         strand: s.strand,
-        needs: s.needs,
+        get needs() {
+          return pathString(s.needs);
+        },
         ...(s.ladder && !s.needs ? { ladder: s.ladder } : {}),
       };
     }),
@@ -212,12 +243,20 @@ export function levelPath(raw: RawLevelPath): LearningPath {
     steps,
     levels: raw.levels.map((l) => ({
       id: l.id,
-      title: l.title,
-      goal: l.goal,
-      adds: l.adds,
+      get title() {
+        return pathString(l.title);
+      },
+      get goal() {
+        return pathString(l.goal);
+      },
+      get adds() {
+        return pathString(l.adds);
+      },
       pick: l.pick ?? 2,
-      shelf: l.shelf,
-      test: l.test,
+      shelf: l.shelf.map(localSong),
+      get test() {
+        return pathString(l.test);
+      },
       stepIds: l.steps.map((s) => `${raw.id}.${s.id}`),
     })),
   };
