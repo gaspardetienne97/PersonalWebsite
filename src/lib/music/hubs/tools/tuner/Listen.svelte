@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // Tune and Intonation share one listening session: the microphone starts on
   // a click, keeps running when you switch between the two, and stops when this
   // view goes away (Drone, another page) or you press Stop.
@@ -22,6 +23,7 @@
   import { btnPrimary, btnStage } from "#lib/music/components/ui.ts";
   import { audio, mic, settings, type MicFrame } from "#lib/music/runtime/index.ts";
   import NotePads from "./NotePads.svelte";
+  import { formatNumber } from "@repo/i18n/format";
   import Picker from "#lib/music/components/Picker.svelte";
   import {
     A4_CHOICES,
@@ -66,15 +68,17 @@
   const shown = $derived(reading ? { ...against(reading), inTune: Math.abs(against(reading).cents) <= IN_TUNE_CENTS } : null);
   const word = $derived(shown ? direction(shown.cents) : null);
   const semitonesOff = $derived(shown && Math.abs(shown.cents) > 50 ? Math.round(shown.cents / 100) : 0);
+  /** One decimal place, as the readouts show it. */
+  const one = (v: number) => formatNumber(v, { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false });
 
   async function chooseTarget(pc: number | null) {
     target = pc;
     intonation.reset();
     inTuneSince = null;
-    if (pc === null) return onstatus("Tuning to the nearest note.");
+    if (pc === null) return onstatus(m.music_hubs_tuner_nearest());
     const octave = reading ? Math.floor(reading.midi / 12) - 1 : 4;
     const midi = (octave + 1) * 12 + pc;
-    onstatus(`Target ${noteName(midi)}.`);
+    onstatus(m.music_hubs_tuner_target_status({ note: noteName(midi) }));
     await audio.unlock();
     audio.playNote(midi, 1.5);
   }
@@ -104,20 +108,20 @@
       inTuneSince ??= f.at;
       lastInTuneAt = f.at;
     } else if (fresh || !r) inTuneSince = null;
-    const say = ok && view ? `${noteName(view.midi)} in tune.` : "";
+    const say = ok && view ? m.music_hubs_tuner_in_tune_status({ note: noteName(view.midi) }) : "";
     if (say && say !== announced) onstatus(say);
     announced = say;
   }
 
   async function start() {
-    onstatus("Starting the microphone…");
+    onstatus(m.music_hubs_tuner_starting());
     const ok = await mic.start();
-    if (!ok) return onstatus(mic.error || "The microphone didn't start. Allow it in the browser, then try again.");
+    if (!ok) return onstatus(mic.error || m.music_hubs_mic_failed());
     reader.reset();
     intonation.reset();
     unsub?.();
     unsub = mic.subscribeFrames(onFrame);
-    onstatus("Listening. Play one note and let it ring.");
+    onstatus(m.music_hubs_tuner_listening());
   }
 
   /** Intonation: clear the window and hold the note again. */
@@ -125,7 +129,7 @@
     intonation.reset();
     stats = null;
     inTuneSince = null;
-    onstatus("Cleared. Hold the note again.");
+    onstatus(m.music_hubs_tuner_cleared());
   }
 
   function stop() {
@@ -134,7 +138,7 @@
     mic.stop();
     reading = null;
     inTuneSince = null;
-    onstatus("Stopped listening.");
+    onstatus(m.music_hubs_tv_stopped());
   }
 
   onDestroy(() => {
@@ -176,40 +180,40 @@
 
 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
   <div class="flex items-center gap-2">
-    <span class="font-medium whitespace-nowrap">Reference A4</span>
-    <Picker class="tnum" label="Reference A4" value={String(a4)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: `${hz} Hz${hz === 440 ? " (standard)" : ""}` }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
+    <span class="font-medium whitespace-nowrap">{m.music_hubs_tuner_reference()}</span>
+    <Picker class="tnum" label={m.music_hubs_tuner_reference()} value={String(a4)} options={A4_CHOICES.map((hz) => ({ value: String(hz), label: hz === 440 ? m.music_hubs_tuner_hz_standard({ hz }) : m.music_hubs_tuner_hz({ hz }) }))} onchange={(v) => settings.update({ a4Hz: Number(v) })} />
   </div>
   {#if fretted}
     <div class="flex items-center gap-2">
-      <span class="font-medium whitespace-nowrap">{instrument === "ukulele" ? "Ukulele" : "Guitar"} tuning</span>
-      <Picker label="{instrument === 'ukulele' ? 'Ukulele' : 'Guitar'} tuning" value={tuning.id} options={tunings.map((t) => ({ value: t.id, label: t.name }))} onchange={(v) => settings.update({ [tuningKey]: v })} />
+      <span class="font-medium whitespace-nowrap">{instrument === "ukulele" ? m.music_hubs_tuner_ukulele_tuning() : m.music_hubs_tuner_guitar_tuning()}</span>
+      <Picker label={instrument === "ukulele" ? m.music_hubs_tuner_ukulele_tuning() : m.music_hubs_tuner_guitar_tuning()} value={tuning.id} options={tunings.map((t) => ({ value: t.id, label: t.name }))} onchange={(v) => settings.update({ [tuningKey]: v })} />
     </div>
   {/if}
 </div>
 
-<section class="stage relative overflow-hidden rounded-2xl p-4 sm:p-5" aria-label="Tuner">
+<section class="stage relative overflow-hidden rounded-2xl p-4 sm:p-5" aria-label={m.music_hubs_tuner_label()}>
   <div class="flex flex-wrap items-center gap-3">
     {#if listening}
       <!-- One mic control: the button carries the live dot, so the state is not said twice. -->
-      <button type="button" class={btnStage} onclick={stop}><span class="live-dot" aria-hidden="true"></span><Mic class="size-4" aria-hidden="true" />Stop listening</button>
+      <button type="button" class={btnStage} onclick={stop}><span class="live-dot" aria-hidden="true"></span><Mic class="size-4" aria-hidden="true" />{m.music_hubs_tuner_stop()}</button>
     {:else}
       <button type="button" class={btnPrimary} onclick={start} disabled={mic.state === "starting"}>
-        <Mic class="size-4" aria-hidden="true" />{mic.state === "denied" || mic.state === "error" ? "Try the microphone again" : "Start listening"}
+        <Mic class="size-4" aria-hidden="true" />{mic.state === "denied" || mic.state === "error" ? m.music_hubs_tuner_retry() : m.music_hubs_tuner_start()}
       </button>
       <p class="min-w-0 flex-1 basis-48 text-sm text-ws-stage-soft">
-        {#if mic.state === "denied" || mic.state === "error"}{mic.error}{:else}The microphone only listens while this is on. Nothing is recorded.{/if}
+        {#if mic.state === "denied" || mic.state === "error"}{mic.error}{:else}{m.music_hubs_tuner_privacy()}{/if}
       </p>
     {/if}
-    <button type="button" class="{btnStage} ml-auto" aria-label="Pick a note, target {target === null ? 'auto' : noteName(target, 'flat', false)}" aria-expanded={choosing} aria-controls="tuner-targets" onclick={() => (choosing = !choosing)}>
-      Target: {target === null ? "Auto" : pretty(noteName(target, "flat", false))}
+    <button type="button" class="{btnStage} ml-auto" aria-label={m.music_hubs_tuner_pick_note({ target: target === null ? m.music_hubs_tuner_auto_lower() : noteName(target, "flat", false) })} aria-expanded={choosing} aria-controls="tuner-targets" onclick={() => (choosing = !choosing)}>
+      {m.music_hubs_tuner_target({ target: target === null ? m.music_hubs_tuner_auto() : pretty(noteName(target, "flat", false)) })}
       <ChevronDown class="size-4 transition-transform {choosing ? 'rotate-180' : ''}" aria-hidden="true" />
     </button>
   </div>
 
   {#if choosing}
     <div id="tuner-targets" class="mt-3">
-      <p class="mb-2 text-sm text-ws-stage-soft">Target note. Any note tunes to the nearest note. Pick one to aim at it in the octave you play.</p>
-      <NotePads label="Target note" noneLabel="Any note" selected={target} onselect={(p) => void chooseTarget(p)} />
+      <p class="mb-2 text-sm text-ws-stage-soft">{m.music_hubs_tuner_target_hint()}</p>
+      <NotePads label={m.music_hubs_tuner_target_note()} noneLabel={m.music_hubs_tuner_any_note()} selected={target} onselect={(p) => void chooseTarget(p)} />
     </div>
   {/if}
 
@@ -228,8 +232,8 @@
           {@const [lx, ly] = pt(angle(t), R + 20)}
           <text x={lx} y={ly + 5} class="scale" text-anchor="middle">{signedCents(t)}</text>
         {/each}
-        <text x={fx} y={fy + 30} class="nb" text-anchor="middle">flat</text>
-        <text x={2 * CX - fx} y={fy + 30} class="nb" text-anchor="middle">sharp</text>
+        <text x={fx} y={fy + 30} class="nb" text-anchor="middle">{m.music_hubs_tuner_flat()}</text>
+        <text x={2 * CX - fx} y={fy + 30} class="nb" text-anchor="middle">{m.music_hubs_tuner_sharp()}</text>
         {#if shown}
           <!-- A short needle riding the arc, so it never crosses the note letter below it. -->
           <g class="needle" style:transform="rotate({angle(shown.cents)}deg)">
@@ -260,7 +264,7 @@
   {#if mode === "tune"}{@render readline()}{/if}
 
   {#if fretted}
-    <ul class="strings mt-4 grid gap-2" style:grid-template-columns="repeat({tuning.openStrings.length}, minmax(0, 1fr))" aria-label="{tuning.name} strings, low to high">
+    <ul class="strings mt-4 grid gap-2" style:grid-template-columns="repeat({tuning.openStrings.length}, minmax(0, 1fr))" aria-label={m.music_hubs_tuner_strings({ tuning: tuning.name })}>
       {#each [...tuning.openStrings].reverse() as open, k (k)}
         {@const i = tuning.openStrings.length - 1 - k}
         {@const isNear = i === near}
@@ -271,12 +275,12 @@
             class="string w-full"
             data-near={isNear || undefined}
             data-ok={(off !== null && Math.abs(off) <= IN_TUNE_CENTS) || undefined}
-            aria-label="String {i + 1}, {noteName(open)}{isNear ? ', nearest to what you are playing' : ''}. Play reference."
+            aria-label={(isNear ? m.music_hubs_tuner_string_near : m.music_hubs_tuner_string)({ n: i + 1, note: noteName(open) })}
             onclick={() => playString(open)}
           >
             <span class="font-display text-lg font-semibold">{pretty(noteName(open, "flat", false))}<span class="text-[13px] opacity-70">{Math.floor(open / 12) - 1}</span></span>
             <span class="tnum text-[13px]">
-              {#if off !== null}{Math.abs(off) <= IN_TUNE_CENTS ? "In tune" : `${signedCents(off)}¢`}{:else}<Volume class="inline size-3.5" aria-hidden="true" /> {i + 1}{/if}
+              {#if off !== null}{Math.abs(off) <= IN_TUNE_CENTS ? m.music_hubs_tuner_in_tune() : `${signedCents(off)}¢`}{:else}<Volume class="inline size-3.5" aria-hidden="true" /> {i + 1}{/if}
             </span>
           </button>
         </li>
@@ -292,11 +296,11 @@
         <!-- Cents on the left at the gridlines, sharp above the line and flat below. -->
         <div class="tnum relative w-16 shrink-0 text-right text-[13px] leading-none text-ws-stage-soft" aria-hidden="true">
           {#each GRID as c (c)}
-            <span class="absolute right-0 whitespace-nowrap {c === 50 ? '' : c === -50 ? '-translate-y-full' : '-translate-y-1/2'}" style:top="{centsY(c) / 1.6}%">{c === 50 ? "+50 sharp" : c === -50 ? "−50 flat" : signedCents(c)}</span>
+            <span class="absolute right-0 whitespace-nowrap {c === 50 ? '' : c === -50 ? '-translate-y-full' : '-translate-y-1/2'}" style:top="{centsY(c) / 1.6}%">{c === 50 ? m.music_hubs_tuner_plus50() : c === -50 ? m.music_hubs_tuner_minus50() : signedCents(c)}</span>
           {/each}
         </div>
         <div class="min-w-0 flex-1">
-        <svg viewBox="0 0 600 160" preserveAspectRatio="none" class="trace block h-44 w-full rounded-lg sm:h-52" role="img" aria-label="Pitch over the last 10 seconds, with the in-tune band of ±{IN_TUNE_CENTS} cents">
+        <svg viewBox="0 0 600 160" preserveAspectRatio="none" class="trace block h-44 w-full rounded-lg sm:h-52" role="img" aria-label={m.music_hubs_tuner_trace_label({ cents: IN_TUNE_CENTS })}>
           <rect x="0" y={bandTop} width="600" height={160 - 2 * bandTop} class="band" />
           {#each GRID as c (c)}{#if c !== 0}<line x1="0" x2="600" y1={centsY(c)} y2={centsY(c)} class="grid" vector-effect="non-scaling-stroke" />{/if}{/each}
           {#each [120, 240, 360, 480] as x (x)}<line x1={x} x2={x} y1="0" y2="160" class="grid" vector-effect="non-scaling-stroke" />{/each}
@@ -306,14 +310,14 @@
         <!-- Time every 2 seconds, now at the right edge. -->
         <div class="tnum relative mt-1 h-4 text-[13px] leading-none text-ws-stage-soft" aria-hidden="true">
           {#each [10, 8, 6, 4, 2, 0] as t, i (t)}
-            <span class="absolute whitespace-nowrap {i === 0 ? '' : i === 5 ? '-translate-x-full' : '-translate-x-1/2'}" style:left="{i * 20}%">{t ? `−${t} s` : "now"}</span>
+            <span class="absolute whitespace-nowrap {i === 0 ? '' : i === 5 ? '-translate-x-full' : '-translate-x-1/2'}" style:left="{i * 20}%">{t ? m.music_hubs_tuner_seconds_ago({ s: t }) : m.music_hubs_tuner_now()}</span>
           {/each}
         </div>
         </div>
       </div>
       <figcaption class="mt-1 flex flex-wrap justify-between gap-2 text-[13px] text-ws-stage-soft">
-        <span><span class="band-key" aria-hidden="true"></span> Green band: in tune, within ±{IN_TUNE_CENTS} cents</span>
-        <span>last 10 seconds, now at the right</span>
+        <span><span class="band-key" aria-hidden="true"></span> {m.music_hubs_tuner_band_key({ cents: IN_TUNE_CENTS })}</span>
+        <span>{m.music_hubs_tuner_last_10()}</span>
       </figcaption>
     </figure>
     <div class="mt-4">
@@ -323,21 +327,21 @@
             <p class="verdict font-display text-lg font-semibold" data-tone={verdict.tone} data-testid="intonation-verdict">
               {#if verdict.tone === "good"}<Check class="mr-1 inline size-5 align-[-0.15em]" aria-hidden="true" />{/if}{verdict.text}
             </p>
-            <button type="button" class={btnStage} onclick={holdAgain}><RotateCcw class="size-4" aria-hidden="true" />Hold again</button>
+            <button type="button" class={btnStage} onclick={holdAgain}><RotateCcw class="size-4" aria-hidden="true" />{m.music_hubs_tuner_hold_again()}</button>
           </div>
         {/if}
         <!-- The score block is always drawn; its numbers are the last 10 seconds as heard. -->
         <div data-testid="intonation-stats">
         <dl class="grid grid-cols-2 gap-2 sm:grid-cols-4" data-empty={stats.inTunePct === 0 || undefined}>
-          <div class="stat" title="Share of the last 10 seconds within ±{IN_TUNE_CENTS} cents"><dt>In tune</dt><dd class="tnum font-display">{stats.inTunePct}%</dd></div>
-          <div class="stat" title="The longest stretch in tune without a break"><dt>Hold</dt><dd class="tnum font-display">{stats.holdSeconds.toFixed(1)} s</dd></div>
-          <div class="stat" title="How little the pitch wobbles, wherever it sits"><dt>Held steady</dt><dd class="tnum font-display">{stats.steadinessPct}%</dd></div>
-          <div class="stat" title="Average distance from the note: plus is sharp, minus is flat"><dt>Avg drift</dt><dd class="tnum font-display">{signedCents(stats.avgDriftCents)} cents</dd></div>
+          <div class="stat" title={m.music_hubs_tuner_stat_in_tune_title({ cents: IN_TUNE_CENTS })}><dt>{m.music_hubs_tuner_in_tune()}</dt><dd class="tnum font-display">{stats.inTunePct}%</dd></div>
+          <div class="stat" title={m.music_hubs_tuner_stat_hold_title()}><dt>{m.music_hubs_tuner_stat_hold()}</dt><dd class="tnum font-display">{one(stats.holdSeconds)} s</dd></div>
+          <div class="stat" title={m.music_hubs_tuner_stat_steady_title()}><dt>{m.music_hubs_tuner_stat_steady()}</dt><dd class="tnum font-display">{stats.steadinessPct}%</dd></div>
+          <div class="stat" title={m.music_hubs_tuner_stat_drift_title()}><dt>{m.music_hubs_tuner_stat_drift()}</dt><dd class="tnum font-display">{m.music_hubs_tuner_cents_value({ cents: signedCents(stats.avgDriftCents) })}</dd></div>
         </dl>
-        {#if stats.inTunePct === 0}<p class="mt-2 text-sm text-ws-stage-soft">In tune and Hold count once the note sits in the green band.</p>{/if}
+        {#if stats.inTunePct === 0}<p class="mt-2 text-sm text-ws-stage-soft">{m.music_hubs_tuner_count_once()}</p>{/if}
         </div>
       {:else}
-        <p class="text-sm text-ws-stage-soft">Hold one note steadily. In tune %, hold, steadiness and drift fill in as you play.</p>
+        <p class="text-sm text-ws-stage-soft">{m.music_hubs_tuner_hold_hint()}</p>
       {/if}
     </div>
     {@render keys()}
@@ -345,9 +349,9 @@
 </section>
 
 <p class="text-[15px] text-ws-soft">
-  In tune means within {IN_TUNE_CENTS} cents, everywhere on this page. {mode === "intonation"
-    ? "The trace shows the last 10 seconds."
-    : `Hold a note in tune for ${HOLD_GOAL_S} second and the ring closes. Weak or noisy sound holds the last reading instead of flickering.`}
+  {m.music_hubs_tuner_footer({ cents: IN_TUNE_CENTS })} {mode === "intonation"
+    ? m.music_hubs_tuner_footer_trace()
+    : m.music_hubs_tuner_footer_hold({ seconds: HOLD_GOAL_S })}
 </p>
 
 <!-- The keyboard centres on the heard note, on Tune (under the gauge) and Intonation (under the score). -->
@@ -363,7 +367,7 @@
         interactive={false}
         names="c"
         minKey={30}
-        label="Keyboard with the note heard marked"
+        label={m.music_hubs_tuner_keys_label()}
       />
     </div>
   {/if}
@@ -374,26 +378,25 @@
     {#if reading && shown && word}
       <p class="readline font-display text-2xl font-semibold sm:text-3xl" data-testid="tuner-cents" data-state={word}>
         {#if semitonesOff}
-          {pretty(noteName(reading.midi, "flat", false))}, {Math.abs(semitonesOff)} semitone{Math.abs(semitonesOff) === 1 ? "" : "s"}
-          {semitonesOff > 0 ? "above" : "below"}
+          {(semitonesOff > 0 ? m.music_hubs_tuner_semitones_above : m.music_hubs_tuner_semitones_below)({ note: pretty(noteName(reading.midi, "flat", false)), count: Math.abs(semitonesOff) })}
         {:else}
-          <span class="tnum">{signedCents(shown.cents)}</span> cents,
-          {#if word === "in tune"}<span class="text-success"><Check class="mr-1 inline size-6 align-[-0.1em]" aria-hidden="true" />in tune</span>{:else}{word},
-            <span class="turn">{#if word === "flat"}<ArrowUp class="mr-1 inline size-5 align-[-0.1em]" aria-hidden="true" />{:else}<ArrowDown class="mr-1 inline size-5 align-[-0.1em]" aria-hidden="true" />{/if}tune {word === "flat" ? "up" : "down"}</span>{/if}
+          <span class="tnum">{signedCents(shown.cents)}</span> {m.music_hubs_tuner_cents_comma()}
+          {#if word === "in tune"}<span class="text-success"><Check class="mr-1 inline size-6 align-[-0.1em]" aria-hidden="true" />{m.music_hubs_tuner_in_tune_lower()}</span>{:else}{word === "flat" ? m.music_hubs_tuner_flat() : m.music_hubs_tuner_sharp()},
+            <span class="turn">{#if word === "flat"}<ArrowUp class="mr-1 inline size-5 align-[-0.1em]" aria-hidden="true" />{:else}<ArrowDown class="mr-1 inline size-5 align-[-0.1em]" aria-hidden="true" />{/if}{word === "flat" ? m.music_hubs_tuner_tune_up() : m.music_hubs_tuner_tune_down()}</span>{/if}
         {/if}
       </p>
       <p class="tnum mt-1 text-sm text-ws-stage-soft">
-        Hearing {reading.hz.toFixed(1)} Hz, target {midiToHz(shown.midi, a4).toFixed(1)} Hz{#if held >= 0.5}. Held in tune {held.toFixed(1)} s{/if}
+        {m.music_hubs_tuner_hearing({ hz: one(reading.hz), target: one(midiToHz(shown.midi, a4)) })}{#if held >= 0.5}{m.music_hubs_tuner_held({ s: one(held) })}{/if}
       </p>
     {:else}
-      <p class="text-sm text-ws-stage-soft">{listening ? "Nothing clear yet. One note at a time, close to the microphone." : "Start listening, then play a single note."}</p>
+      <p class="text-sm text-ws-stage-soft">{listening ? m.music_hubs_tuner_nothing_clear() : m.music_hubs_tuner_start_hint()}</p>
     {/if}
   </div>
 {/snippet}
 
 {#snippet note()}
   <p class="note font-display" data-testid="tuner-note">
-    {#if shown}{pretty(noteName(shown.midi, "flat", false))}<span class="oct">{Math.floor(shown.midi / 12) - 1}</span>{:else if target !== null}<span class="idle">Aim for {pretty(noteName(target, "flat", false))}</span>{:else}<span class="idle">{listening ? "Play a note" : "Ready"}</span>{/if}
+    {#if shown}{pretty(noteName(shown.midi, "flat", false))}<span class="oct">{Math.floor(shown.midi / 12) - 1}</span>{:else if target !== null}<span class="idle">{m.music_hubs_tuner_aim({ note: pretty(noteName(target, "flat", false)) })}</span>{:else}<span class="idle">{listening ? m.music_hubs_tuner_play_note() : m.music_hubs_tuner_ready()}</span>{/if}
   </p>
 {/snippet}
 

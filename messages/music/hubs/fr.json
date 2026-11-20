@@ -1444,5 +1444,268 @@
   "music_hubs_conn_seconds": "{s} s",
   "music_hubs_conn_hidden": "masqué",
   "music_hubs_conn_nothing_received": "Rien reçu pour l’instant. Appuyez sur une touche ou un pad.",
-  "music_hubs_conn_midi_off": "Le MIDI est désactivé."
+  "music_hubs_conn_midi_off": "Le MIDI est désactivé.",
+  "music_hubs_media_conflict": "« {key} » existe déjà ici avec un contenu différent, donc rien n’a été restauré. Supprimez d’abord cet enregistrement ou cet échantillon si vous voulez la copie de la sauvegarde.",
+  "music_hubs_cal_result": "{describe} Dispersion de {spread} ms, {answered} clics sur {total} suivis.",
+  "music_hubs_cal_no_sound": "Le son n’a pas démarré. Touchez n’importe où sur la page, puis recommencez.",
+  "music_hubs_cal_no_midi": "Le MIDI n’a pas démarré. Autorisez-le dans le navigateur, puis recommencez.",
+  "music_hubs_cal_tap_each": "{title} : tapez une fois à chaque clic. {count} clics à {bpm} BPM.",
+  "music_hubs_cal_stopped": "Arrêté avant la fin, rien n’a été mesuré.",
+  "music_hubs_cal_saved": "{title} : {offset} enregistré.",
+  "music_hubs_cal_reset_done": "{title} : décalage remis à zéro.",
+  "music_hubs_cal_lines_up": "Mesuré {offset} : votre entrée est alignée sur le clic.",
+  "music_hubs_cal_late": "Mesuré {offset} : votre entrée arrive environ {ms} ms en retard.",
+  "music_hubs_cal_early": "Mesuré {offset} : votre entrée arrive environ {ms} ms en avance.",
+  "music_hubs_cal_about": "Calibration : {title}",
+  "music_hubs_cal_not_calibrated": "Non calibré",
+  "music_hubs_cal_now": "Actuellement {offset}",
+  "music_hubs_reset": "Réinitialiser",
+  "music_hubs_cal_tap": "Taper",
+  "music_hubs_cal_of": "sur {count}",
+  "music_hubs_cal_hint_audio": "Tapez dans les mains ou pincez une corde étouffée à chaque clic. Les {warmup} premiers servent d’échauffement. La barre d’espace ou le bouton Taper fonctionnent aussi.",
+  "music_hubs_cal_hint_midi": "Jouez n’importe quelle note à chaque clic. Les {warmup} premiers servent d’échauffement. La barre d’espace ou le bouton Taper fonctionnent aussi.",
+  "music_hubs_cal_not_accepted": "Non accepté. ",
+  "music_hubs_cal_onscreen_audio": "Ces frappes viennent du bouton à l’écran : cela mesure donc votre frappe, pas le microphone.",
+  "music_hubs_cal_onscreen_midi": "Ces frappes viennent du bouton à l’écran : cela mesure donc votre frappe, pas l’appareil MIDI.",
+  "music_hubs_cal_save": "Enregistrer {offset}",
+  "music_hubs_data_t_sessions": "Séances",
+  "music_hubs_data_t_events": "Réponses notées",
+  "music_hubs_data_t_mastery": "Scores de compétence",
+  "music_hubs_data_t_skills": "Compétences",
+  "music_hubs_data_t_links": "Liens entre compétences",
+  "music_hubs_data_t_chords": "Bibliothèque d’accords",
+  "music_hubs_data_t_songs": "Morceaux",
+  "music_hubs_data_t_settings": "Paramètres et réglages enregistrés",
+  "music_hubs_data_t_backing": "Pistes d’accompagnement",
+  "music_hubs_data_t_audio": "Prises audio",
+  "music_hubs_data_t_midi": "Prises MIDI",
+  "music_hubs_data_exported": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} séance exportée.",
+        "countPlural=other": "{count} séances exportées."
+      }
+    }
+  ],
+  "music_hubs_data_ready": "Sauvegarde prête : {rows} lignes, {size}.",
+  "music_hubs_data_cant_restore": "« {name} » ne peut pas être restauré. Choisissez un fichier de sauvegarde Woodshed.",
+  "music_hubs_data_check_replace": "Vérifiez ce que « {name} » va remplacer, puis confirmez.",
+  "music_hubs_data_nothing_restored": "Rien n’a été restauré : {reason}",
+  "music_hubs_data_export_journal": "Exporter le journal",
+  "music_hubs_data_export_about": "l’export du journal",
+  "music_hubs_data_export_hint": "Toutes les séances de pratique dans un fichier JSON.",
+  "music_hubs_data_backup": "Sauvegarder vos données",
+  "music_hubs_data_backup_about": "la sauvegarde de vos données",
+  "music_hubs_data_backup_hint": "Données seules est un petit JSON de toutes les tables. Complète ajoute vos enregistrements et échantillons de kits dans un ZIP.",
+  "music_hubs_data_prepare_data": "Préparer une sauvegarde des données",
+  "music_hubs_data_prepare_full": "Préparer une sauvegarde complète",
+  "music_hubs_data_rows_size": "{rows} lignes, {size}",
+  "music_hubs_data_files_included": [
+    {
+      "declarations": ["input count", "input files", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", {files} fichier média inclus",
+        "countPlural=other": ", {files} fichiers médias inclus"
+      }
+    }
+  ],
+  "music_hubs_data_download": "Télécharger le {format}",
+  "music_hubs_data_audio_takes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} prise audio",
+        "countPlural=other": "{count} prises audio"
+      }
+    }
+  ],
+  "music_hubs_data_backing_tracks": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} piste d’accompagnement",
+        "countPlural=other": "{count} pistes d’accompagnement"
+      }
+    }
+  ],
+  "music_hubs_data_kit_samples": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} échantillon de kit",
+        "countPlural=other": "{count} échantillons de kit"
+      }
+    }
+  ],
+  "music_hubs_data_left_out": "Médias laissés de côté : {list}. Utilisez la sauvegarde complète pour les garder.",
+  "music_hubs_data_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fichier référencé manquait déjà dans ce navigateur, la sauvegarde le laisse donc de côté.",
+        "countPlural=other": "{count} fichiers référencés manquaient déjà dans ce navigateur, la sauvegarde les laisse donc de côté."
+      }
+    }
+  ],
+  "music_hubs_data_restore": "Restaurer depuis une sauvegarde",
+  "music_hubs_data_restore_about": "la restauration depuis une sauvegarde",
+  "music_hubs_data_restore_hint": "Une sauvegarde des données (.json) ou une sauvegarde complète (.zip). Vous voyez ce qui change avant que quoi que ce soit ne soit remplacé.",
+  "music_hubs_data_choose": "Choisir un fichier de sauvegarde",
+  "music_hubs_data_restore_name": "Restaurer « {name} »",
+  "music_hubs_data_restore_name_files": [
+    {
+      "declarations": ["input count", "input name", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Restaurer « {name} », avec {count} fichier média",
+        "countPlural=other": "Restaurer « {name} », avec {count} fichiers médias"
+      }
+    }
+  ],
+  "music_hubs_data_col_table": "Table",
+  "music_hubs_data_col_now": "Actuellement",
+  "music_hubs_data_col_after": "Après",
+  "music_hubs_data_replaced": "Les {count} tables sont remplacées, pas fusionnées. Tout ce qui est ici maintenant et absent de la sauvegarde est supprimé.",
+  "music_hubs_data_no_media": "Une sauvegarde des données ne contient aucun fichier média. Les prises audio, pistes d’accompagnement et échantillons de kits qu’elle liste ne jouent que si leurs fichiers existent déjà, inchangés, dans ce navigateur.",
+  "music_hubs_data_media_added": "Les fichiers médias manquants sont ajoutés. Un fichier qui existe déjà ici avec un contenu différent arrête la restauration : rien n’est écrasé.",
+  "music_hubs_data_setups": "Les réglages d’exercices enregistrés et les réglages des appareils viennent aussi de la sauvegarde.",
+  "music_hubs_data_close_tabs": "Fermez d’abord Woodshed dans les autres onglets, sinon ils pourraient réécrire d’anciennes données.",
+  "music_hubs_data_rest_untouched": "Le reste de ce site, y compris le lecteur PDF, n’est pas touché.",
+  "music_hubs_data_replace": "Remplacer mes données",
+  "music_hubs_data_reset": "Réinitialiser les données locales",
+  "music_hubs_data_reset_hint": "Supprime chaque séance, prise, échantillon et paramètre que Woodshed garde dans ce navigateur. Rien d’autre dans Woodshed ne supprime vos données.",
+  "music_hubs_data_confirm_reset": "Confirmer la réinitialisation",
+  "music_hubs_data_delete_q": "Tout supprimer ?",
+  "music_hubs_data_delete_all": "Tout supprimer",
+  "music_hubs_data_keep": "Garder mes données",
+  "music_hubs_data_and_more": "et {count} de plus.",
+  "music_hubs_tuner_verdict_good": "Juste {pct} % du temps. Centré et stable.",
+  "music_hubs_tuner_verdict_steady_sharp": "Stable, mais {cents} cents trop haut. Baissez l’accord, puis tenez-la de nouveau.",
+  "music_hubs_tuner_verdict_steady_flat": "Stable, mais {cents} cents trop bas. Montez l’accord, puis tenez-la de nouveau.",
+  "music_hubs_tuner_verdict_wanders": "La hauteur dérive. Tenez une note régulière, un peu plus doucement.",
+  "music_hubs_tuner_verdict_wanders_sharp": "La hauteur dérive, {cents} cents trop haut en moyenne. Tenez une note régulière, un peu plus doucement.",
+  "music_hubs_tuner_verdict_wanders_flat": "La hauteur dérive, {cents} cents trop bas en moyenne. Tenez une note régulière, un peu plus doucement.",
+  "music_hubs_tuner_verdict_longer": "Juste {pct} % du temps. Tenez-la plus longtemps dans la bande verte.",
+  "music_hubs_tuner_role_tonic": "tonique",
+  "music_hubs_tuner_role_fifth": "quinte",
+  "music_hubs_tuner_role_scale": "dans la gamme majeure",
+  "music_hubs_tuner_role_other": "hors de la gamme majeure",
+  "music_hubs_tuner_role_octave": "octave",
+  "music_hubs_tuner_role_bowed": "tonique à l’archet",
+  "music_hubs_tuner_scope_label": "Forme d’onde du bourdon sur {note}",
+  "music_hubs_tuner_scope_silent": "Le bourdon est silencieux",
+  "music_hubs_tuner_scope_hint": "Appuyez sur Jouer le bourdon pour le voir.",
+  "music_hubs_drone_sine": "Sinus",
+  "music_hubs_drone_sine_hint": "Un son pur : le plus facile pour entendre les battements.",
+  "music_hubs_drone_cello": "Violoncelle",
+  "music_hubs_drone_cello_hint": "Un son à l’archet, filtré, avec du corps.",
+  "music_hubs_drone_shruti": "Shruti",
+  "music_hubs_drone_shruti_hint": "Superpose la quinte et l’octave, comme un tanpura.",
+  "music_hubs_drone_blocked": "Le son est bloqué. Appuyez de nouveau sur Jouer le bourdon pour l’autoriser.",
+  "music_hubs_drone_on": "Bourdon sur {note}, {timbre}.",
+  "music_hubs_drone_stopped": "Bourdon arrêté.",
+  "music_hubs_drone_label": "Bourdon",
+  "music_hubs_drone_sounding": "En cours",
+  "music_hubs_drone_tonic": "Tonique",
+  "music_hubs_drone_octave": "Octave",
+  "music_hubs_drone_octave_down": "Octave inférieure",
+  "music_hubs_drone_octave_n": "Octave {n}",
+  "music_hubs_drone_octave_up": "Octave supérieure",
+  "music_hubs_drone_volume": "Volume",
+  "music_hubs_drone_stop": "Arrêter le bourdon",
+  "music_hubs_drone_play": "Jouer le bourdon",
+  "music_hubs_drone_scale_hint": "Les pads dorés avec un point sont dans {tonic} majeur. ♭3 = tierce mineure au-dessus de {tonic}. Touchez un pad pour changer la tonique.",
+  "music_hubs_drone_what_pads": "Ce que montrent les pads",
+  "music_hubs_drone_timbre": "Timbre",
+  "music_hubs_tuner_nearest": "Accord sur la note la plus proche.",
+  "music_hubs_tuner_target_status": "Note visée : {note}.",
+  "music_hubs_tuner_in_tune_status": "{note} juste.",
+  "music_hubs_tuner_starting": "Démarrage du microphone…",
+  "music_hubs_tuner_listening": "À l’écoute. Jouez une note et laissez-la sonner.",
+  "music_hubs_tuner_cleared": "Effacé. Tenez la note de nouveau.",
+  "music_hubs_tuner_reference": "Référence A4",
+  "music_hubs_tuner_hz": "{hz} Hz",
+  "music_hubs_tuner_hz_standard": "{hz} Hz (standard)",
+  "music_hubs_tuner_guitar_tuning": "Accordage de la guitare",
+  "music_hubs_tuner_ukulele_tuning": "Accordage du ukulélé",
+  "music_hubs_tuner_label": "Accordeur",
+  "music_hubs_tuner_stop": "Arrêter l’écoute",
+  "music_hubs_tuner_retry": "Réessayer le microphone",
+  "music_hubs_tuner_start": "Commencer l’écoute",
+  "music_hubs_tuner_privacy": "Le microphone n’écoute que lorsque ceci est activé. Rien n’est enregistré.",
+  "music_hubs_tuner_pick_note": "Choisir une note, cible {target}",
+  "music_hubs_tuner_auto_lower": "auto",
+  "music_hubs_tuner_target": "Cible : {target}",
+  "music_hubs_tuner_auto": "Auto",
+  "music_hubs_tuner_target_hint": "Note visée. N’importe quelle note s’accorde sur la plus proche. Choisissez-en une pour la viser dans l’octave où vous jouez.",
+  "music_hubs_tuner_target_note": "Note visée",
+  "music_hubs_tuner_any_note": "N’importe quelle note",
+  "music_hubs_tuner_flat": "trop bas",
+  "music_hubs_tuner_sharp": "trop haut",
+  "music_hubs_tuner_strings": "Cordes de {tuning}, du grave à l’aigu",
+  "music_hubs_tuner_string": "Corde {n}, {note}. Jouer la référence.",
+  "music_hubs_tuner_string_near": "Corde {n}, {note}, la plus proche de ce que vous jouez. Jouer la référence.",
+  "music_hubs_tuner_in_tune": "Juste",
+  "music_hubs_tuner_plus50": "+50 trop haut",
+  "music_hubs_tuner_minus50": "−50 trop bas",
+  "music_hubs_tuner_trace_label": "Hauteur sur les 10 dernières secondes, avec la bande juste de ±{cents} cents",
+  "music_hubs_tuner_seconds_ago": "−{s} s",
+  "music_hubs_tuner_now": "maintenant",
+  "music_hubs_tuner_band_key": "Bande verte : juste, à ±{cents} cents près",
+  "music_hubs_tuner_last_10": "10 dernières secondes, maintenant à droite",
+  "music_hubs_tuner_hold_again": "Tenir de nouveau",
+  "music_hubs_tuner_stat_in_tune_title": "Part des 10 dernières secondes à ±{cents} cents près",
+  "music_hubs_tuner_stat_hold_title": "Le plus long passage juste sans interruption",
+  "music_hubs_tuner_stat_hold": "Tenue",
+  "music_hubs_tuner_stat_steady_title": "À quel point la hauteur vacille peu, où qu’elle se situe",
+  "music_hubs_tuner_stat_steady": "Stabilité",
+  "music_hubs_tuner_stat_drift_title": "Écart moyen avec la note : plus signifie trop haut, moins trop bas",
+  "music_hubs_tuner_stat_drift": "Écart moyen",
+  "music_hubs_tuner_cents_value": "{cents} cents",
+  "music_hubs_tuner_count_once": "Juste et Tenue comptent dès que la note est dans la bande verte.",
+  "music_hubs_tuner_hold_hint": "Tenez une note de façon stable. Le % juste, la tenue, la stabilité et l’écart se remplissent pendant que vous jouez.",
+  "music_hubs_tuner_footer": "Juste signifie à {cents} cents près, partout sur cette page.",
+  "music_hubs_tuner_footer_trace": "La courbe montre les 10 dernières secondes.",
+  "music_hubs_tuner_footer_hold": "Tenez une note juste pendant {seconds} seconde et l’anneau se ferme. Un son faible ou bruité garde la dernière lecture au lieu de clignoter.",
+  "music_hubs_tuner_keys_label": "Clavier avec la note entendue marquée",
+  "music_hubs_tuner_semitones_above": [
+    {
+      "declarations": ["input count", "input note", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{note}, {count} demi-ton au-dessus",
+        "countPlural=other": "{note}, {count} demi-tons au-dessus"
+      }
+    }
+  ],
+  "music_hubs_tuner_semitones_below": [
+    {
+      "declarations": ["input count", "input note", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{note}, {count} demi-ton en dessous",
+        "countPlural=other": "{note}, {count} demi-tons en dessous"
+      }
+    }
+  ],
+  "music_hubs_tuner_cents_comma": "cents,",
+  "music_hubs_tuner_in_tune_lower": "juste",
+  "music_hubs_tuner_tune_up": "montez l’accord",
+  "music_hubs_tuner_tune_down": "baissez l’accord",
+  "music_hubs_tuner_hearing": "{hz} Hz entendus, cible {target} Hz",
+  "music_hubs_tuner_held": ". Tenue juste {s} s",
+  "music_hubs_tuner_nothing_clear": "Rien de clair pour l’instant. Une note à la fois, près du microphone.",
+  "music_hubs_tuner_start_hint": "Commencez l’écoute, puis jouez une seule note.",
+  "music_hubs_tuner_aim": "Visez {note}",
+  "music_hubs_tuner_play_note": "Jouez une note",
+  "music_hubs_tuner_ready": "Prêt",
+  "music_hubs_drone_about_before": "Les pads entourés avec un",
+  "music_hubs_drone_about_after": "sont les sept notes de {tonic} majeur. Les chiffres comptent les degrés depuis {tonic} : 5 est la quinte, ♭ baisse un degré d’un demi-ton, ♯ le monte."
 }

@@ -1444,5 +1444,268 @@
   "music_hubs_conn_seconds": "{s} s",
   "music_hubs_conn_hidden": "kache",
   "music_hubs_conn_nothing_received": "Poko resevwa anyen. Peze yon touch oswa yon pad.",
-  "music_hubs_conn_midi_off": "MIDI etenn."
+  "music_hubs_conn_midi_off": "MIDI etenn.",
+  "music_hubs_media_conflict": "\"{key}\" deja egziste isit la ak yon lòt kontni, kidonk anyen pa t restore. Efase anrejistreman oswa echantiyon sa a anvan si ou vle kopi sovgad la.",
+  "music_hubs_cal_result": "{describe} Dispèsyon {spread} ms, {answered} klik sou {total} reponn.",
+  "music_hubs_cal_no_sound": "Son an pa kòmanse. Tape nenpòt kote sou paj la, epi rekòmanse.",
+  "music_hubs_cal_no_midi": "MIDI pa kòmanse. Pèmèt li nan navigatè a, epi rekòmanse.",
+  "music_hubs_cal_tap_each": "{title}: tape yon fwa sou chak klik. {count} klik a {bpm} BPM.",
+  "music_hubs_cal_stopped": "Li kanpe anvan fen an, anyen pa mezire.",
+  "music_hubs_cal_saved": "{title}: {offset} sere.",
+  "music_hubs_cal_reset_done": "{title}: dekalaj la retounen a zewo.",
+  "music_hubs_cal_lines_up": "Mezire {offset}: antre ou a aliyen ak klik la.",
+  "music_hubs_cal_late": "Mezire {offset}: antre ou a rive anviwon {ms} ms an reta.",
+  "music_hubs_cal_early": "Mezire {offset}: antre ou a rive anviwon {ms} ms twò bonè.",
+  "music_hubs_cal_about": "Kalibrasyon {title}",
+  "music_hubs_cal_not_calibrated": "Pa kalibre",
+  "music_hubs_cal_now": "Kounye a {offset}",
+  "music_hubs_reset": "Reyinisyalize",
+  "music_hubs_cal_tap": "Tape",
+  "music_hubs_cal_of": "sou {count}",
+  "music_hubs_cal_hint_audio": "Bat bravo oswa pense yon kòd toufe sou chak klik. {warmup} premye yo se pou chofe. Ba espas la oswa bouton Tape a mache tou.",
+  "music_hubs_cal_hint_midi": "Jwe nenpòt nòt sou chak klik. {warmup} premye yo se pou chofe. Ba espas la oswa bouton Tape a mache tou.",
+  "music_hubs_cal_not_accepted": "Pa aksepte. ",
+  "music_hubs_cal_onscreen_audio": "Tap sa yo soti nan bouton sou ekran an, kidonk sa mezire jan ou tape, pa mikwo a.",
+  "music_hubs_cal_onscreen_midi": "Tap sa yo soti nan bouton sou ekran an, kidonk sa mezire jan ou tape, pa aparèy MIDI a.",
+  "music_hubs_cal_save": "Sere {offset}",
+  "music_hubs_data_t_sessions": "Seyans",
+  "music_hubs_data_t_events": "Repons ki gen nòt",
+  "music_hubs_data_t_mastery": "Pwen konpetans",
+  "music_hubs_data_t_skills": "Konpetans",
+  "music_hubs_data_t_links": "Lyen konpetans",
+  "music_hubs_data_t_chords": "Bibliyotèk akò",
+  "music_hubs_data_t_songs": "Chante",
+  "music_hubs_data_t_settings": "Paramèt ak konfigirasyon ki sere",
+  "music_hubs_data_t_backing": "Pis akonpayman",
+  "music_hubs_data_t_audio": "Pran odyo",
+  "music_hubs_data_t_midi": "Pran MIDI",
+  "music_hubs_data_exported": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} seyans ekspòte.",
+        "countPlural=other": "{count} seyans ekspòte."
+      }
+    }
+  ],
+  "music_hubs_data_ready": "Sovgad pare: {rows} liy, {size}.",
+  "music_hubs_data_cant_restore": "\"{name}\" pa ka restore. Chwazi yon fichye sovgad Woodshed.",
+  "music_hubs_data_check_replace": "Tcheke kisa \"{name}\" pral ranplase, epi konfime.",
+  "music_hubs_data_nothing_restored": "Anyen pa t restore: {reason}",
+  "music_hubs_data_export_journal": "Ekspòte jounal la",
+  "music_hubs_data_export_about": "ekspòte jounal la",
+  "music_hubs_data_export_hint": "Tout seyans pratik yo nan yon fichye JSON.",
+  "music_hubs_data_backup": "Fè sovgad done ou",
+  "music_hubs_data_backup_about": "fè sovgad done ou",
+  "music_hubs_data_backup_hint": "Done sèlman se yon ti JSON ak tout tablo yo. Konplè ajoute anrejistreman ou yo ak echantiyon kit yo nan yon ZIP.",
+  "music_hubs_data_prepare_data": "Prepare sovgad done",
+  "music_hubs_data_prepare_full": "Prepare sovgad konplè",
+  "music_hubs_data_rows_size": "{rows} liy, {size}",
+  "music_hubs_data_files_included": [
+    {
+      "declarations": ["input count", "input files", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": ", {files} fichye medya ladan l",
+        "countPlural=other": ", {files} fichye medya ladan l"
+      }
+    }
+  ],
+  "music_hubs_data_download": "Telechaje {format}",
+  "music_hubs_data_audio_takes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} pran odyo",
+        "countPlural=other": "{count} pran odyo"
+      }
+    }
+  ],
+  "music_hubs_data_backing_tracks": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} pis akonpayman",
+        "countPlural=other": "{count} pis akonpayman"
+      }
+    }
+  ],
+  "music_hubs_data_kit_samples": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} echantiyon kit",
+        "countPlural=other": "{count} echantiyon kit"
+      }
+    }
+  ],
+  "music_hubs_data_left_out": "Medya ki pa ladan l: {list}. Sèvi ak sovgad konplè a pou kenbe yo.",
+  "music_hubs_data_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fichye ki mansyone te deja manke nan navigatè sa a, kidonk sovgad la pa mete l.",
+        "countPlural=other": "{count} fichye ki mansyone te deja manke nan navigatè sa a, kidonk sovgad la pa mete yo."
+      }
+    }
+  ],
+  "music_hubs_data_restore": "Restore apati yon sovgad",
+  "music_hubs_data_restore_about": "restore apati yon sovgad",
+  "music_hubs_data_restore_hint": "Yon sovgad done (.json) oswa yon sovgad konplè (.zip). Ou wè sa ki chanje anvan anyen ranplase.",
+  "music_hubs_data_choose": "Chwazi fichye sovgad",
+  "music_hubs_data_restore_name": "Restore \"{name}\"",
+  "music_hubs_data_restore_name_files": [
+    {
+      "declarations": ["input count", "input name", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Restore \"{name}\", ak {count} fichye medya",
+        "countPlural=other": "Restore \"{name}\", ak {count} fichye medya"
+      }
+    }
+  ],
+  "music_hubs_data_col_table": "Tablo",
+  "music_hubs_data_col_now": "Kounye a",
+  "music_hubs_data_col_after": "Apre",
+  "music_hubs_data_replaced": "Tout {count} tablo yo ranplase, yo pa melanje. Tout sa ki isit la kounye a epi ki pa nan sovgad la ap efase.",
+  "music_hubs_data_no_media": "Yon sovgad done pa gen fichye medya. Pran odyo, pis akonpayman ak echantiyon kit li mansyone yo jwe sèlman si fichye yo deja la nan navigatè sa a, san chanjman.",
+  "music_hubs_data_media_added": "Fichye medya ki manke yo ajoute. Yon fichye ki deja la ak yon lòt kontni kanpe restorasyon an, kidonk anyen pa ekraze.",
+  "music_hubs_data_setups": "Konfigirasyon egzèsis ki sere ak paramèt aparèy yo soti nan sovgad la tou.",
+  "music_hubs_data_close_tabs": "Fèmen Woodshed nan lòt onglè yo anvan, sinon yo ka reekri ansyen done.",
+  "music_hubs_data_rest_untouched": "Rès sit sa a, ansanm ak lektè PDF la, pa chanje.",
+  "music_hubs_data_replace": "Ranplase done mwen yo",
+  "music_hubs_data_reset": "Reyinisyalize done lokal yo",
+  "music_hubs_data_reset_hint": "Efase tout seyans, pran, echantiyon ak paramèt Woodshed kenbe nan navigatè sa a. Anyen lòt nan Woodshed pa efase done ou.",
+  "music_hubs_data_confirm_reset": "Konfime reyinisyalizasyon",
+  "music_hubs_data_delete_q": "Efase tout?",
+  "music_hubs_data_delete_all": "Efase tout",
+  "music_hubs_data_keep": "Kenbe done mwen yo",
+  "music_hubs_data_and_more": "ak {count} lòt.",
+  "music_hubs_tuner_verdict_good": "Byen akòde {pct}% nan tan an. Santre epi estab.",
+  "music_hubs_tuner_verdict_steady_sharp": "Estab, men {cents} sant twò wo. Desann akò a, epi kenbe l ankò.",
+  "music_hubs_tuner_verdict_steady_flat": "Estab, men {cents} sant twò ba. Monte akò a, epi kenbe l ankò.",
+  "music_hubs_tuner_verdict_wanders": "Wotè son an ap deplase. Kenbe yon nòt egal, yon ti kras pi dousman.",
+  "music_hubs_tuner_verdict_wanders_sharp": "Wotè son an ap deplase, {cents} sant twò wo an mwayèn. Kenbe yon nòt egal, yon ti kras pi dousman.",
+  "music_hubs_tuner_verdict_wanders_flat": "Wotè son an ap deplase, {cents} sant twò ba an mwayèn. Kenbe yon nòt egal, yon ti kras pi dousman.",
+  "music_hubs_tuner_verdict_longer": "Byen akòde {pct}% nan tan an. Kenbe l pi lontan nan bann vèt la.",
+  "music_hubs_tuner_role_tonic": "tonik",
+  "music_hubs_tuner_role_fifth": "kent",
+  "music_hubs_tuner_role_scale": "nan gam majè a",
+  "music_hubs_tuner_role_other": "andeyò gam majè a",
+  "music_hubs_tuner_role_octave": "oktav",
+  "music_hubs_tuner_role_bowed": "tonik ak banza",
+  "music_hubs_tuner_scope_label": "Fòm onn drone lan sou {note}",
+  "music_hubs_tuner_scope_silent": "Drone lan an silans",
+  "music_hubs_tuner_scope_hint": "Peze Jwe drone pou wè l.",
+  "music_hubs_drone_sine": "Sinis",
+  "music_hubs_drone_sine_hint": "Yon son pi: pi fasil pou tande batman yo.",
+  "music_hubs_drone_cello": "Vyolonsèl",
+  "music_hubs_drone_cello_hint": "Yon son banza, filtre, ki gen kò.",
+  "music_hubs_drone_shruti": "Shruti",
+  "music_hubs_drone_shruti_hint": "Li anpile kent lan ak oktav la, tankou yon tanpura.",
+  "music_hubs_drone_blocked": "Son an bloke. Peze Jwe drone ankò pou pèmèt li.",
+  "music_hubs_drone_on": "Drone sou {note}, {timbre}.",
+  "music_hubs_drone_stopped": "Drone kanpe.",
+  "music_hubs_drone_label": "Drone",
+  "music_hubs_drone_sounding": "K ap sonnen",
+  "music_hubs_drone_tonic": "Tonik",
+  "music_hubs_drone_octave": "Oktav",
+  "music_hubs_drone_octave_down": "Desann yon oktav",
+  "music_hubs_drone_octave_n": "Oktav {n}",
+  "music_hubs_drone_octave_up": "Monte yon oktav",
+  "music_hubs_drone_volume": "Volim",
+  "music_hubs_drone_stop": "Kanpe drone",
+  "music_hubs_drone_play": "Jwe drone",
+  "music_hubs_drone_scale_hint": "Pad dore ki gen yon pwen yo nan {tonic} majè. ♭3 = tyès minè anwo {tonic}. Tape yon pad pou chanje tonik la.",
+  "music_hubs_drone_what_pads": "Sa pad yo montre",
+  "music_hubs_drone_timbre": "Tenb",
+  "music_hubs_tuner_nearest": "N ap akòde sou nòt ki pi pre a.",
+  "music_hubs_tuner_target_status": "Nòt sib {note}.",
+  "music_hubs_tuner_in_tune_status": "{note} byen akòde.",
+  "music_hubs_tuner_starting": "N ap kòmanse mikwo a…",
+  "music_hubs_tuner_listening": "N ap koute. Jwe yon nòt epi kite l sonnen.",
+  "music_hubs_tuner_cleared": "Efase. Kenbe nòt la ankò.",
+  "music_hubs_tuner_reference": "Referans A4",
+  "music_hubs_tuner_hz": "{hz} Hz",
+  "music_hubs_tuner_hz_standard": "{hz} Hz (estanda)",
+  "music_hubs_tuner_guitar_tuning": "Akòdaj gita",
+  "music_hubs_tuner_ukulele_tuning": "Akòdaj ukulele",
+  "music_hubs_tuner_label": "Akòdè",
+  "music_hubs_tuner_stop": "Sispann koute",
+  "music_hubs_tuner_retry": "Eseye mikwo a ankò",
+  "music_hubs_tuner_start": "Kòmanse koute",
+  "music_hubs_tuner_privacy": "Mikwo a koute sèlman pandan sa a limen. Anyen pa anrejistre.",
+  "music_hubs_tuner_pick_note": "Chwazi yon nòt, sib {target}",
+  "music_hubs_tuner_auto_lower": "otomatik",
+  "music_hubs_tuner_target": "Sib: {target}",
+  "music_hubs_tuner_auto": "Otomatik",
+  "music_hubs_tuner_target_hint": "Nòt sib. Nenpòt nòt akòde sou nòt ki pi pre a. Chwazi youn pou vize l nan oktav ou jwe a.",
+  "music_hubs_tuner_target_note": "Nòt sib",
+  "music_hubs_tuner_any_note": "Nenpòt nòt",
+  "music_hubs_tuner_flat": "ba",
+  "music_hubs_tuner_sharp": "wo",
+  "music_hubs_tuner_strings": "Kòd {tuning}, soti ba rive wo",
+  "music_hubs_tuner_string": "Kòd {n}, {note}. Jwe referans lan.",
+  "music_hubs_tuner_string_near": "Kòd {n}, {note}, ki pi pre sa w ap jwe a. Jwe referans lan.",
+  "music_hubs_tuner_in_tune": "Byen akòde",
+  "music_hubs_tuner_plus50": "+50 wo",
+  "music_hubs_tuner_minus50": "−50 ba",
+  "music_hubs_tuner_trace_label": "Wotè son pandan 10 dènye segonn yo, ak bann ki byen akòde a ±{cents} sant",
+  "music_hubs_tuner_seconds_ago": "−{s} s",
+  "music_hubs_tuner_now": "kounye a",
+  "music_hubs_tuner_band_key": "Bann vèt: byen akòde, nan ±{cents} sant",
+  "music_hubs_tuner_last_10": "10 dènye segonn, kounye a sou bò dwat",
+  "music_hubs_tuner_hold_again": "Kenbe ankò",
+  "music_hubs_tuner_stat_in_tune_title": "Pati nan 10 dènye segonn yo ki nan ±{cents} sant",
+  "music_hubs_tuner_stat_hold_title": "Pi long moman byen akòde san kase",
+  "music_hubs_tuner_stat_hold": "Kenbe",
+  "music_hubs_tuner_stat_steady_title": "Kijan wotè son an pa tranble, kèlkeswa kote li ye",
+  "music_hubs_tuner_stat_steady": "Estabilite",
+  "music_hubs_tuner_stat_drift_title": "Distans mwayèn ak nòt la: plis vle di wo, mwens vle di ba",
+  "music_hubs_tuner_stat_drift": "Devyasyon mwayèn",
+  "music_hubs_tuner_cents_value": "{cents} sant",
+  "music_hubs_tuner_count_once": "Byen akòde ak Kenbe konte depi nòt la nan bann vèt la.",
+  "music_hubs_tuner_hold_hint": "Kenbe yon nòt estab. % byen akòde, kenbe, estabilite ak devyasyon ap ranpli pandan w ap jwe.",
+  "music_hubs_tuner_footer": "Byen akòde vle di nan {cents} sant, tout kote sou paj sa a.",
+  "music_hubs_tuner_footer_trace": "Liy lan montre 10 dènye segonn yo.",
+  "music_hubs_tuner_footer_hold": "Kenbe yon nòt byen akòde pandan {seconds} segonn epi wou a fèmen. Yon son fèb oswa ki gen bri kenbe dènye lekti a olye l ap tranble.",
+  "music_hubs_tuner_keys_label": "Klavye ak nòt yo tande a make",
+  "music_hubs_tuner_semitones_above": [
+    {
+      "declarations": ["input count", "input note", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{note}, {count} demi ton anwo",
+        "countPlural=other": "{note}, {count} demi ton anwo"
+      }
+    }
+  ],
+  "music_hubs_tuner_semitones_below": [
+    {
+      "declarations": ["input count", "input note", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{note}, {count} demi ton anba",
+        "countPlural=other": "{note}, {count} demi ton anba"
+      }
+    }
+  ],
+  "music_hubs_tuner_cents_comma": "sant,",
+  "music_hubs_tuner_in_tune_lower": "byen akòde",
+  "music_hubs_tuner_tune_up": "monte akò a",
+  "music_hubs_tuner_tune_down": "desann akò a",
+  "music_hubs_tuner_hearing": "N ap tande {hz} Hz, sib {target} Hz",
+  "music_hubs_tuner_held": ". Kenbe byen akòde {s} s",
+  "music_hubs_tuner_nothing_clear": "Poko gen anyen klè. Yon nòt alafwa, pre mikwo a.",
+  "music_hubs_tuner_start_hint": "Kòmanse koute, epi jwe yon sèl nòt.",
+  "music_hubs_tuner_aim": "Vize {note}",
+  "music_hubs_tuner_play_note": "Jwe yon nòt",
+  "music_hubs_tuner_ready": "Pare",
+  "music_hubs_drone_about_before": "Pad ki gen kontou ak yon",
+  "music_hubs_drone_about_after": "yo se sèt nòt {tonic} majè. Nimewo yo konte degre soti nan {tonic}: 5 se kent lan, ♭ bese yon degre yon demi ton, ♯ monte l."
 }

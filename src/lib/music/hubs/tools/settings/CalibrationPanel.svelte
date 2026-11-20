@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { m } from "@repo/i18n/messages.js";
   // One tap-along run at a time across every panel on the page.
   let active = $state<string | null>(null);
   /** A tap-along is running: Space is its tap, not a drill's Start. */
@@ -99,9 +100,9 @@
     result = r;
     onscreenOnly = sources.size === 1 && sources.has("onscreen");
     message = r.ok
-      ? `${describe(r.offsetMs)} Spread ${Math.round(r.iqrMs)} ms, ${r.answered} of ${CALIBRATION.clicks - CALIBRATION.warmup} clicks answered.`
+      ? m.music_hubs_cal_result({ describe: describe(r.offsetMs), spread: Math.round(r.iqrMs), answered: r.answered, total: CALIBRATION.clicks - CALIBRATION.warmup })
       : r.message;
-    announce(`${title}: ${r.ok ? describe(r.offsetMs) : r.message}`);
+    announce(m.music_hubs_pair({ a: title, b: r.ok ? describe(r.offsetMs) : r.message }));
   }
 
   async function run() {
@@ -110,16 +111,16 @@
     result = null;
     await audio.unlock();
     if (!audio.unlocked) {
-      message = "Sound didn't start. Tap anywhere on the page, then start again.";
+      message = m.music_hubs_cal_no_sound();
       return;
     }
     if (kind !== "audio" && !midi.enabled && !(await midi.enable())) {
-      message = midi.error || "MIDI didn't start. Allow it in the browser, then start again.";
+      message = midi.error || m.music_hubs_cal_no_midi();
       announce(message);
       return;
     }
     if (kind === "audio" && !(await mic.start())) {
-      message = mic.error || "The microphone didn't start. Allow it in the browser, then try again.";
+      message = mic.error || m.music_hubs_mic_failed();
       announce(message);
       return;
     }
@@ -147,21 +148,21 @@
       beatMs: BEAT_MS,
       clicks: CALIBRATION.clicks,
     };
-    announce(`${title}: tap once on every click. ${CALIBRATION.clicks} clicks at ${CALIBRATION.bpm} BPM.`);
+    announce(m.music_hubs_cal_tap_each({ title, count: CALIBRATION.clicks, bpm: CALIBRATION.bpm }));
     await tick();
     tapButton?.focus();
   }
 
   function cancel() {
     teardown();
-    message = "Stopped before the end, nothing measured.";
+    message = m.music_hubs_cal_stopped();
     announce(message);
   }
 
   async function save() {
     if (!result?.ok) return;
     await onsave(bound(result.offsetMs));
-    announce(`${title}: saved ${signed(result.offsetMs)}.`);
+    announce(m.music_hubs_cal_saved({ title, offset: signed(result.offsetMs) }));
     result = null;
     message = "";
   }
@@ -170,13 +171,15 @@
     await onreset();
     result = null;
     message = "";
-    announce(`${title}: offset reset to none.`);
+    announce(m.music_hubs_cal_reset_done({ title }));
   }
 
   const signed = (ms: number) => `${ms > 0 ? "+" : ms < 0 ? "−" : ""}${Math.abs(ms)} ms`;
   function describe(ms: number) {
-    if (Math.abs(ms) < 3) return `Measured ${signed(ms)}: your input lines up with the click.`;
-    return `Measured ${signed(ms)}: your input arrives about ${Math.abs(ms)} ms ${ms > 0 ? "late" : "early"}.`;
+    if (Math.abs(ms) < 3) return m.music_hubs_cal_lines_up({ offset: signed(ms) });
+    return ms > 0
+      ? m.music_hubs_cal_late({ offset: signed(ms), ms: Math.abs(ms) })
+      : m.music_hubs_cal_early({ offset: signed(ms), ms: Math.abs(ms) });
   }
 
   onMount(() => {
@@ -192,17 +195,17 @@
 <div class="flex flex-col gap-3 px-4 py-4" data-testid="cal-{id}">
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div class="min-w-0 flex-1 basis-56">
-      <p class="flex items-center gap-1 font-medium">{title}<Hint about="{title} calibration" text={blurb} /></p>
+      <p class="flex items-center gap-1 font-medium">{title}<Hint about={m.music_hubs_cal_about({ title })} text={blurb} /></p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <span class="tnum rounded-full bg-ws-raised px-3 py-1 text-sm" data-testid="offset-{id}">
-        {current === undefined ? "Not calibrated" : `Now ${signed(current)}`}
+        {current === undefined ? m.music_hubs_cal_not_calibrated() : m.music_hubs_cal_now({ offset: signed(current) })}
       </span>
       {#if running}
-        <button type="button" class={btn} onclick={cancel}><Square class="size-4" aria-hidden="true" />Stop</button>
+        <button type="button" class={btn} onclick={cancel}><Square class="size-4" aria-hidden="true" />{m.music_hubs_stop()}</button>
       {:else}
-        <button type="button" class={btn} disabled={!!active} onclick={run}><Play class="size-4" aria-hidden="true" />Start</button>
-        {#if current !== undefined}<button type="button" class={btn} onclick={reset}>Reset</button>{/if}
+        <button type="button" class={btn} disabled={!!active} onclick={run}><Play class="size-4" aria-hidden="true" />{m.music_hubs_start()}</button>
+        {#if current !== undefined}<button type="button" class={btn} onclick={reset}>{m.music_hubs_reset()}</button>{/if}
       {/if}
     </div>
   </div>
@@ -216,11 +219,11 @@
         onpointerdown={tapNow}
         aria-describedby="tap-hint-{id}"
       >
-        Tap
+        {m.music_hubs_cal_tap()}
       </button>
       <div class="min-w-0 flex-1">
         <p class="tnum font-display text-3xl font-semibold">
-          {count}<span class="ml-1.5 text-lg text-ws-stage-soft">of {CALIBRATION.clicks}</span>
+          {count}<span class="ml-1.5 text-lg text-ws-stage-soft">{m.music_hubs_cal_of({ count: CALIBRATION.clicks })}</span>
         </p>
         <div class="mt-2 flex flex-wrap gap-1" aria-hidden="true">
           {#each { length: CALIBRATION.clicks }, i (i)}
@@ -230,7 +233,7 @@
           {/each}
         </div>
         <p id="tap-hint-{id}" class="mt-2 text-sm text-ws-stage-soft">
-          {kind === "audio" ? "Clap or pick a muted string on each click." : "Play any note on each click."} The first {CALIBRATION.warmup} are warm-up. Space or the Tap button also works.
+          {kind === "audio" ? m.music_hubs_cal_hint_audio({ warmup: CALIBRATION.warmup }) : m.music_hubs_cal_hint_midi({ warmup: CALIBRATION.warmup })}
         </p>
       </div>
     </div>
@@ -239,12 +242,12 @@
   {#if message}
     <div class="flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 text-sm {result && !result.ok ? 'border-warn/50' : 'border-ws-line'}">
       <p class="min-w-0 flex-1" data-testid="result-{id}">
-        {#if result && !result.ok}<span class="font-semibold text-warn">Not accepted. </span>{/if}{message}
+        {#if result && !result.ok}<span class="font-semibold text-warn">{m.music_hubs_cal_not_accepted()}</span>{/if}{message}
         {#if result?.ok && onscreenOnly}
-          These taps came from the on-screen button, so this measures your tapping, not the {kind === "audio" ? "microphone" : "MIDI device"}.
+          {kind === "audio" ? m.music_hubs_cal_onscreen_audio() : m.music_hubs_cal_onscreen_midi()}
         {/if}
       </p>
-      {#if result?.ok}<button type="button" class={btnPrimary} onclick={save}>Save {signed(result.offsetMs)}</button>{/if}
+      {#if result?.ok}<button type="button" class={btnPrimary} onclick={save}>{m.music_hubs_cal_save({ offset: signed(result.offsetMs) })}</button>{/if}
     </div>
   {/if}
 </div>

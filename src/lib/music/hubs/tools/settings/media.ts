@@ -1,6 +1,7 @@
 // Media bookkeeping for backups and reset: which OPFS files the tables point at,
 // and a restore that never overwrites a file that differs from the backup.
 import type { BackupTable, MediaCounts, Row } from "@repo/music-core/io/backup";
+import { m } from "@repo/i18n/messages.js";
 
 export const KITS_KEY = "music.sample-kits";
 
@@ -63,10 +64,7 @@ export async function restoreAssets(
     const have = await store.get(a.key);
     if (!have) missing.push(a);
     else if ((await sha256Hex(have)) === a.sha256) skipped++;
-    else
-      throw new Error(
-        `"${a.key}" already exists here with different contents, so nothing was restored. Remove that recording or sample first if you want the backup's copy.`,
-      );
+    else throw new Error(m.music_hubs_media_conflict({ key: a.key }));
   }
   const written: string[] = [];
   try {

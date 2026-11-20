@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from "@repo/i18n/messages.js";
   // A sustained reference pitch to play against. No microphone.
   import { onDestroy } from "svelte";
   import Play from "@lucide/svelte/icons/play";
@@ -23,9 +24,9 @@
   const midi = $derived((octave + 1) * 12 + tonic);
 
   const TIMBRES = [
-    { value: "sine", label: "Sine", hint: "A pure tone: the easiest to hear beats against." },
-    { value: "cello", label: "Cello", hint: "A bowed, filtered tone with some body." },
-    { value: "shruti", label: "Shruti", hint: "Stacks the fifth and the octave, like a tanpura." },
+    { value: "sine", label: m.music_hubs_drone_sine(), hint: m.music_hubs_drone_sine_hint() },
+    { value: "cello", label: m.music_hubs_drone_cello(), hint: m.music_hubs_drone_cello_hint() },
+    { value: "shruti", label: m.music_hubs_drone_shruti(), hint: m.music_hubs_drone_shruti_hint() },
   ] as const;
   const LOW_OCTAVE = 2;
   const HIGH_OCTAVE = 4;
@@ -36,19 +37,18 @@
   const tonicName = $derived(pretty(noteName(tonic, "flat", false)));
   let about = $state(false);
 
-  const describe = () => `${noteName(midi)}, ${timbre}`;
 
   async function start() {
     const ok = await audio.unlock();
-    if (!ok) return onstatus("Sound is blocked. Press Play drone again to allow it.");
+    if (!ok) return onstatus(m.music_hubs_drone_blocked());
     audio.drone.start(midi, timbre, volume);
-    onstatus(`Drone on ${describe()}.`);
+    onstatus(m.music_hubs_drone_on({ note: noteName(midi), timbre: (TIMBRES.find((t) => t.value === timbre)?.label ?? timbre).toLowerCase() }));
   }
 
   function toggle() {
     if (playing) {
       audio.drone.stop();
-      onstatus("Drone stopped.");
+      onstatus(m.music_hubs_drone_stopped());
     } else void start();
   }
 
@@ -60,22 +60,22 @@
   onDestroy(() => audio.drone.stop());
 </script>
 
-<section class="stage ws-on-stage rounded-2xl p-4 sm:p-5" aria-label="Drone">
+<section class="stage ws-on-stage rounded-2xl p-4 sm:p-5" aria-label={m.music_hubs_drone_label()}>
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center gap-2">
       <p class="font-display text-xl font-semibold">
-        {playing ? "Sounding" : "Tonic"} <span class="tnum">{pretty(noteName(midi))}</span>
+        {playing ? m.music_hubs_drone_sounding() : m.music_hubs_drone_tonic()} <span class="tnum">{pretty(noteName(midi))}</span>
       </p>
-      <div class="flex items-center rounded-full border border-ws-line" role="group" aria-label="Octave">
-        <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-40" aria-label="Octave down" disabled={octave <= LOW_OCTAVE} onclick={() => shift(-1)}><Minus class="size-4" aria-hidden="true" /></button>
-        <span class="tnum px-1 text-sm text-ws-stage-soft">Octave {octave}</span>
-        <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-40" aria-label="Octave up" disabled={octave >= HIGH_OCTAVE} onclick={() => shift(1)}><Plus class="size-4" aria-hidden="true" /></button>
+      <div class="flex items-center rounded-full border border-ws-line" role="group" aria-label={m.music_hubs_drone_octave()}>
+        <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-40" aria-label={m.music_hubs_drone_octave_down()} disabled={octave <= LOW_OCTAVE} onclick={() => shift(-1)}><Minus class="size-4" aria-hidden="true" /></button>
+        <span class="tnum px-1 text-sm text-ws-stage-soft">{m.music_hubs_drone_octave_n({ n: octave })}</span>
+        <button type="button" class="grid size-11 place-items-center rounded-full hover:bg-ws-raised disabled:opacity-40" aria-label={m.music_hubs_drone_octave_up()} disabled={octave >= HIGH_OCTAVE} onclick={() => shift(1)}><Plus class="size-4" aria-hidden="true" /></button>
       </div>
     </div>
     <!-- Volume sits beside Play and Stop, so every drone control fits the first screen on a phone. -->
     <div class="flex w-full items-end gap-3 sm:w-auto">
     <label class="flex min-w-0 flex-1 flex-col text-sm sm:w-40 sm:flex-none">
-      <span class="font-medium">Volume <span class="tnum text-ws-stage-soft">{Math.round(volume * 100)}%</span></span>
+      <span class="font-medium">{m.music_hubs_drone_volume()} <span class="tnum text-ws-stage-soft">{Math.round(volume * 100)}%</span></span>
       <input type="range" min="0.05" max="1" step="0.05" bind:value={volume} onchange={changed} class="volume w-full" style:--v={(volume - 0.05) / 0.95} />
     </label>
     <button
@@ -86,7 +86,7 @@
       aria-pressed={playing}
       onclick={toggle}
     >
-      {#if playing}<Square class="size-4" fill="currentColor" aria-hidden="true" />Stop drone{:else}<Play class="size-5" fill="currentColor" aria-hidden="true" />Play drone{/if}
+      {#if playing}<Square class="size-4" fill="currentColor" aria-hidden="true" />{m.music_hubs_drone_stop()}{:else}<Play class="size-5" fill="currentColor" aria-hidden="true" />{m.music_hubs_drone_play()}{/if}
     </button>
     </div>
   </div>
@@ -95,13 +95,13 @@
     <!-- The scale named over its pads, one line on the degrees, the rest behind the info button. -->
     <div class="mb-2 flex items-start gap-2">
       <div class="min-w-0 flex-1">
-        <p class="font-display text-lg font-semibold" data-testid="drone-scale">{tonicName} major</p>
-        <p class="text-sm text-ws-stage-soft">Gold pads with a dot are in {tonicName} major. ♭3 = minor third above {tonicName}. Tap a pad to change the tonic.</p>
+        <p class="font-display text-lg font-semibold" data-testid="drone-scale">{m.music_hubs_songs_key_major({ tonic: tonicName })}</p>
+        <p class="text-sm text-ws-stage-soft">{m.music_hubs_drone_scale_hint({ tonic: tonicName })}</p>
       </div>
       <button
         type="button"
         class="grid size-11 shrink-0 place-items-center rounded-full text-ws-stage-soft hover:bg-ws-stage-ink/10 hover:text-ws-stage-ink"
-        aria-label="What the pads show"
+        aria-label={m.music_hubs_drone_what_pads()}
         aria-expanded={about}
         aria-controls="drone-about"
         onclick={() => (about = !about)}><Info class="size-5" aria-hidden="true" /></button
@@ -109,11 +109,11 @@
     </div>
     {#if about}
       <p id="drone-about" class="mb-2 rounded-xl bg-ws-stage-ink/10 px-3 py-2 text-sm">
-        Outlined pads with a <span class="dot" aria-hidden="true"></span> are the seven notes of {tonicName} major. The numbers count steps up from {tonicName}: 5 is the fifth, ♭ lowers a step by a half step, ♯ raises it.
+        {m.music_hubs_drone_about_before()} <span class="dot" aria-hidden="true"></span> {m.music_hubs_drone_about_after({ tonic: tonicName })}
       </p>
     {/if}
     <NotePads
-      label="Tonic"
+      label={m.music_hubs_drone_tonic()}
       selected={tonic}
       tonic={tonic}
       onselect={(p) => {
@@ -125,7 +125,7 @@
   </div>
 
   <div class="mt-4">
-    <Choice label="Timbre" options={TIMBRES} bind:value={timbre} onchange={changed} />
+    <Choice label={m.music_hubs_drone_timbre()} options={TIMBRES} bind:value={timbre} onchange={changed} />
     <p class="mt-1 text-sm text-ws-stage-soft">{TIMBRES.find((t) => t.value === timbre)?.hint}</p>
   </div>
 
