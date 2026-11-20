@@ -1,5 +1,20 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "music_content_analysis_fn_backdoor": "Backdoor",
+  "music_content_analysis_fn_other": "Otro",
+  "music_content_analysis_fn_passing_dim": "Disminuido de paso",
+  "music_content_analysis_fn_related_ii": "ii relacionado",
+  "music_content_analysis_fn_tritone_sub": "Sustituto tritonal",
+  "music_content_analysis_fn_v_of": "V de",
+  "music_content_analysis_rule_backdoor": "Un backdoor: bVII7 que sube un tono hasta I. El iv7 que va antes forma pareja con él.",
+  "music_content_analysis_rule_dominant": "El V: una dominante que resuelve una quinta abajo al I de la tonalidad, o un ii-V que queda en el aire. Un ii-V en el aire indica la tonalidad una quinta abajo.",
+  "music_content_analysis_rule_ii": "El ii de un ii-V: un acorde menor (o semidisminuido) una cuarta por debajo del V.",
+  "music_content_analysis_rule_other": "No forma parte de una cadencia. Se nombra en la última tonalidad alcanzada, o en la siguiente cuando no es ninguno de los acordes de la última. iv y bVI cuentan como prestados del menor.",
+  "music_content_analysis_rule_passing_dim": "Un séptimo disminuido de paso: une dos acordes separados por un grado.",
+  "music_content_analysis_rule_related_ii": "Un ii relacionado: el ii antes de una dominante secundaria o de un sustituto tritonal.",
+  "music_content_analysis_rule_secondary": "Una dominante secundaria: resuelve una quinta abajo a un acorde que no es el I de una tonalidad. Pertenece a la tonalidad de ese acorde.",
+  "music_content_analysis_rule_tonic": "El I de una tonalidad: el acorde de casa, o un acorde mayor al que se llega desde su propio V7, sustituto tritonal o backdoor. Un i menor necesita su iiø7 V7 completo y dos compases.",
+  "music_content_analysis_rule_tritone_sub": "Un sustituto tritonal: una dominante que resuelve un semitono abajo, en lugar del V que está a un tritono.",
   "music_content_catalog_accompany_blurb": "Toca patrones de pop, blues y gospel, acompañamiento de jazz o un lead sheet sobre un cifrado de acordes en cualquier tonalidad.",
   "music_content_catalog_accompany_title": "Acompañamiento",
   "music_content_catalog_aerophone_blurb": "Aprende las digitaciones en el orden de las lecciones de Roland; luego sostén notas, hazlas crecer, articúlalas con la lengua y llega a intervalos sobre un bordón.",
@@ -126,5 +141,161 @@
   "music_content_catalog_two_hand_blurb": "Cada mano toca su propia parte: un pulso constante bajo una línea que se mueve, o las dos manos en espejo.",
   "music_content_catalog_two_hand_title": "Dos manos",
   "music_content_catalog_voicings_blurb": "Toca voicings de jazz sin fundamental a lo largo de un ii-V-I en las doce tonalidades.",
-  "music_content_catalog_voicings_title": "Voicings"
+  "music_content_catalog_voicings_title": "Voicings",
+  "music_content_circle_ask_across": "¿Qué tonalidad está enfrente de {key} en el círculo? (Su dominante es el sustituto tritonal.)",
+  "music_content_circle_ask_analysis": "{bar}: {chord}",
+  "music_content_circle_ask_borrowed": "{shown}. ¿Qué acorde viene prestado de {key} menor?",
+  "music_content_circle_ask_chord_in_key": "¿El acorde {numeral} en {key} mayor?",
+  "music_content_circle_ask_count_major": "¿Cuántos sostenidos o bemoles tiene {key} mayor?",
+  "music_content_circle_ask_count_minor": "¿Cuántos sostenidos o bemoles tiene {key} menor?",
+  "music_content_circle_ask_flat_after": "¿Qué bemol viene después de {note}?",
+  "music_content_circle_ask_major_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "¿Qué tonalidad mayor tiene {count} bemol?",
+        "countPlural=other": "¿Qué tonalidad mayor tiene {count} bemoles?"
+      }
+    }
+  ],
+  "music_content_circle_ask_major_none": "¿Qué tonalidad mayor no tiene sostenidos ni bemoles?",
+  "music_content_circle_ask_major_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "¿Qué tonalidad mayor tiene {count} sostenido?",
+        "countPlural=other": "¿Qué tonalidad mayor tiene {count} sostenidos?"
+      }
+    }
+  ],
+  "music_content_circle_ask_minor_flats": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "¿Qué tonalidad menor tiene {count} bemol?",
+        "countPlural=other": "¿Qué tonalidad menor tiene {count} bemoles?"
+      }
+    }
+  ],
+  "music_content_circle_ask_minor_none": "¿Qué tonalidad menor no tiene sostenidos ni bemoles?",
+  "music_content_circle_ask_minor_sharps": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "¿Qué tonalidad menor tiene {count} sostenido?",
+        "countPlural=other": "¿Qué tonalidad menor tiene {count} sostenidos?"
+      }
+    }
+  ],
+  "music_content_circle_ask_nth_flat": "¿El {ordinal} bemol?",
+  "music_content_circle_ask_nth_sharp": "¿El {ordinal} sostenido?",
+  "music_content_circle_ask_one_more_flat": "¿Un bemol más que {key} mayor?",
+  "music_content_circle_ask_one_more_sharp": "¿Un sostenido más que {key} mayor?",
+  "music_content_circle_ask_relative_major": "¿La relativa mayor de {key} menor?",
+  "music_content_circle_ask_relative_minor": "¿La relativa menor de {key} mayor?",
+  "music_content_circle_ask_secondary": "{shown}. ¿Qué acorde es una dominante secundaria (un V de otro acorde)?",
+  "music_content_circle_ask_sharp_after": "¿Qué sostenido viene después de {note}?",
+  "music_content_circle_ask_signature_major": "¿Qué tonalidad mayor indica esta armadura?",
+  "music_content_circle_ask_signature_minor": "¿Qué tonalidad menor indica esta armadura?",
+  "music_content_circle_ask_v_of": "{shown}. ¿{chord} es el V de qué acorde?",
+  "music_content_circle_ask_wheel": "Toca donde va {key} mayor.",
+  "music_content_circle_ask_which_numeral": "¿Qué acorde de {key} mayor es {chord}?",
+  "music_content_circle_band_all": "Las 15, también las enarmónicas",
+  "music_content_circle_band_four": "Hasta 4",
+  "music_content_circle_band_near": "C, G y F",
+  "music_content_circle_band_two": "Hasta 2 sostenidos o bemoles",
+  "music_content_circle_bar": "Compás {bar}",
+  "music_content_circle_bar_first_half": "Compás {bar}, primera mitad",
+  "music_content_circle_bar_second_half": "Compás {bar}, segunda mitad",
+  "music_content_circle_bars": "Compases {from} a {to}",
+  "music_content_circle_mode_analysis": "Analiza un tema",
+  "music_content_circle_mode_borrowed": "Encuentra el acorde prestado",
+  "music_content_circle_mode_chords": "Los acordes de una tonalidad",
+  "music_content_circle_mode_count": "Tonalidades y sus armaduras",
+  "music_content_circle_mode_neighbours": "Vecinas y relativas",
+  "music_content_circle_mode_order": "Orden de sostenidos y bemoles",
+  "music_content_circle_mode_secondary": "Encuentra la dominante secundaria",
+  "music_content_circle_mode_signature": "Lee la armadura",
+  "music_content_circle_mode_wheel": "Completa la rueda",
+  "music_content_circle_ordinal_1": "primer",
+  "music_content_circle_ordinal_2": "segundo",
+  "music_content_circle_ordinal_3": "tercer",
+  "music_content_circle_ordinal_4": "cuarto",
+  "music_content_circle_ordinal_5": "quinto",
+  "music_content_circle_ordinal_6": "sexto",
+  "music_content_circle_ordinal_7": "séptimo",
+  "music_content_circle_shown": "{key} mayor: {chords}",
+  "music_content_loops_borrowed_hint": "iv, bVI, bVII y bIII junto a I, IV, V y vi.",
+  "music_content_loops_borrowed_label": "Acordes prestados",
+  "music_content_loops_caption": "{name}. En {key}: {chords}",
+  "music_content_loops_caption_songs": "{name}, como en {songs}. En {key}: {chords}",
+  "music_content_loops_key_major": "{note} mayor",
+  "music_content_loops_key_minor": "{note} menor",
+  "music_content_loops_minor_hint": "i, iv, v y V, con bVI, bIII y bVII del menor natural.",
+  "music_content_loops_minor_label": "Loops menores",
+  "music_content_loops_modal_hint": "Dórico, mixolidio, lidio, frigio y eólico.",
+  "music_content_loops_modal_label": "Vamps modales",
+  "music_content_loops_pop_hint": "I, IV, V y vi en los cuatro loops de los que está hecho el pop.",
+  "music_content_loops_pop_label": "Loops de pop",
+  "music_content_loops_rock_hint": "bVII, bVI y bIII: los loops del rock y del mixolidio.",
+  "music_content_loops_rock_label": "Loops de rock",
+  "music_content_loops_secondary_hint": "V7/V, V7/vi, V7/ii y V7/IV.",
+  "music_content_loops_secondary_label": "Dominantes secundarias",
+  "music_content_loops_song_hey_jude_coda": "Hey Jude, el final",
+  "music_content_loops_songs_hint": "Acordes de canciones reales, en una tonalidad que escuchas primero.",
+  "music_content_loops_songs_label": "Loops de canciones",
+  "music_content_loops_tritone_hint": "bII7 a I frente a V7 a I.",
+  "music_content_loops_tritone_label": "Sustitutos tritonales",
+  "music_content_loops_turnarounds_hint": "I-vi-ii-V, iii-VI-ii-V y el backdoor.",
+  "music_content_loops_turnarounds_label": "Turnarounds",
+  "music_content_tunes_all_of_me_composer": "Gerald Marks y Seymour Simons",
+  "music_content_tunes_chorus": "Chorus {n}",
+  "music_content_tunes_chorus_head": "Tema",
+  "music_content_tunes_chorus_head_out": "Tema final",
+  "music_content_tunes_chorus_solo": "Solo {n}",
+  "music_content_tunes_epistrophy_composer": "Thelonious Monk y Kenny Clarke",
+  "music_content_tunes_jazz_blues_composer": "Forma tradicional (Bags' Groove, Now's the Time)",
+  "music_content_tunes_jazz_blues_name": "Blues de jazz en F",
+  "music_content_tunes_minor_blues_composer": "Forma tradicional (Mr. P.C., Equinox)",
+  "music_content_tunes_minor_blues_name": "Blues menor en C",
+  "music_content_tunes_reharm_backdoor_about": "Llega al siguiente acorde desde iv7 a bVII7 (Fm7 Bb7 a C).",
+  "music_content_tunes_reharm_backdoor_label": "ii-V backdoor",
+  "music_content_tunes_reharm_chromatic_about": "Su segunda mitad se convierte en el ii-V un semitono por encima del siguiente acorde (Ebm7 Ab7 a Dm7).",
+  "music_content_tunes_reharm_chromatic_label": "ii-V cromático",
+  "music_content_tunes_reharm_passing_dim_about": "Su segunda mitad se convierte en un séptimo disminuido un semitono por debajo del siguiente acorde.",
+  "music_content_tunes_reharm_passing_dim_label": "Disminuido de paso",
+  "music_content_tunes_reharm_related_ii_about": "Una dominante comparte su tiempo con su ii (G7 se vuelve Dm7 G7).",
+  "music_content_tunes_reharm_related_ii_label": "ii relacionado",
+  "music_content_tunes_reharm_secondary_about": "El acorde se convierte en la dominante del acorde que sigue (Am7 antes de Dm7 se vuelve A7).",
+  "music_content_tunes_reharm_secondary_label": "Dominante secundaria",
+  "music_content_tunes_reharm_tritone_about": "Una dominante se convierte en la dominante a un tritono de distancia (G7 a Db7).",
+  "music_content_tunes_reharm_tritone_label": "Sustituto tritonal",
+  "music_content_tunes_rhythm_changes_composer": "Basado en I Got Rhythm de George Gershwin (Oleo, Anthropology)",
+  "music_content_tunes_rhythm_changes_name": "Rhythm changes en Bb",
+  "music_content_tunes_satin_doll_composer": "Duke Ellington y Billy Strayhorn",
+  "music_content_tunes_well_you_neednt_composer": "Thelonious Monk (con su propio puente)"
 }
