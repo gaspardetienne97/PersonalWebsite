@@ -48,14 +48,26 @@
     return out;
   });
 
-  // Keep the active word in the upper-middle of the scroll viewport. How it gets there
-  // (smoothly or at once) is the scroll area's own scroll-behavior.
+  const plain = (text: string) => text.replace(/\s+/g, " ").trim().toLowerCase();
+  // Many files open a chapter with its own heading as the first paragraph. Then that paragraph
+  // is the heading, and the chapter's name is not printed a second time above it.
+  const ownHeading = $derived(
+    plain(
+      paras[0]?.sentences
+        .flatMap((s) => s.words)
+        .map((w) => w.word)
+        .join(" ") ?? "",
+    ) === plain(chapterTitle),
+  );
+
+  // Keep the active word in the upper third of the scroll viewport, clear of the top edge. How
+  // it gets there (smoothly or at once) is the scroll area's own scroll-behavior.
   function follow() {
     const sc = scrollEl;
     const el = sc?.querySelector<HTMLElement>('[data-active="1"]');
     if (!sc || !el) return;
     const top = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop;
-    sc.scrollTo({ top: top - sc.clientHeight * 0.4 });
+    sc.scrollTo({ top: top - sc.clientHeight * 0.3 });
   }
   $effect(() => {
     void activeWordIndex;
@@ -78,13 +90,21 @@
   style:font-family={font === "serif" ? "var(--n-font-serif)" : "var(--n-font-sans)"}
   style:font-size="{fontSize}px"
   style:line-height={lineHeight}
+  style:--lh={lineHeight}
+  style:--box={font === "serif" ? 1.23 : 1.26}
 >
-  {#if showTitle}
+  {#if showTitle && !ownHeading}
     <h2 class="chapter-title">{chapterTitle}</h2>
   {/if}
-  {#each paras as para (para.pi)}
+  {#each paras as para, i (para.pi)}
+    {@const heading = i === 0 && ownHeading}
     <!-- The paragraph being read carries a bar in the margin, its sentence a tint. -->
-    <p class:now={para.sentences.some((s) => s.si === activeSentence)}>
+    <p
+      class:chapter-title={heading}
+      class:now={para.sentences.some((s) => s.si === activeSentence)}
+      role={heading ? "heading" : undefined}
+      aria-level={heading ? 2 : undefined}
+    >
       {#each para.sentences as sentence (sentence.si)}
         <span class="sentence" class:read={sentence.si < activeSentence} class:current={sentence.si === activeSentence}>
           {#each sentence.words as { word, gi }, i (gi)}
@@ -92,6 +112,7 @@
             <span
               class="word {highlight}"
               class:current={gi === activeWordIndex}
+              class:read={sentence.si === activeSentence && gi < activeWordIndex}
               data-active={gi === activeWordIndex ? "1" : "0"}
               onclick={() => onword(gi)}>{word}</span
             >{#if i < sentence.words.length - 1}{" "}{/if}
@@ -103,15 +124,16 @@
 </div>
 
 <style>
+  /* The chapter's name, once, in the reading face. */
   .chapter-title {
-    font-family: var(--n-font-mono);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.5;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin: 0 0 18px;
-    color: var(--n-accent-text);
+    font-size: 1.3em;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.9em;
+  }
+  h2.chapter-title {
+    color: var(--n-fg-0);
   }
   p {
     position: relative;
@@ -132,14 +154,17 @@
     transition: color 200ms var(--n-ease-out);
   }
   .sentence.read {
-    color: var(--n-fg-2);
+    color: var(--n-fg-read);
   }
+  /* One shape for the sentence being read. The padding fills the space between its lines (the
+     line height less the letters' own box, which --box gives for the reading face), and the
+     fill is opaque so the lines' boxes meet without a seam. */
   .sentence.current {
     color: var(--n-fg-0);
-    background: color-mix(in srgb, var(--n-accent) 16%, transparent);
-    border-radius: 5px;
-    padding: 0.14em 0.2em;
-    margin: 0 -0.2em;
+    background: color-mix(in srgb, var(--n-accent) 18%, var(--n-bg-0));
+    border-radius: 0.3em;
+    padding: calc((var(--lh) - var(--box)) * 0.5em + 0.75px) 0.28em;
+    margin: 0 -0.28em;
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
   }

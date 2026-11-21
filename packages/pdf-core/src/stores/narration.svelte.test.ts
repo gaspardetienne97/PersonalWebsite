@@ -89,3 +89,30 @@ describe("NarrationPlayer, natural voice failure", () => {
     player.dispose();
   });
 });
+
+describe("NarrationPlayer, moving by sentence", () => {
+  it("lands a seek on the start of the sentence it falls in", () => {
+    localStorage.clear();
+    const player = new NarrationPlayer(doc);
+    const [first, second] = player.model.sentences;
+
+    player.seekSentence(second.start + 300);
+    expect(player.pos).toBe(second.start);
+    expect(player.wordIndex).toBe(second.wordStart);
+
+    player.seekSentence(second.start - 5);
+    expect(player.pos).toBe(first.start);
+    player.dispose();
+  });
+
+  it("replays the current sentence from its first word", () => {
+    localStorage.clear();
+    const player = new NarrationPlayer(doc);
+    const second = player.model.sentences[1];
+
+    player.seekTo(second.start + 400);
+    player.replaySentence();
+    expect(player.pos).toBe(second.start);
+    player.dispose();
+  });
+});

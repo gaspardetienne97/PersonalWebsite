@@ -1,6 +1,6 @@
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
-  import { fmtLong, type NarrationModel } from "@repo/pdf-core/domain";
+  import { fmtClock, fmtLong, type NarrationModel } from "@repo/pdf-core/domain";
 
   import Equalizer from "./Equalizer.svelte";
 
@@ -8,31 +8,49 @@
     model,
     chapterIndex,
     playing,
+    pos,
+    speed = 1,
     onseek,
   }: {
     model: NarrationModel;
     chapterIndex: number;
     playing: boolean;
+    /** The playhead, for the time left in the current chapter. */
+    pos: number;
+    speed?: number;
     onseek: (index: number) => void;
   } = $props();
+
+  // To the second while a chapter is short, so three chapters do not all read "1 min".
+  const length = (ms: number) => (ms < 600_000 ? fmtClock(ms) : fmtLong(ms));
 </script>
 
 <div class="list">
   {#each model.chapters as chapter, i (chapter.ci)}
     {@const active = i === chapterIndex}
     <button class="row" class:active aria-current={active ? "true" : undefined} onclick={() => onseek(i)}>
-      <span class="num">{String(i + 1).padStart(2, "0")}</span>
+      <span class="num">{i + 1}</span>
       <span class="main">
         <span class="title">{chapter.title}</span>
         {#if active}
           <!-- The word as well as the bars: colour and movement are never the only mark. -->
           <span class="now">
-            <Equalizer color="var(--n-accent)" size={12} active={playing} />
+            {#if playing}
+              <Equalizer color="var(--n-accent)" size={12} />
+            {:else}
+              <svg viewBox="0 0 12 12" width="12" height="12" fill="currentColor" aria-hidden="true">
+                <rect x="2" y="1.5" width="3" height="9" rx="1" />
+                <rect x="7" y="1.5" width="3" height="9" rx="1" />
+              </svg>
+            {/if}
             {playing ? m.narrator_chapter_playing() : m.narrator_chapter_paused()}
+            <span class="left"
+              >{m.narrator_player_time_left({ time: fmtClock(Math.max(0, chapter.end - pos) / speed) })}</span
+            >
           </span>
         {/if}
       </span>
-      <span class="dur">{fmtLong(chapter.end - chapter.start)}</span>
+      <span class="dur">{length((chapter.end - chapter.start) / speed)}</span>
     </button>
   {/each}
 </div>
@@ -66,9 +84,10 @@
   }
   .num {
     font-family: var(--n-font-mono);
-    font-size: 12px;
+    font-size: 13px;
     width: 20px;
     flex-shrink: 0;
+    text-align: right;
     color: var(--n-fg-2);
   }
   .main {
@@ -98,13 +117,22 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--n-fg-1);
   }
+  .left {
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .left::before {
+    content: "·";
+    margin-right: 6px;
+  }
   .dur {
+    font-family: var(--n-font-mono);
     font-size: 13px;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
     white-space: nowrap;
     flex-shrink: 0;
   }

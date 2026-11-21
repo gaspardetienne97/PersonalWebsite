@@ -1,8 +1,8 @@
 /** Reader settings — persisted so the reader opens the way the user left it.
  *
- * Reading layout/highlight/font are fixed app defaults (no in-reader control);
- * the in-reader panel only exposes type metrics and accent, and voice
- * engine/voice/quality live on the narrator settings page.
+ * Reading layout and highlight are fixed app defaults (no in-reader control);
+ * the in-reader panel exposes the reading face, type metrics and accent, and
+ * voice engine/voice/quality live on the narrator settings page.
  */
 
 import { DEFAULT_KOKORO_QUALITY, type KokoroQuality } from "../services/tts";
@@ -29,9 +29,32 @@ export interface ReaderSettingsState {
   naturalVoice: string;
   /** Kokoro model quality preset. */
   modelQuality: KokoroQuality;
+  /** The Flow or Document switch was explained once on a phone. */
+  viewHintSeen: boolean;
 }
 
-export const ACCENT_OPTIONS = ["#1291FA", "#A21FB8", "#FF0C0D", "#22C55E"];
+/** Each keeps white readable on it (3:1 or more) and stands apart from the others without red against green. */
+export const ACCENT_OPTIONS = ["#1291FA", "#A855F7", "#F0443A", "#12A383"];
+
+/** The accents offered before the retune, by what took their place. */
+const OLD_ACCENTS: Record<string, string> = {
+  "#A21FB8": "#A855F7",
+  "#FF0C0D": "#F0443A",
+  "#22C55E": "#12A383",
+};
+
+export const FONT_SIZE = { min: 16, max: 30, step: 1 };
+export const LINE_HEIGHT = { min: 1.4, max: 2.2, step: 0.1 };
+
+/** One step up or down a range, kept inside it and free of float dust. */
+export function stepWithin(
+  value: number,
+  dir: 1 | -1,
+  range: { min: number; max: number; step: number },
+): number {
+  const next = Math.round((value + dir * range.step) * 100) / 100;
+  return Math.min(range.max, Math.max(range.min, next));
+}
 
 const DEFAULTS: ReaderSettingsState = {
   layout: "immersive",
@@ -46,6 +69,7 @@ const DEFAULTS: ReaderSettingsState = {
   systemVoice: "",
   naturalVoice: "af_heart",
   modelQuality: DEFAULT_KOKORO_QUALITY,
+  viewHintSeen: false,
 };
 
 const SETTINGS_KEY = "narrator.settings.v2";
@@ -57,7 +81,9 @@ function load(): ReaderSettingsState {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { ...DEFAULTS };
-    return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<ReaderSettingsState>) };
+    const saved = { ...DEFAULTS, ...(JSON.parse(raw) as Partial<ReaderSettingsState>) };
+    saved.accent = OLD_ACCENTS[saved.accent.toUpperCase()] ?? saved.accent;
+    return saved;
   } catch {
     return { ...DEFAULTS };
   }
@@ -75,6 +101,7 @@ export class ReaderSettings {
   systemVoice = $state(DEFAULTS.systemVoice);
   naturalVoice = $state(DEFAULTS.naturalVoice);
   modelQuality = $state<KokoroQuality>(DEFAULTS.modelQuality);
+  viewHintSeen = $state(DEFAULTS.viewHintSeen);
 
   constructor() {
     Object.assign(this, load());
@@ -104,6 +131,7 @@ export class ReaderSettings {
       systemVoice: this.systemVoice,
       naturalVoice: this.naturalVoice,
       modelQuality: this.modelQuality,
+      viewHintSeen: this.viewHintSeen,
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state));
   }

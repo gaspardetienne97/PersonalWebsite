@@ -3,6 +3,8 @@
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import AudioWaveform from "@lucide/svelte/icons/audio-waveform";
   import Mic from "@lucide/svelte/icons/mic";
+  import Pause from "@lucide/svelte/icons/pause";
+  import Play from "@lucide/svelte/icons/play";
   import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
   import X from "@lucide/svelte/icons/x";
   import { onDestroy } from "svelte";
@@ -10,7 +12,7 @@
   import { formatNumber } from "@repo/i18n/format";
   import { m } from "@repo/i18n/messages.js";
   import { KOKORO_VOICES } from "@repo/pdf-core";
-  import { authorName, type NarratorDoc } from "@repo/pdf-core/domain";
+  import { authorName, fmt, type NarratorDoc } from "@repo/pdf-core/domain";
   import { NarrationPlayer } from "@repo/pdf-core/stores/narration";
   import type { ReaderSettings } from "@repo/pdf-core/stores/settings";
 
@@ -53,13 +55,42 @@
   let settingsOpen = $state(false);
   let scrollEl = $state<HTMLElement | null>(null);
   let dockHeight = $state(0);
+  // The player's open menu: the chapter list dims the text behind it.
+  let playerMenu = $state<"speed" | "chapters" | "voice" | null>(null);
+  let noticesHeight = $state(0);
 
-  // Reopened part-way: say where listening picks up, until it starts or a few seconds pass.
+  // Reopened part-way: say where listening picks up, with a way back to the start. It stays
+  // until listening starts or it is closed.
   let resumeAt = $state(player.pos > 0 && !player.done ? player.percent : null);
-  const resumeTimer = setTimeout(() => (resumeAt = null), 8000);
-  onDestroy(() => clearTimeout(resumeTimer));
   $effect(() => {
     if (player.playing) resumeAt = null;
+  });
+
+  // After a chapter is chosen: name it, and offer the place the listener came from. A few
+  // seconds, since a mistaken press is noticed at once.
+  let jump = $state<{ n: number; title: string; from: number } | null>(null);
+  let jumpTimer: ReturnType<typeof setTimeout> | undefined;
+  function jumped(from: number) {
+    clearTimeout(jumpTimer);
+    resumeAt = null;
+    jump = { n: player.chapterIndex + 1, title: player.model.chapters[player.chapterIndex]?.title ?? "", from };
+    jumpTimer = setTimeout(() => (jump = null), 8000);
+  }
+
+  // The first use of the Flow or Document switch says what the chosen view is. A wide screen
+  // has the same words inside the switch all the time.
+  let viewHint = $state(false);
+  let hintTimer: ReturnType<typeof setTimeout> | undefined;
+  function setStyle(style: "flow" | "doc") {
+    readStyle = style;
+    if (settings.viewHintSeen) return;
+    settings.update("viewHintSeen", true);
+    viewHint = true;
+    hintTimer = setTimeout(() => (viewHint = false), 8000);
+  }
+  onDestroy(() => {
+    clearTimeout(jumpTimer);
+    clearTimeout(hintTimer);
   });
 
   // The natural voice could not load and the system voice took over. The notice comes back
@@ -73,6 +104,9 @@
   const layout = $derived(settings.layout);
   const isDoc = $derived(readStyle === "doc");
   const chapterTitle = $derived(player.model.chapters[player.chapterIndex]?.title ?? "");
+  const hasNotice = $derived(
+    (player.usingFallback && !fallbackDismissed) || jump !== null || resumeAt !== null,
+  );
   const voiceLabel = $derived(
     player.engineMode === "natural"
       ? (KOKORO_VOICES.find((v) => v.id === player.naturalVoice)?.label ?? m.narrator_natural_voice())
@@ -91,26 +125,37 @@
   }}
 />
 
+{#snippet styleButton(style: "flow" | "doc", label: string, sub: string, title: string)}
+  <button
+    class="seg-btn"
+    class:on={readStyle === style}
+    {title}
+    aria-label={label}
+    aria-describedby="reader-style-{style}"
+    aria-pressed={readStyle === style}
+    onclick={() => setStyle(style)}
+  >
+    {#if style === "flow"}
+      <AudioWaveform size={16} strokeWidth={1.5} />
+    {:else}
+      <AlignLeft size={16} strokeWidth={1.5} />
+    {/if}
+    <span class="seg-text">
+      <span class="seg-label">{label}</span>
+      <span class="seg-sub" id="reader-style-{style}">{sub}</span>
+    </span>
+  </button>
+{/snippet}
+
 {#snippet styleToggle()}
   <div class="seg" role="group" aria-label={m.narrator_reader_style()}>
-    <button
-      class="seg-btn"
-      class:on={readStyle === "flow"}
-      title={m.narrator_reader_flow_view()}
-      aria-pressed={readStyle === "flow"}
-      onclick={() => (readStyle = "flow")}
-    >
-      <AudioWaveform size={15} strokeWidth={1.5} /><span class="seg-label">{m.narrator_reader_flow()}</span>
-    </button>
-    <button
-      class="seg-btn"
-      class:on={readStyle === "doc"}
-      title={m.narrator_reader_document_view()}
-      aria-pressed={readStyle === "doc"}
-      onclick={() => (readStyle = "doc")}
-    >
-      <AlignLeft size={15} strokeWidth={1.5} /><span class="seg-label">{m.narrator_reader_document()}</span>
-    </button>
+    {@render styleButton("flow", m.narrator_reader_flow(), m.narrator_reader_flow_hint(), m.narrator_reader_flow_view())}
+    {@render styleButton(
+      "doc",
+      m.narrator_reader_document(),
+      m.narrator_reader_document_hint(),
+      m.narrator_reader_document_view(),
+    )}
   </div>
 {/snippet}
 
@@ -141,6 +186,12 @@
       </div>
     </div>
   </div>
+  {#if showToggle && viewHint}
+    <p class="view-hint" role="status">
+      <strong>{isDoc ? m.narrator_reader_document() : m.narrator_reader_flow()}</strong>
+      {isDoc ? m.narrator_reader_document_hint() : m.narrator_reader_flow_hint()}
+    </p>
+  {/if}
 {/snippet}
 
 {#snippet docText(showTitle: boolean)}
@@ -168,6 +219,7 @@
     highlight={settings.highlight}
     font={settings.font}
     scale={settings.fontSize / 21}
+    {chapterTitle}
   />
 {/snippet}
 
@@ -189,38 +241,73 @@
       </div>
     {:else}
       <div class="imm-stage">
-        <!-- The chapter's name stays at the top of the stage, whatever the sentence's length. -->
-        <h2 class="imm-chapter">{chapterTitle}</h2>
         <div class="imm-stage-inner">{@render flowText()}</div>
       </div>
     {/if}
+    {#if playerMenu === "chapters"}
+      <div class="scrim"></div>
+    {/if}
     <!-- The dock takes its own room under the text, so no line shows under or beside it. -->
-    <div class="float-dock" bind:clientHeight={dockHeight}>
-      {#if resumeAt !== null}
-        <div class="resume" role="status">
-          {m.narrator_reader_resuming({
-            percent: formatNumber(resumeAt, { style: "percent", maximumFractionDigits: 0 }),
-          })}
-        </div>
-      {/if}
-      {#if player.usingFallback && !fallbackDismissed}
-        <div class="fallback">
-          <Notice
-            tone="info"
-            title={m.narrator_reader_fallback_title()}
-            actions={[
-              { label: m.narrator_reader_fallback_retry(), onclick: () => player.retryNatural(), primary: true },
-            ]}
-          >
-            {m.narrator_reader_fallback_body()}
-          </Notice>
-          <button class="fallback-close" aria-label={m.narrator_close()} onclick={() => (fallbackDismissed = true)}>
-            <X size={18} strokeWidth={1.5} />
-          </button>
+    <div
+      class="float-dock"
+      bind:clientHeight={dockHeight}
+      style:--n-pop-lift="{hasNotice ? noticesHeight + 10 : 0}px"
+    >
+      <!-- One line each, on the dock's top edge. The player's menus open above them. -->
+      {#if hasNotice}
+        <div class="notices" bind:clientHeight={noticesHeight}>
+          {#if player.usingFallback && !fallbackDismissed}
+            <Notice
+              tone="warn"
+              variant="line"
+              actions={[{ label: m.narrator_reader_fallback_retry(), onclick: () => player.retryNatural() }]}
+              ondismiss={() => (fallbackDismissed = true)}
+            >
+              {m.narrator_player_fallback()}
+            </Notice>
+          {/if}
+          {#if jump}
+            {@const from = jump.from}
+            <Notice
+              tone="info"
+              variant="line"
+              actions={[
+                {
+                  label: m.narrator_reader_back_to({ time: fmt(from) }),
+                  onclick: () => {
+                    player.seekTo(from);
+                    jump = null;
+                  },
+                },
+              ]}
+              ondismiss={() => (jump = null)}
+            >
+              {m.narrator_reader_jumped({ n: jump.n, title: jump.title })}
+            </Notice>
+          {:else if resumeAt !== null}
+            <Notice
+              tone="info"
+              variant="line"
+              actions={[
+                {
+                  label: m.narrator_reader_start_over(),
+                  onclick: () => {
+                    player.seekTo(0);
+                    resumeAt = null;
+                  },
+                },
+              ]}
+              ondismiss={() => (resumeAt = null)}
+            >
+              {m.narrator_reader_resuming({
+                percent: formatNumber(resumeAt, { style: "percent", maximumFractionDigits: 0 }),
+              })}
+            </Notice>
+          {/if}
         </div>
       {/if}
       <div class="float-inner">
-        <PlayerBar {player} {settings} variant="float" />
+        <PlayerBar {player} {settings} variant="float" bind:menu={playerMenu} onjump={jumped} />
       </div>
     </div>
   {:else if layout === "audiobook"}
@@ -267,6 +354,18 @@
     <div class="settings-pop">
       <div class="sheet-head">
         <span>{m.narrator_reader_settings()}</span>
+        <!-- The sheet takes the dock's place, so listening can still be started and stopped. -->
+        <button
+          class="mini-play"
+          aria-label={player.playing ? m.narrator_player_pause() : m.narrator_player_play()}
+          onclick={() => player.toggle()}
+        >
+          {#if player.playing}
+            <Pause size={18} strokeWidth={2} />
+          {:else}
+            <Play size={18} strokeWidth={2} style="margin-left: 2px" />
+          {/if}
+        </button>
         <button class="back" aria-label={m.narrator_close()} onclick={() => (settingsOpen = false)}>
           <X size={18} strokeWidth={1.5} />
         </button>
@@ -287,6 +386,8 @@
     overflow: hidden;
     /* The accent as text: lifted toward white so a dark accent still reads on the page. */
     --n-accent-text: color-mix(in srgb, var(--n-accent) 62%, var(--n-fg-0));
+    /* The room the settings panel takes on a wide screen: the text and the dock move over. */
+    --panel-room: 0px;
   }
   .blob {
     position: absolute;
@@ -356,12 +457,30 @@
     align-items: center;
     gap: 10px;
   }
+  /* What the Flow or Document switch just chose, in words. */
+  .view-hint {
+    position: relative;
+    z-index: 9;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--n-border-1);
+    background: var(--n-bg-1);
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: center;
+    color: var(--n-fg-1);
+  }
+  .view-hint strong {
+    margin-right: 6px;
+    color: var(--n-fg-0);
+  }
   .settings-pop {
     position: absolute;
     z-index: 30;
-    top: 70px;
+    top: 72px;
     right: clamp(14px, 3vw, 28px);
-    max-height: calc(100% - 86px);
+    max-height: calc(100% - 88px);
     overflow-y: auto;
     background: var(--n-bg-3);
     border: 1px solid var(--n-border-2);
@@ -383,23 +502,56 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    min-height: 32px;
-    padding: 0 10px;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 12px;
     border-radius: 7px;
-    border: none;
+    border: 1px solid transparent;
     background: transparent;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
     font-family: var(--n-font-sans);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 160ms var(--n-ease-out);
   }
   .seg-btn.on {
     background: var(--n-bg-3);
+    border-color: var(--n-border-3);
     color: var(--n-fg-0);
     box-shadow: var(--n-shadow-xs);
+  }
+  .seg-text {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    line-height: 1.25;
+  }
+  /* What each view is, under its name. Only where the bar has the room. */
+  .seg-sub {
+    display: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--n-fg-2);
+  }
+  .seg-btn.on .seg-sub {
+    color: var(--n-fg-1);
+  }
+  @media (min-width: 900px) {
+    .seg-sub {
+      display: block;
+    }
+    .seg-btn {
+      min-height: 46px;
+    }
+    .view-hint {
+      display: none;
+    }
+    /* The settings panel sits beside the text, not over it: the reading column and the dock
+       move into the width that is left, so no line end is hidden while its size changes. */
+    .root.sheet-open {
+      --panel-room: 356px;
+    }
   }
   /* ---------- immersive ---------- */
   .imm-scroll,
@@ -408,19 +560,37 @@
     /* Following the voice. The reduced-motion rule in narrator.css makes this a jump. */
     scroll-behavior: smooth;
   }
+  .imm-scroll,
+  .imm-stage,
+  .float-dock,
+  .doc-scroll,
+  .doc-bar,
+  .audio-grid {
+    margin-right: var(--panel-room);
+    transition: margin-right 200ms var(--n-ease-out);
+  }
   .imm-scroll {
     position: relative;
     z-index: 1;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    /* A short fade into the dock. */
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
+    /* A soft edge under the top bar, so no line is cut through its letters, and a short one
+       above the dock. The lines between them are at full strength. */
+    mask-image: linear-gradient(to bottom, transparent, #000 22px, #000 calc(100% - 26px), transparent);
   }
   .imm-doc-inner {
     max-width: 720px;
     margin: 0 auto;
-    padding: 28px 24px 64px;
+    /* The last line can rise well clear of the dock. */
+    padding: 30px 24px 96px;
+  }
+  /* The text steps back while the chapter list is open over it. A press on it closes the list. */
+  .scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: color-mix(in srgb, var(--n-bg-0) 68%, transparent);
   }
   .imm-stage {
     position: relative;
@@ -430,26 +600,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 22px 24px 8px;
+    padding: 8px 24px 8px;
     overflow: hidden;
   }
   .imm-stage-inner {
     flex: 1;
     min-height: 0;
     width: min(760px, 100%);
-  }
-  .imm-chapter {
-    flex-shrink: 0;
-    width: min(760px, 100%);
-    margin: 0 0 14px;
-    font-family: var(--n-font-mono);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.5;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    text-align: center;
-    color: var(--n-accent-text);
   }
   .float-dock {
     position: relative;
@@ -471,46 +628,23 @@
     border: 1px solid var(--n-glass-border);
     box-shadow: var(--n-shadow-lg);
   }
-  /* Over the faded end of the text, so it comes and goes without moving anything. */
-  .resume {
-    position: absolute;
-    bottom: calc(100% + 4px);
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: var(--n-bg-3);
-    border: 1px solid var(--n-border-2);
-    box-shadow: var(--n-shadow-md);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--n-fg-0);
-    white-space: nowrap;
-  }
-  .fallback {
-    position: relative;
+  .notices {
     width: min(800px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
-  .fallback :global(.notice) {
-    padding-right: 52px;
-  }
-  .fallback-close {
-    position: absolute;
-    top: 4px;
-    right: 4px;
+  .mini-play {
     width: 44px;
     height: 44px;
+    margin-left: auto;
+    border-radius: 999px;
     display: grid;
     place-items: center;
     border: none;
-    border-radius: 10px;
-    background: transparent;
-    color: var(--n-fg-1);
+    background: var(--n-accent);
+    color: var(--n-on-accent);
     cursor: pointer;
-  }
-  .fallback-close:hover {
-    color: var(--n-fg-0);
-    background: var(--n-bg-3);
   }
   /* ---------- audiobook ---------- */
   .audio-grid {
@@ -648,11 +782,11 @@
     }
     .seg-btn {
       flex: 1;
-      min-height: 38px;
-      font-size: 14px;
+      min-height: 44px;
+      font-size: 15px;
     }
     .imm-stage {
-      padding: 16px 16px 4px;
+      padding: 4px 16px 4px;
     }
     .imm-doc-inner,
     .doc-inner {
@@ -674,8 +808,9 @@
       -webkit-backdrop-filter: none;
       box-shadow: none;
     }
-    .fallback {
+    .notices {
       width: calc(100% - 24px);
+      padding-top: 6px;
     }
     /* The settings sheet takes the dock's place under the text, which stays in view above it. */
     .root.sheet-open .float-dock {
@@ -687,7 +822,8 @@
       top: auto;
       right: auto;
       flex-shrink: 0;
-      max-height: 46dvh;
+      /* Each tab fits, so nothing scrolls. The limit is for a very short screen. */
+      max-height: 62dvh;
       border: none;
       border-top: 1px solid var(--n-border-2);
       border-radius: 16px 16px 0 0;
@@ -700,7 +836,7 @@
       z-index: 1;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 4px;
       padding: 8px 8px 8px 16px;
       background: var(--n-bg-2);
       border-bottom: 1px solid var(--n-border-1);

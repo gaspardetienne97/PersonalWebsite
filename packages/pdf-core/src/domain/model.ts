@@ -99,6 +99,9 @@ export function fmt(ms: number): string {
   return (h ? h + ":" : "") + mm + ":" + String(sec).padStart(2, "0");
 }
 
+/** Clock time, `m:ss` or `h:mm:ss`: the name other packages use for `fmt`. */
+export const fmtClock = fmt;
+
 /** A length of time in words ("3 min", "1 h 4 min"), for places where "3:40" could be minutes or hours. */
 export function fmtLong(ms: number): string {
   // Anything that has a length reads as at least a minute.
@@ -107,6 +110,16 @@ export function fmtLong(ms: number): string {
   const minutes = total % 60;
   if (!hours) return m.narrator_duration_min({ minutes });
   return minutes ? m.narrator_duration_h_min({ hours, minutes }) : m.narrator_duration_h({ hours });
+}
+
+/** The sentence being read at `pos`: the last one that starts at or before it. */
+export function sentenceAt(model: NarrationModel, pos: number): SentenceSpan | undefined {
+  let found = model.sentences[0];
+  for (const s of model.sentences) {
+    if (s.start > pos) break;
+    found = s;
+  }
+  return found;
 }
 
 /** Index of the token whose start is at or before `pos` (binary search). */

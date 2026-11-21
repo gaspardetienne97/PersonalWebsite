@@ -17,6 +17,9 @@
     rgba(255, 12, 13, 0.18) 100%
   );
   --n-brand-glow: 0 0 32px rgba(162, 31, 184, 0.35);
+  /* The one primary button is the brand gradient under this veil, which keeps a white label at
+     4.5:1 from the blue end (4.7:1) to the red end (5.7:1). Btn.svelte draws it. */
+  --n-primary-veil: rgba(2, 6, 24, 0.2);
 
   /* ---- Surfaces (dark-native) ---- */
   --n-bg-0: #020618;
@@ -30,9 +33,13 @@
 
   --n-fg-0: #f8fafc;
   --n-fg-1: #cbd5e1;
-  /* Secondary and quiet text. The quiet one keeps 4.5:1 on every surface up to --n-bg-3. */
+  /* Secondary and quiet text. The quiet one gives 6.2:1 on --n-bg-2 and 5.5:1 on --n-bg-3, and
+     is for text of 14 px or more. Labels, chips and eyebrows use --n-fg-2 at 12 px or more, in
+     the sans face with no extra letter spacing. The mono face is for times and numbers. */
   --n-fg-2: #aab6c9;
-  --n-fg-3: #8793ab;
+  --n-fg-3: #909cb3;
+  /* Reading text that was already read aloud: 5.6:1 on --n-bg-0, clearly under what is to come. */
+  --n-fg-read: #7f8aa3;
   /* Text and icons on an accent fill. */
   --n-on-accent: #ffffff;
 
@@ -42,6 +49,8 @@
 
   --n-success: #22c55e;
   --n-danger: #ef4444;
+  /* "Fell back": something else took over and it still works. Red stays for "failed". */
+  --n-warn: #f59e0b;
   --n-link: #60a5fa;
 
   /* ---- Glass ---- */
@@ -118,36 +127,38 @@
   color: transparent;
 }
 
-/* The word being read, in the Flow and Document views. Every style underlines it, so colour
-   is never the only mark, and none of them changes the word's width: the line does not jump. */
+/* The word being read, in the Flow and Document views: a filled pill and an underline, so
+   colour is never the only mark. The pill's edge is a shadow, so the word keeps its width and
+   the line does not jump. */
 .narrator .word {
-  border-radius: 4px;
+  border-radius: 0.22em;
   transition:
     color 120ms var(--n-ease-out),
     background 120ms;
 }
+/* Words of the current sentence that were already read. */
+.narrator .word.read {
+  color: var(--n-fg-read);
+}
 .narrator .word.current {
+  --pill: color-mix(in srgb, var(--n-accent, var(--n-accent-app)) 52%, var(--n-bg-0));
+  color: var(--n-fg-0);
+  background: var(--pill);
+  box-shadow: 0 0 0 0.13em var(--pill);
   text-decoration: underline;
-  text-decoration-color: var(--n-accent, var(--n-accent-app));
-  text-decoration-thickness: 0.09em;
+  text-decoration-color: var(--n-accent-text, currentColor);
+  text-decoration-thickness: 0.08em;
   text-underline-offset: 0.2em;
 }
 .narrator .word.current.underline {
-  color: var(--n-fg-0);
+  background: none;
   box-shadow: inset 0 -0.34em 0
     color-mix(in srgb, var(--n-accent, var(--n-accent-app)) 45%, transparent);
 }
 .narrator .word.current.fill {
-  background: var(--n-accent, var(--n-accent-app));
+  --pill: var(--n-accent, var(--n-accent-app));
   color: var(--n-on-accent);
   text-decoration-color: currentColor;
-  padding: 2px 5px;
-  margin: -2px -5px;
-}
-.narrator .word.current.glow {
-  color: var(--n-accent-text, var(--n-fg-0));
-  /* One soft halo, kept off the letter edges. */
-  text-shadow: 0 0 14px color-mix(in srgb, var(--n-accent, var(--n-accent-app)) 45%, transparent);
 }
 
 @keyframes n-eq {
@@ -178,6 +189,7 @@
 @media (prefers-reduced-motion: reduce) {
   .narrator * {
     animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
 }

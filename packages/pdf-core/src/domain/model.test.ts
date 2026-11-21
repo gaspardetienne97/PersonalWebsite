@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { BASE_WPM, buildModel, fmt, fmtLong, MS_PER_WORD, wordIndexAt } from "./model";
+import {
+  BASE_WPM,
+  buildModel,
+  fmt,
+  fmtClock,
+  fmtLong,
+  MS_PER_WORD,
+  sentenceAt,
+  wordIndexAt,
+} from "./model";
 import type { NarratorDoc } from "./types";
 
 function doc(paragraphsByChapter: string[][]): NarratorDoc {
@@ -90,6 +99,25 @@ describe("fmt", () => {
   it("clamps negative and non-finite input to zero", () => {
     expect(fmt(-5)).toBe("0:00");
     expect(fmt(Number.NaN)).toBe("0:00");
+  });
+});
+
+describe("fmtClock", () => {
+  it("is the same clock time as fmt", () => {
+    expect(fmtClock(58_000)).toBe("0:58");
+    expect(fmtClock(3_660_000)).toBe("1:01:00");
+  });
+});
+
+describe("sentenceAt", () => {
+  it("gives the sentence a position falls in, and the first one before any start", () => {
+    const model = buildModel(doc([["One two three. Four five."]]));
+    const [first, second] = model.sentences;
+    expect(sentenceAt(model, 0)).toBe(first);
+    expect(sentenceAt(model, second.start - 1)).toBe(first);
+    expect(sentenceAt(model, second.start + 50)).toBe(second);
+    expect(sentenceAt(model, model.total)).toBe(second);
+    expect(sentenceAt(buildModel(doc([[]])), 10)).toBeUndefined();
   });
 });
 

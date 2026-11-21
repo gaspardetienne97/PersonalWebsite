@@ -9,6 +9,7 @@
     highlight,
     font,
     scale = 1,
+    chapterTitle = "",
   }: {
     model: NarrationModel;
     activeSentence: number;
@@ -17,32 +18,45 @@
     font: ReadingFont;
     /** Follows the reader's text size setting. */
     scale?: number;
+    /** Shown above the lines, unless one of them is the chapter's own heading. */
+    chapterTitle?: string;
   } = $props();
 
   let el: HTMLDivElement | undefined = $state();
 
-  // The current sentence with one before and two after, all from its own chapter: a chapter
-  // opens on its first sentence, right under the chapter's name.
+  const charsOf = (s: { wordStart: number; wordEnd: number }) => {
+    let chars = 0;
+    for (let i = s.wordStart; i <= s.wordEnd; i++) chars += model.tokens[i].word.length + 1;
+    return chars;
+  };
+
+  // The current sentence with one before and one or two after, all from its own chapter: a
+  // chapter opens on its first sentence, right under the chapter's name.
   const lines = $derived.by(() => {
     const at = model.sentences.findIndex((s) => s.si === activeSentence);
     const current = model.sentences[at];
     if (!current) return [];
-    return [at - 1, at, at + 1, at + 2]
+    const chars = charsOf(current);
+    // A long sentence steps its size down so it stays on the stage, and leaves room for one
+    // coming sentence only.
+    const size = chars > 420 ? "xs" : chars > 260 ? "s" : chars > 140 ? "m" : "l";
+    return (size === "l" ? [at - 1, at, at + 1, at + 2] : [at - 1, at, at + 1])
       .map((i) => model.sentences[i])
       .filter((s) => s && s.ci === current.ci)
       .map((s) => {
         const words = [];
-        let chars = 0;
-        for (let i = s.wordStart; i <= s.wordEnd; i++) {
-          words.push({ word: model.tokens[i].word, gi: i });
-          chars += model.tokens[i].word.length + 1;
-        }
+        for (let i = s.wordStart; i <= s.wordEnd; i++) words.push({ word: model.tokens[i].word, gi: i });
         const kind = s.si === activeSentence ? "current" : s.si < activeSentence ? "before" : "after";
-        // A long sentence steps its size down so its first line stays on the stage.
-        const size = chars > 260 ? "s" : chars > 140 ? "m" : "l";
         return { si: s.si, words, kind, size };
       });
   });
+
+  const plain = (text: string) => text.replace(/\s+/g, " ").trim().toLowerCase();
+  // The chapter's name shows once: not above its own heading while that heading is on the stage.
+  const showChapter = $derived(
+    chapterTitle !== "" &&
+      !lines.some((line) => plain(line.words.map((w) => w.word).join(" ")) === plain(chapterTitle)),
+  );
 
   // A sentence taller than the stage: keep its current word in sight.
   $effect(() => {
@@ -62,12 +76,17 @@
   style:--n-scale={scale}
   style:font-family={font === "serif" ? "var(--n-font-serif)" : "var(--n-font-sans)"}
 >
+  {#if showChapter}
+    <h2 class="chapter">{chapterTitle}</h2>
+  {/if}
   {#each lines as line (line.si)}
     <p class="{line.kind} {line.size}">
       <span class="inner">
         {#each line.words as { word, gi } (gi)}
           {#if line.kind === "current"}
-            <span class="word {highlight}" class:current={gi === activeWordIndex}>{word}</span>{" "}
+            <span class="word {highlight}" class:current={gi === activeWordIndex} class:read={gi < activeWordIndex}
+              >{word}</span
+            >{" "}
           {:else}
             {word}{" "}
           {/if}
@@ -81,13 +100,36 @@
   .prompter {
     display: flex;
     flex-direction: column;
-    gap: 22px;
-    /* Centred when it fits. When it does not, it starts at the top and loses its end, never its start. */
-    justify-content: safe center;
     height: 100%;
-    padding: 0 8px;
+    padding: 14px 8px 0;
     overflow: hidden;
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+    /* A soft edge at the top for a sentence taller than the stage, and a clean fade at the foot. */
+    mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 44px), transparent);
+  }
+  /* The lines sit in the upper third when they fit: one part of the spare room above them, two
+     below. When they do not fit they start at the top and lose their end, never their start. */
+  .prompter::before,
+  .prompter::after {
+    content: "";
+  }
+  .prompter::before {
+    flex: 1 1 0;
+  }
+  .prompter::after {
+    flex: 2 1 0;
+  }
+  p + p {
+    margin-top: 22px;
+  }
+  /* The chapter's name, straight above its lines. */
+  .chapter {
+    margin: 0 0 14px;
+    flex-shrink: 0;
+    font-family: var(--n-font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--n-fg-2);
   }
   p {
     margin: 0;
@@ -100,6 +142,9 @@
       font-size 320ms var(--n-ease-out),
       color 320ms var(--n-ease-out);
     letter-spacing: -0.01em;
+  }
+  p.before {
+    color: var(--n-fg-read);
   }
   .inner {
     display: block;
@@ -124,5 +169,8 @@
   }
   p.current.s {
     font-size: calc(clamp(19px, 2.2vw, 26px) * var(--n-scale));
+  }
+  p.current.xs {
+    font-size: calc(clamp(17px, 1.8vw, 21px) * var(--n-scale));
   }
 </style>

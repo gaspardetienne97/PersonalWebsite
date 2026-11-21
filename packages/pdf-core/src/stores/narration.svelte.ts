@@ -15,7 +15,7 @@
  * system engine automatically.
  */
 
-import { buildModel, wordIndexAt } from "../domain/model";
+import { buildModel, sentenceAt, wordIndexAt } from "../domain/model";
 import type { NarrationModel, NarratorDoc, SentenceSpan } from "../domain/types";
 import {
   DEFAULT_KOKORO_VOICE,
@@ -194,6 +194,17 @@ export class NarrationPlayer {
     this.#persist();
     this.#dropPrefetch();
     if (this.playing) this.#startEngine();
+  }
+
+  /** Jump to the start of the sentence at `pos`, so the same place marks the same word at every width. */
+  seekSentence(pos: number): void {
+    const sentence = sentenceAt(this.model, pos);
+    this.seekTo(sentence ? sentence.start : pos);
+  }
+
+  /** Hear the current sentence again from its first word. */
+  replaySentence(): void {
+    this.seekSentence(this.pos);
   }
 
   seekWord(index: number): void {
