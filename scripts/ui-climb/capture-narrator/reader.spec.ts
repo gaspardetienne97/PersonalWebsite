@@ -146,6 +146,9 @@ for (const width of WIDTHS) {
       `playing in the Flow view: the sentence being read is large with the current word marked, the play button shows pause, time and position move (${SPEECH_NOTE})`,
     );
     await reader.document(page).click();
+    // On a phone the first use of the switch shows its hint for a few seconds (shot in the
+    // reader flow): let it go, so these screens show listening and nothing else.
+    await expect(page.locator(".view-hint")).toHaveCount(0, { timeout: 12_000 });
     await page.waitForTimeout(2600);
     await nsnap(
       page,
@@ -234,6 +237,8 @@ for (const width of WIDTHS) {
       }
     }
     await reader.document(page).click();
+    // The first use of the switch on a phone shows its hint: let it go (see the reader flow).
+    await expect(page.locator(".view-hint")).toHaveCount(0, { timeout: 12_000 });
     await settle(page, 500);
     await nsnap(
       page,
@@ -283,7 +288,7 @@ for (const width of WIDTHS) {
       "chapters",
       "list-long-title",
       width,
-      "the chapter list on a text file whose third chapter has a very long title: the title wraps onto more lines, in full, beside its length",
+      "the chapter list on a text file whose third chapter has a very long title: the title wraps onto a second line and is cut after it, beside its length",
     );
   });
 }
@@ -308,7 +313,9 @@ test("reader, listening and chapters in French phone", async ({ page }) => {
   await nsnap(page, "chapters", "list", "phone", "the chapter list open from the player bar", {
     fr: true,
   });
-  await page.locator(".chapters-pop .row").nth(0).click();
+  // Close the list by its own button: choosing a chapter would leave its "Back to" line up.
+  await page.locator(".chapters-pop .pop-close").click();
+  await expect(page.locator(".chapters-pop")).toHaveCount(0);
   await play(page, 4200);
   await nsnap(
     page,

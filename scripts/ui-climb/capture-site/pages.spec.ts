@@ -199,7 +199,7 @@ for (const width of WIDTHS) {
       "sign-in",
       "login-cancelled",
       width,
-      "Sign-in page after a cancelled sign-in: an information notice says it was cancelled and what to do next, over the same Sign in button",
+      'Sign-in page after a cancelled sign-in: an information notice says it was cancelled and what to do next, and the button now reads "Try again"',
     );
     // The private page, opened signed out, sends you to /login?redirectTo=/private.
     await visit(page, at("/private"));
