@@ -188,6 +188,15 @@ Keep these two settings together if you touch either.
   the `n-*` keyframes).
 - Keep desktop and mobile widths free of horizontal overflow; the reader is
   `position: fixed` chrome over a scrolling text area.
+- Do not close a menu with a `position: fixed` backdrop. The player dock and the
+  top bars have a `backdrop-filter`, which holds a fixed element inside them, so
+  the backdrop never covers the page. `PlayerBar` and `ReaderView` close their
+  menus from a `svelte:window` `onpointerdown` listener instead.
+- Menus in the dock and the side panel open above the whole player, never from
+  their chip: the chips sit under the transport and a menu must not cover Play.
+- A document's short kind ("Novel", "PDF") comes from `kindLabel(doc)` in
+  `domain/data.ts`, which translates the samples' kinds by id. Progress comes
+  only from the saved playhead; documents carry no authored progress.
 
 ### Dependencies
 
