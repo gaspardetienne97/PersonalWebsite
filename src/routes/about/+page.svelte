@@ -5,7 +5,6 @@
   import type Piano from "@lucide/svelte/icons/piano";
   import Shuffle from "@lucide/svelte/icons/shuffle";
   import { Button } from "@repo/ui/button";
-  import { Separator } from "@repo/ui/separator";
   import CircuitArt from "#lib/components/site/CircuitArt.svelte";
   import LogoMark from "#lib/components/site/LogoMark.svelte";
   import StudioCover from "#lib/components/site/StudioCover.svelte";
@@ -13,6 +12,7 @@
   import { STUDIO } from "#lib/content/studio.ts";
   import { MARKERS } from "#lib/circuit/router.ts";
   import { m } from "@repo/i18n/messages.js";
+  import { formatList } from "#lib/utils.ts";
 
   // The owner's portrait, once there is one: a file named portrait.webp (or .avif,
   // .jpg, .png) in src/lib/images/. Until then the hero shows the mark on a board.
@@ -40,9 +40,11 @@
     },
     { title: m.about_work_tools, body: m.about_work_tools_body },
   ];
-  // The apps, with their pictures. The page about this site is the section below.
-  const tools = STUDIO.projects.filter((item) => item.media.id !== "this-website");
-  const drawings = STUDIO.drawings.slice(0, 2);
+  // The projects, with their pictures: two to a row.
+  const tools = STUDIO.projects;
+  const drawings = STUDIO.drawings.slice(0, 4);
+  // Three real pieces beside the greeting: a drawing between two projects.
+  const fan = [STUDIO.projects[0], STUDIO.drawings[0], STUDIO.projects[1]].filter(Boolean);
 
   const stack = [
     [m.about_stack_framework, m.about_stack_framework_value],
@@ -65,6 +67,7 @@
   // An email address, when the list has one, comes first as the main button.
   const isEmail = (href: string) => href.startsWith("mailto:");
   const contacts = [...socials].sort((a, b) => Number(isEmail(b.href)) - Number(isEmail(a.href)));
+  const hasEmail = contacts.some((contact) => isEmail(contact.href));
 
   const jumps = [
     ["#work", m.about_work_heading],
@@ -83,7 +86,25 @@
   const studio = link("/studio?type=drawings", m.nav_studio());
 
   let boardSeed = $state(1);
+
+  // The page index marks the section being read: the last one whose top has
+  // passed a line a third of the way down the screen, or the last section once
+  // the page can scroll no further.
+  let current = $state("");
+  function spy() {
+    const line = innerHeight * 0.35;
+    let found = "";
+    for (const [href] of jumps) {
+      const top = document.getElementById(href.slice(1))?.getBoundingClientRect().top;
+      if (top !== undefined && top <= line) found = href;
+    }
+    const atEnd = innerHeight + scrollY >= document.documentElement.scrollHeight - 2;
+    current = atEnd && scrollY > 0 ? jumps[jumps.length - 1][0] : found;
+  }
+  $effect(spy);
 </script>
+
+<svelte:window onscroll={spy} onresize={spy} />
 
 <svelte:head>
   <title>{m.nav_about()} | {name}</title>
@@ -95,181 +116,204 @@
     <div class="hello">
       <h1 class="gm-title gm-clear">{m.about_title()}</h1>
       <p class="gm-lede">{m.about_lede()}</p>
-      <nav aria-label={m.post_on_this_page()}>
-        <ul class="jumps">
-          {#each jumps as [href, label] (href)}
-            <li><a {href}>{label()}</a></li>
-          {/each}
-        </ul>
-      </nav>
     </div>
-    {#if portrait}
-      <img class="picture portrait" src={portrait} alt={m.about_portrait_alt()} />
-    {:else}
-      <!-- No stand-in face: the mark sits on the main chip of a board routed for this page. -->
-      <div class="picture board-mark" aria-hidden="true">
-        <CircuitArt
-          seed="about-hero"
-          colors={brand}
-          icon={LogoMark as unknown as typeof Piano}
-          width={352}
-          height={352}
-        />
+    <!-- The picture: a portrait once there is one, until then the mark on the main
+         chip of a board routed for this page. Three real pieces lean on its edge. -->
+    <div class="art">
+      {#if portrait}
+        <img class="picture portrait" src={portrait} alt={m.about_portrait_alt()} />
+      {:else}
+        <div class="picture board-mark" aria-hidden="true">
+          <CircuitArt
+            seed="about-hero"
+            colors={brand}
+            icon={LogoMark as unknown as typeof Piano}
+            width={416}
+            height={304}
+          />
+        </div>
+      {/if}
+      <div class="fan" aria-hidden="true">
+        {#each fan as item (item.media.id)}
+          <span class="card"><StudioCover {item} size={240} eager /></span>
+        {/each}
       </div>
-    {/if}
+    </div>
   </header>
 
-  <Separator class="row-rule" />
-  <section class="row" id="work" aria-labelledby="work-title">
-    <h2 id="work-title" class="gm-h2 gm-clear side">{m.about_work_heading()}</h2>
-    <div class="main gm-clear">
-      <p class="gm-text">{m.about_work_intro()}</p>
-      <dl class="work">
-        {#each work as { title, body, link }, i (i)}
-          <div>
-            <dt>{title()}</dt>
-            <dd>
-              {body()}
-              {#if link}
-                <a class="gm-link" href={link.href}>{link.label()}<ArrowRight /></a>
-              {/if}
-            </dd>
-          </div>
-        {/each}
-      </dl>
-      <ul class="tools">
-        {#each tools as item (item.media.id)}
-          {#if item.media.type === "project"}
-            <li class="stretch">
-              <span class="thumb"><StudioCover {item} size={320} eager /></span>
-              <span class="tool-text">
-                <a class="stretch-link" href={item.media.project.href}>{item.media.project.title}</a>
-                <span>{item.media.project.summary}</span>
-              </span>
-            </li>
-          {/if}
-        {/each}
-      </ul>
-    </div>
-  </section>
-
-  <Separator class="row-rule" />
-  <section class="row" id="outside" aria-labelledby="outside-title">
-    <h2 id="outside-title" class="gm-h2 gm-clear side">{m.about_outside_heading()}</h2>
-    <div class="main gm-clear">
-      <p class="gm-text">{@html m.about_outside_music({ woodshed })}</p>
-      <p class="gm-text">{@html m.about_outside_creative({ studio })}</p>
-      <ul class="drawings">
-        {#each drawings as item (item.media.id)}
-          <li class="stretch">
-            <span class="thumb"><StudioCover {item} size={320} eager /></span>
-            <a class="stretch-link" href="{resolve('/studio')}?type=drawings">{item.media.title}</a>
+  <div class="body">
+    <!-- One index for the page: a row of chips that scrolls sideways on a phone,
+         a narrow column that stays in view from 900px. -->
+    <nav class="index" aria-label={m.post_on_this_page()}>
+      <ul>
+        {#each jumps as [href, label] (href)}
+          <li>
+            <a {href} aria-current={current === href ? "location" : undefined}>{label()}</a>
           </li>
         {/each}
       </ul>
-    </div>
-  </section>
+    </nav>
 
-  <Separator class="row-rule" />
-  <section class="row" id="this-website" aria-labelledby="site-title">
-    <h2 id="site-title" class="gm-h2 gm-clear side">{m.about_site_heading()}</h2>
-    <div class="main gm-clear">
-      <p class="gm-text">{m.about_site_intro()}</p>
+    <div class="sections">
+      <section id="work" aria-labelledby="work-title">
+        <h2 id="work-title" class="gm-h2 gm-clear">{m.about_work_heading()}</h2>
+        <p class="gm-text">{m.about_work_intro()}</p>
+        <ul class="tools" aria-label={m.kind_projects()}>
+          {#each tools as item (item.media.id)}
+            {#if item.media.type === "project"}
+              <li class="stretch">
+                <span class="shot"><StudioCover {item} size={480} eager /></span>
+                <span class="tool-text">
+                  <a class="stretch-link" href={item.media.project.href}>
+                    {item.media.project.title}
+                  </a>
+                  <span>{item.media.project.summary}</span>
+                  <span class="open" aria-hidden="true">{m.about_open()}<ArrowRight /></span>
+                </span>
+              </li>
+            {/if}
+          {/each}
+        </ul>
+        <dl class="work gm-clear">
+          {#each work as { title, body, link }, i (i)}
+            <div>
+              <dt>{title()}</dt>
+              <dd>
+                {body()}
+                {#if link}
+                  <a class="gm-link" href={link.href}>{link.label()}<ArrowRight /></a>
+                {/if}
+              </dd>
+            </div>
+          {/each}
+        </dl>
+      </section>
 
-      <h3>{m.about_whats_here()}</h3>
-      <ul class="map">
-        <li class="stretch">
-          <a class="gm-link stretch-link" href={resolve("/studio")}>
-            {m.nav_studio()}<ArrowRight />
-          </a>
-          <p>{m.about_map_studio()}</p>
-        </li>
-        <li class="stretch">
-          <a class="gm-link stretch-link" href={resolve("/blog")}>
-            {m.kind_writing()}<ArrowRight />
-          </a>
-          <p>{m.about_map_blog()}</p>
-        </li>
-        <li class="stretch">
-          <a class="gm-link stretch-link" href="{resolve('/studio')}?type=projects">
-            {m.kind_projects()}<ArrowRight />
-          </a>
-          <p>{@html m.about_map_projects({ woodshed, narrator })}</p>
-        </li>
-      </ul>
-
-      <h3>{m.about_intro_heading()}</h3>
-      <div class="router">
-        <p class="gm-text">{m.about_intro_body()}</p>
-        <figure class="board">
-          <CircuitArt seed="about-{boardSeed}" colors={brand} width={480} height={320} />
-          <figcaption>
-            <span>{m.about_board_caption({ number: boardSeed })}</span>
-            <Button variant="outline" size="sm" class="min-h-11" onclick={() => boardSeed++}>
-              <Shuffle data-icon="inline-start" aria-hidden="true" />{m.about_route_another()}
-            </Button>
-          </figcaption>
-        </figure>
-      </div>
-
-      <!-- The colophon, for those who want it. Closed, so the page stays about the person. -->
-      <details class="colophon">
-        <summary><ChevronRight size={18} aria-hidden="true" />{m.about_colophon()}</summary>
-        <div class="inside">
-          <h4>{m.about_built_heading()}</h4>
-          <dl class="stack">
-            {#each stack as [label, value], i (i)}
-              <div>
-                <dt>{label()}</dt>
-                <dd>{value()}</dd>
-              </div>
-            {/each}
-          </dl>
-
-          <h4>{m.about_type_heading()}</h4>
-          <div class="brand">
-            <LogoMark size={64} />
-            <p class="gm-text">{m.about_type_body()}</p>
-          </div>
-          <ul class="swatches" aria-label={m.about_swatches_label()}>
-            {#each swatches as [token, name] (token)}
-              <li style="--c: var({token})">{name()}</li>
-            {/each}
-          </ul>
-        </div>
-      </details>
-    </div>
-  </section>
-
-  {#if contacts.length > 0}
-    <Separator class="row-rule" />
-    <section class="row" id="contact" aria-labelledby="contact-title">
-      <h2 id="contact-title" class="gm-h2 gm-clear side">{m.about_say_hello()}</h2>
-      <div class="main gm-clear">
-        <p class="gm-text">{m.about_hello_body()}</p>
-        <ul class="socials">
-          {#each contacts as social (social.href)}
-            <li>
-              <Button
-                variant={isEmail(social.href) ? "default" : "outline"}
-                size="lg"
-                href={social.href}
-                rel="me noopener"
-                class="px-5 text-base"
-              >
-                <social.icon size={20} aria-hidden="true" />{social.label}
-              </Button>
+      <section id="outside" aria-labelledby="outside-title">
+        <h2 id="outside-title" class="gm-h2 gm-clear">{m.about_outside_heading()}</h2>
+        <p class="gm-text">{@html m.about_outside_music({ woodshed })}</p>
+        <p class="gm-text">{@html m.about_outside_creative({ studio })}</p>
+        <ul class="drawings">
+          {#each drawings as item (item.media.id)}
+            <li class="stretch">
+              <span class="thumb"><StudioCover {item} size={320} eager /></span>
+              <a class="stretch-link" href="{resolve('/studio')}?type=drawings">
+                {item.media.title}
+              </a>
             </li>
           {/each}
         </ul>
-      </div>
-    </section>
-  {/if}
+        <a class="gm-link see-all" href="{resolve('/studio')}?type=drawings">
+          {m.about_see_all_studio()}<ArrowRight />
+        </a>
+      </section>
+
+      <section id="this-website" aria-labelledby="site-title">
+        <h2 id="site-title" class="gm-h2 gm-clear">{m.about_site_heading()}</h2>
+        <p class="gm-text">{m.about_site_intro()}</p>
+
+        <h3>{m.about_whats_here()}</h3>
+        <ul class="map">
+          <li class="stretch">
+            <a class="gm-link stretch-link" href={resolve("/studio")}>
+              {m.nav_studio()}<ArrowRight />
+            </a>
+            <p>{m.about_map_studio()}</p>
+          </li>
+          <li class="stretch">
+            <a class="gm-link stretch-link" href={resolve("/blog")}>
+              {m.kind_writing()}<ArrowRight />
+            </a>
+            <p>{m.about_map_blog()}</p>
+          </li>
+          <li class="stretch">
+            <a class="gm-link stretch-link" href="{resolve('/studio')}?type=projects">
+              {m.kind_projects()}<ArrowRight />
+            </a>
+            <p>{@html m.about_map_projects({ woodshed, narrator })}</p>
+          </li>
+        </ul>
+
+        <h3>{m.about_intro_heading()}</h3>
+        <div class="router">
+          <p class="gm-text">{m.about_intro_body()}</p>
+          <figure class="board">
+            <CircuitArt seed="about-{boardSeed}" colors={brand} width={480} height={320} />
+            <figcaption>
+              <span>{m.about_board_caption({ number: boardSeed })}</span>
+              <Button variant="outline" size="sm" class="min-h-11" onclick={() => boardSeed++}>
+                <Shuffle data-icon="inline-start" aria-hidden="true" />{m.about_route_another()}
+              </Button>
+            </figcaption>
+          </figure>
+        </div>
+
+        <!-- The colophon, for those who want it. Closed, so the page stays about the person. -->
+        <details class="colophon">
+          <summary><ChevronRight size={18} aria-hidden="true" />{m.about_colophon()}</summary>
+          <div class="inside">
+            <h4>{m.about_built_heading()}</h4>
+            <dl class="stack">
+              {#each stack as [label, value], i (i)}
+                <div>
+                  <dt>{label()}</dt>
+                  <dd>{value()}</dd>
+                </div>
+              {/each}
+            </dl>
+
+            <h4>{m.about_type_heading()}</h4>
+            <div class="brand">
+              <LogoMark size={64} />
+              <p class="gm-text">{m.about_type_body()}</p>
+            </div>
+            <ul class="swatches" aria-label={m.about_swatches_label()}>
+              {#each swatches as [token, name] (token)}
+                <li style="--c: var({token})">{name()}</li>
+              {/each}
+            </ul>
+          </div>
+        </details>
+      </section>
+
+      {#if contacts.length > 0}
+        <section id="contact" aria-labelledby="contact-title">
+          <h2 id="contact-title" class="gm-h2 gm-clear">{m.about_say_hello()}</h2>
+          <!-- "Write to me" only once there is an address to write to. -->
+          <p class="gm-text">
+            {hasEmail
+              ? m.about_hello_body()
+              : m.about_hello_body_social({
+                  places: formatList(
+                    contacts.map((contact) => contact.label),
+                    "disjunction",
+                  ),
+                })}
+          </p>
+          <ul class="socials">
+            {#each contacts as social (social.href)}
+              <li>
+                <Button
+                  variant={isEmail(social.href) ? "default" : "outline"}
+                  size="lg"
+                  href={social.href}
+                  rel="me noopener"
+                  class="h-11 px-5 text-base"
+                >
+                  <social.icon size={20} aria-hidden="true" />{social.label}
+                </Button>
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/if}
+    </div>
+  </div>
 </div>
 
 <style>
   .about {
-    padding-top: clamp(3rem, 8vw, 6rem);
+    padding-top: clamp(2rem, 5vw, 3.5rem);
   }
 
   /* The greeting, with a picture beside it from 900px. */
@@ -287,12 +331,100 @@
   .intro .gm-lede {
     max-width: 44ch;
   }
-  .jumps {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  /* The picture, with a fan of three pieces leaning on its lower edge. */
+  /* Compact on a phone, so the index and the first section stay near the fold. */
+  .art {
+    position: relative;
+    width: 100%;
+    max-width: 18rem;
+    padding-bottom: 3.25rem;
+    justify-self: center;
   }
-  .jumps a {
+  .picture {
+    display: block;
+    width: 100%;
+    aspect-ratio: 26 / 19;
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    overflow: hidden;
+  }
+  .portrait {
+    object-fit: cover;
+  }
+  .board-mark {
+    background: color-mix(in oklab, var(--muted) 55%, var(--background));
+  }
+  .board-mark :global(.icon svg) {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+  .fan {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    justify-content: center;
+  }
+  .card {
+    position: relative;
+    width: 30%;
+    aspect-ratio: 4 / 5;
+    margin-inline: -1.5%;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--card);
+    box-shadow: 0 12px 24px -14px rgb(0 0 0 / 0.5);
+  }
+  .card:nth-child(1) {
+    rotate: -7deg;
+    translate: 0 6%;
+  }
+  .card:nth-child(2) {
+    z-index: 1;
+    translate: 0 -4%;
+  }
+  .card:nth-child(3) {
+    rotate: 7deg;
+    translate: 0 6%;
+  }
+  .card :global(.chip) {
+    display: none;
+  }
+  @media (width >= 900px) {
+    .intro {
+      grid-template-columns: minmax(0, 1fr) 26rem;
+      gap: 3rem;
+    }
+    .art {
+      max-width: 26rem;
+      padding-bottom: 4.5rem;
+    }
+  }
+
+  .body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    margin-top: clamp(2rem, 5vw, 3.5rem);
+  }
+  .sections {
+    min-width: 0;
+  }
+
+  /* The page index. On a phone: one row of chips that runs off the right edge
+     and scrolls sideways. */
+  .index ul {
+    display: flex;
+    gap: 0.5rem;
+    margin-inline: calc(-1 * clamp(1rem, 4vw, 3rem));
+    padding: 0.25rem clamp(1rem, 4vw, 3rem);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .index li {
+    flex: none;
+  }
+  .index a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
@@ -302,80 +434,76 @@
     background: var(--background);
     font-size: 0.9375rem;
     font-weight: 550;
+    white-space: nowrap;
     transition:
       border-color 0.15s,
       background-color 0.15s;
   }
-  .jumps a:hover {
+  .index a:hover {
     border-color: var(--foreground);
     background: var(--muted);
   }
-  .jumps a:focus-visible {
+  .index a:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-  .picture {
-    width: 100%;
-    max-width: 22rem;
-    aspect-ratio: 1;
-    border: 1px solid var(--border);
-    border-radius: 1.25rem;
-    overflow: hidden;
+  .index a[aria-current] {
+    border-color: var(--foreground);
+    font-weight: 700;
   }
-  .portrait {
-    max-width: 14rem;
-    object-fit: cover;
-  }
-  /* The board is decoration, so a phone goes straight to the text. */
-  .board-mark {
-    display: none;
-    background: color-mix(in oklab, var(--muted) 55%, var(--background));
-  }
-  .board-mark :global(.icon svg) {
-    width: 4.5rem;
-    height: 4.5rem;
-  }
+  /* From 900px: a narrow column that stays in view, the section being read
+     marked by a bar and a heavier weight. */
   @media (width >= 900px) {
-    .intro {
-      grid-template-columns: minmax(0, 1fr) 22rem;
+    .body {
+      grid-template-columns: 11rem minmax(0, 1fr);
       gap: 3rem;
     }
-    .portrait {
-      max-width: 22rem;
-    }
-    .board-mark {
-      display: block;
-    }
-  }
-
-  .row {
-    display: grid;
-    gap: 1.5rem;
-    padding-top: 2rem;
-    scroll-margin-top: 4.5rem;
-  }
-  .side {
-    justify-self: start;
-  }
-  @media (width >= 900px) {
-    .row {
-      grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
-      gap: 3rem;
-    }
-    /* The heading stays in view beside its section, clear of the site header. */
-    .side {
+    .index {
       position: sticky;
       top: 6rem;
       align-self: start;
+      padding-top: 2rem;
+    }
+    .index ul {
+      flex-direction: column;
+      gap: 0;
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+      background: var(--background);
+      box-shadow: 0 0 0.9rem 0.6rem var(--background);
+    }
+    .index a {
+      display: flex;
+      padding-inline: 1rem 0.5rem;
+      border: 0;
+      border-left: 2px solid var(--border);
+      border-radius: 0;
+      background: none;
+      color: var(--muted-foreground);
+      white-space: normal;
+      line-height: 1.25;
+    }
+    .index a:hover {
+      background: none;
+      color: var(--foreground);
+      border-color: color-mix(in oklab, var(--foreground) 45%, var(--border));
+    }
+    .index a[aria-current] {
+      color: var(--foreground);
+      border-color: var(--foreground);
     }
   }
-  :global(.row-rule) {
-    margin-top: clamp(3.5rem, 8vw, 6rem);
-  }
-  .main {
+
+  section {
     display: grid;
     gap: 1.5rem;
-    min-width: 0;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    scroll-margin-top: 4.5rem;
+  }
+  section + section {
+    margin-top: clamp(3rem, 6vw, 4.5rem);
   }
   h3 {
     margin-top: 1.5rem;
@@ -390,7 +518,7 @@
 
   .work {
     display: grid;
-    gap: 1.25rem 2.5rem;
+    gap: 1.5rem 2.5rem;
     margin-top: 0.5rem;
   }
   @media (width >= 640px) {
@@ -424,7 +552,7 @@
     justify-items: start;
     margin-top: 0.35rem;
     font-family: var(--font-gm-serif);
-    font-size: 1.1rem;
+    font-size: 1.125rem;
     line-height: 1.55;
   }
   .work .gm-link {
@@ -432,64 +560,80 @@
     font-size: 0.9375rem;
   }
 
-  /* Pictures of the work: the apps under "Tools I build for myself", two
-     drawings under "Outside work". Each one is a link. */
-  .thumb {
-    position: relative;
-    display: block;
-    flex: none;
-    aspect-ratio: 1;
-    border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    overflow: hidden;
-  }
-  .tools,
-  .drawings {
+  /* The projects, two to a row: a readable cover, the name, one line and "Open".
+     The whole card is the link. */
+  .tools {
     display: grid;
-    gap: 1rem;
+    gap: 1.25rem;
+  }
+  @media (width >= 640px) {
+    .tools {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
   .tools li {
     position: relative;
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
     border-radius: 0.875rem;
+    background: var(--card);
+    color: var(--card-foreground);
+    transition: border-color 0.15s;
   }
-  .tools .thumb {
-    width: 5.5rem;
+  .tools li:hover {
+    border-color: var(--foreground);
+  }
+  .shot {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
   }
   .tool-text {
     display: grid;
-    gap: 0.2rem;
-    font-size: 0.9375rem;
-    line-height: 1.4;
+    gap: 0.3rem;
+    justify-items: start;
+    padding: 0.9rem 1rem 1rem;
+    font-size: 1rem;
+    line-height: 1.45;
   }
-  .tool-text a,
-  .drawings a {
-    font-size: 1.05rem;
+  .tool-text a {
+    font-size: 1.25rem;
     font-weight: 650;
+    letter-spacing: -0.01em;
   }
-  @media (width >= 640px) {
-    .tools {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1.25rem;
-    }
-    .tools li {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.7rem;
-    }
-    .tools .thumb {
-      width: 100%;
-      aspect-ratio: 4 / 3;
-    }
+  .open {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    margin-top: 0.35rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
   }
+  .open :global(svg) {
+    width: 1em;
+    height: 1em;
+    transition: translate 0.15s;
+  }
+  .tools li:hover .open :global(svg) {
+    translate: 0.15em 0;
+  }
+
+  /* Drawings under "Outside work": four in a row, two by two on a phone. */
   .drawings {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
   }
   @media (width >= 640px) {
     .drawings {
-      grid-template-columns: repeat(2, minmax(0, 11rem));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
   .drawings li {
@@ -498,11 +642,24 @@
     gap: 0.5rem;
     border-radius: 0.875rem;
   }
-  .stretch .thumb {
+  .drawings a {
+    font-size: 1.05rem;
+    font-weight: 650;
+  }
+  .thumb {
+    position: relative;
+    display: block;
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
     transition: border-color 0.15s;
   }
   .stretch:hover .thumb {
     border-color: var(--foreground);
+  }
+  .see-all {
+    justify-self: start;
   }
 
   .map,
@@ -548,7 +705,7 @@
   }
   .map p {
     font-family: var(--font-gm-serif);
-    font-size: 1.1rem;
+    font-size: 1.125rem;
     line-height: 1.5;
   }
 
@@ -634,23 +791,23 @@
     flex: none;
     margin-top: 0.3rem;
   }
+  /* Each colour as a block large enough to tell from its neighbours, named under it. */
   .swatches {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.25rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+    gap: 0.75rem;
   }
   .swatches li {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    display: grid;
+    gap: 0.4rem;
     font-size: 0.95rem;
-    color: var(--muted-foreground);
+    font-weight: 550;
   }
   .swatches li::before {
     content: "";
-    width: 1.75rem;
-    height: 4px;
-    border-radius: 2px;
+    height: 3.25rem;
+    border: 1px solid color-mix(in oklab, var(--foreground) 14%, transparent);
+    border-radius: 0.6rem;
     background: var(--c);
   }
   .socials {
@@ -669,24 +826,24 @@
     .map p {
       font-size: 1rem;
     }
-    :global(.row-rule) {
-      margin-top: 2.5rem;
-    }
-    .row {
+    section {
       padding-top: 1.5rem;
     }
-    .drawings li {
-      grid-template-columns: 4.5rem minmax(0, 1fr);
-      align-items: center;
-      gap: 0.75rem;
+    section + section {
+      margin-top: 2.5rem;
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .jumps a,
+    .index a,
     .map li,
-    .stretch .thumb,
+    .tools li,
+    .thumb,
+    .open :global(svg),
     .colophon summary :global(svg) {
       transition: none;
+    }
+    .tools li:hover .open :global(svg) {
+      translate: none;
     }
   }
 </style>

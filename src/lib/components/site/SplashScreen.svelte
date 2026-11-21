@@ -1,10 +1,12 @@
 <!--
   The logo intro, shown full screen over the home page on a visitor's first visit
-  (and again on Ctrl+Shift+G, M, E). A caption under the logo says to press it.
-  Pressing it grows a circuit board out of its ring, the logo unfolds into the
-  initials G M E and the name appears. The labelled button at the foot ("Skip
-  intro", then "Explore the site"), scrolling or Escape lifts the intro away; the
-  board it grew stays behind the site as the background.
+  (and again on Ctrl+Shift+G, M, E). The name and a caption sit under the logo.
+  The first input of any kind (a press on the logo or anywhere else, a key, a
+  scroll) grows a circuit board out of its ring, the logo unfolds into the
+  initials G M E and the name appears large. It never lifts by itself: the
+  labelled button at the foot ("Skip intro", then "Explore the site") or Escape
+  lifts it away at any time, and so does a scroll once it has played. The board
+  it grew stays behind the site as the background.
 
   The root layout mounts this on "/" only. A one-line head script hides it before
   first paint for anyone who has already seen it, so returning visitors never
@@ -16,6 +18,7 @@
   import type { Board } from "#lib/circuit/router.ts";
   import CircuitPaths from "./CircuitPaths.svelte";
   import GmeMark from "./GmeMark.svelte";
+  import { name } from "#lib/config.ts";
   import { m } from "@repo/i18n/messages.js";
   import { SEEN_CLASS, SEEN_KEY, growSiteBoard, randomSeed, site } from "./intro.svelte";
 
@@ -154,16 +157,47 @@
     };
   });
 
+  /** The logo and the button at the foot answer for themselves. */
+  const onButton = (event: Event) =>
+    event.target instanceof Element && event.target.closest("button") !== null;
+
   function onkeydown(event: KeyboardEvent) {
-    if (event.key === "Escape") dismiss();
+    if (event.key === "Escape") return dismiss();
+    // Shortcuts (the replay one included) and keys that only move focus are not a start.
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (board === null) {
+      const starts = event.key.length === 1 || /^(Enter|Arrow|Page)/.test(event.key);
+      if (starts && !onButton(event)) play();
+      return;
+    }
     if (revealed && ["ArrowDown", "PageDown", " "].includes(event.key)) {
-      if (event.key === " " && event.target === mark) return;
+      if (event.key === " " && onButton(event)) return;
       event.preventDefault();
       dismiss();
     }
   }
 
+  function onclick(event: MouseEvent) {
+    if (board === null && !onButton(event)) play();
+  }
+
+  // One swipe on a trackpad is a long run of wheel events. Only the first of a
+  // run counts, so the scroll that starts the intro can't also lift it.
+  let lastWheel = -Infinity;
+  function onwheel(event: WheelEvent) {
+    const fresh = event.timeStamp - lastWheel > 250;
+    lastWheel = event.timeStamp;
+    if (!fresh) return;
+    if (board === null) play();
+    else if (revealed && event.deltaY > 0) dismiss();
+  }
+
   let touchY = 0;
+  function ontouchend(event: TouchEvent) {
+    if (touchY - (event.changedTouches[0]?.clientY ?? 0) <= 40) return;
+    if (board === null) play();
+    else dismiss();
+  }
 </script>
 
 <svelte:head>
@@ -182,9 +216,10 @@
     aria-label={m.intro_label()}
     tabindex="-1"
     {onkeydown}
-    onwheel={(event) => event.deltaY > 0 && dismiss()}
+    {onclick}
+    {onwheel}
     ontouchstart={(event) => (touchY = event.touches[0]?.clientY ?? 0)}
-    ontouchend={(event) => touchY - (event.changedTouches[0]?.clientY ?? 0) > 40 && dismiss()}
+    {ontouchend}
   >
     {#if board}
       <div class="board">
@@ -202,11 +237,16 @@
       >
         <GmeMark {spelled} />
         <span class="hit" aria-hidden="true"></span>
-        <span class="press" aria-hidden="true">{m.intro_press()}</span>
+        <!-- Whose site this is, from the first frame. The large name below is the one
+             a screen reader gets, so this copy of it is for the eye only. -->
+        <span class="wait" aria-hidden="true">
+          <span class="who">{name}</span>
+          <span class="press">{m.intro_press()}</span>
+        </span>
       </button>
 
       <div class="copy">
-        <p class="name">Gaspard Michel Etienne</p>
+        <p class="name">{name}</p>
         <p class="role">
           {m.intro_role_line1()}<br />{m.intro_role_line2()}
         </p>
@@ -268,7 +308,7 @@
     align-items: center;
     gap: clamp(2.5rem, 7vh, 4.5rem);
     width: 100%;
-    padding: 6rem 1.25rem 8rem;
+    padding: clamp(3rem, 10vh, 6rem) 1.25rem clamp(6.5rem, 15vh, 8rem);
     /* One steady hand across the whole logo area, so it never switches to an
        arrow at the ring's edge or in its gaps. */
     cursor: pointer;
@@ -303,12 +343,18 @@
   .mark::before {
     inset: -20% -3%;
   }
+  /* The name and the line are read, not looked at: a deeper scrim, so no trace
+     crosses a letter. */
   .copy::before {
-    inset: -1.5rem -3.5rem;
+    inset: -2.5rem -3.5rem;
+    background: color-mix(in oklab, var(--background) 90%, transparent);
+    backdrop-filter: blur(8px);
   }
 
   .mark {
-    width: min(56rem, 88vw);
+    /* Also held to the height, so on a short screen the ring, the name and the
+       caption under it stay clear of the button at the foot. */
+    width: min(56rem, 88vw, 105vh);
     padding: 0;
     border: 0;
     background: none;
@@ -396,33 +442,46 @@
       opacity: 0.7;
     }
     100% {
-      scale: 1.45;
+      scale: 1.34;
       opacity: 0;
     }
   }
 
-  /* What to do, in words, until the logo is pressed: just under the ring, which
-     is 41.4% of the button's width across and centred in it. A press on the
-     caption counts as a press on the logo. */
-  .press {
+  /* Until the logo is pressed: whose site this is, and what to do, in words.
+     Both sit 24px below the ripple's widest reach (the ring is 41.4% of the
+     button's width, the ripple ends at 1.34 times that), so the ring never
+     crosses them. A press on either counts as a press on the logo. */
+  .wait {
     position: absolute;
     left: 50%;
     top: 50%;
-    margin-top: calc(22.5% + 1.6rem);
+    margin-top: calc(27.75% + 1.5rem);
     translate: -50% 0;
-    padding: 0.3rem 0.9rem;
-    border-radius: 999px;
-    font-size: 1rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    display: grid;
+    justify-items: center;
+    gap: 0.6rem;
     white-space: nowrap;
-    color: var(--foreground);
-    background: var(--background);
     pointer-events: auto;
     cursor: pointer;
     transition: opacity 0.3s ease;
   }
-  .grown .press {
+  .who {
+    font-size: 1.125rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: var(--foreground);
+  }
+  .press {
+    padding: 0.4rem 1rem;
+    border: 1px solid color-mix(in oklab, var(--foreground) 22%, var(--border));
+    border-radius: 999px;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--foreground);
+    background: var(--background);
+  }
+  .grown .wait {
     opacity: 0;
     pointer-events: none;
   }
@@ -447,7 +506,7 @@
     font-family: var(--font-gm-serif);
     font-size: clamp(1.1rem, 2vw, 1.35rem);
     line-height: 1.45;
-    color: var(--muted-foreground);
+    color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground));
     max-width: 34ch;
     text-wrap: balance;
   }
@@ -459,8 +518,10 @@
   .role {
     transition-delay: 0.15s;
   }
-  .revealed .name,
-  .revealed .role {
+  /* Folded back into the logo, the screen is the waiting one again: the small
+     name and the caption, not these. */
+  .revealed.grown .name,
+  .revealed.grown .role {
     opacity: 1;
   }
 
@@ -591,7 +652,7 @@
       animation: none;
       opacity: 1;
     }
-    .press {
+    .wait {
       transition: none;
     }
     /* No ripple: a still, faint halo marks the logo as something to press. */
