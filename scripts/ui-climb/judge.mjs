@@ -215,7 +215,11 @@ async function callJudge(name, panel, prep, rubric, project) {
     ],
     { input: text, cwd: prep.dir },
   );
-  if (!existsSync(outPath)) throw new Error(`${name}: ${r.err.slice(-800)}`);
+  if (!existsSync(outPath)) {
+    // Codex prints warnings and hook lines after its real error, so lead with any ERROR line.
+    const errors = r.err.split("\n").filter((l) => l.startsWith("ERROR"));
+    throw new Error(`${name}: ${[...new Set(errors)].join(" ") || r.err.slice(-800)}`);
+  }
   return { result: JSON.parse(readFileSync(outPath, "utf8")), cost: null };
 }
 
