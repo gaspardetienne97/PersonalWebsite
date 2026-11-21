@@ -18,9 +18,7 @@ describe("reconstructPage", () => {
       run("but", 72, 675),
     ];
 
-    expect(reconstructPage(page)).toBe(
-      "Economy\n\nTime is but the stream\nbut\neternity remains.",
-    );
+    expect(reconstructPage(page)).toBe("Economy\n\nTime is but the stream\nbut\neternity remains.");
   });
 
   it("keeps the runs of one line in order, with a space where there is a gap", () => {

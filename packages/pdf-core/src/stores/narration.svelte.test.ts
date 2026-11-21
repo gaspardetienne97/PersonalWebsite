@@ -23,7 +23,9 @@ const doc: NarratorDoc = {
   accent: "#1291FA",
   meta: "Pasted",
   voice: "",
-  chapters: [{ id: "c1", title: "One", paragraphs: ["First sentence here. Second sentence here."] }],
+  chapters: [
+    { id: "c1", title: "One", paragraphs: ["First sentence here. Second sentence here."] },
+  ],
 };
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

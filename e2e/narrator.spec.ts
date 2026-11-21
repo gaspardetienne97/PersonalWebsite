@@ -221,7 +221,9 @@ test.describe("Narrator on a phone", () => {
     await page.goto("/pdf");
     const title = "Designing Data-Intensive Apps — Ch. 1";
     await expect(page.getByRole("button", { name: title, exact: true })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
     await expect(page.getByRole("button", { name: /Add document/ }).first()).toBeInViewport();
 
     // No pointer has been over the card: the bin is there to tap all the same.

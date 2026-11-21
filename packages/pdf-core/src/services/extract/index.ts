@@ -7,7 +7,12 @@ import { extractEpub } from "./epub";
 import { paragraphsFromText, wordCount } from "./normalize";
 import { extractPdf } from "./pdf";
 import { extractTxt } from "./txt";
-import { ExtractError, type ExtractedContent, type ExtractProgress, type ExtractStage } from "./types";
+import {
+  ExtractError,
+  type ExtractedContent,
+  type ExtractProgress,
+  type ExtractStage,
+} from "./types";
 
 export type { ExtractedContent, ExtractProgress, ExtractStage };
 export {
@@ -20,7 +25,7 @@ export {
 
 const ACCENTS = ["#1291FA", "#A21FB8", "#FF0C0D", "#22C55E", "#F59E0B"];
 
-export function kindForFile(file: File): DocKind | null {
+export function kindForFile(file: File): Exclude<DocKind, "paste"> | null {
   const name = file.name.toLowerCase();
   if (name.endsWith(".pdf") || file.type === "application/pdf") return "pdf";
   if (name.endsWith(".epub") || file.type === "application/epub+zip") return "epub";

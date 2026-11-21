@@ -71,9 +71,7 @@ function isTextItem(item: unknown): item is TextItem {
 }
 
 /** Sort glyph runs into reading order and rebuild line/paragraph structure. */
-export function reconstructPage(
-  items: Pick<TextItem, "str" | "transform" | "width">[],
-): string {
+export function reconstructPage(items: Pick<TextItem, "str" | "transform" | "width">[]): string {
   const runs = items
     .filter((item) => item.str.trim().length > 0)
     .map((item) => ({
