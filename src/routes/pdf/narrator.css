@@ -30,8 +30,15 @@
 
   --n-fg-0: #f8fafc;
   --n-fg-1: #cbd5e1;
-  --n-fg-2: #94a3b8;
-  --n-fg-3: #64748b;
+  /* Secondary and quiet text. The quiet one keeps 4.5:1 on every surface up to --n-bg-3. */
+  --n-fg-2: #aab6c9;
+  --n-fg-3: #8793ab;
+  /* Text and icons on an accent fill. */
+  --n-on-accent: #ffffff;
+
+  /* The app's one accent for progress and playing state, unless a reader turns on
+     "Match each document". */
+  --n-accent-app: #1291fa;
 
   --n-success: #22c55e;
   --n-danger: #ef4444;
@@ -41,6 +48,12 @@
   --n-glass-bg: rgba(15, 23, 42, 0.55);
   --n-glass-border: rgba(255, 255, 255, 0.08);
   --n-glass-blur: blur(18px) saturate(140%);
+  /* The reader's top bar over the page. */
+  --n-bar-bg: rgba(2, 6, 24, 0.72);
+
+  /* Height the player dock takes at the bottom of the reader. The reader sets it on its root
+     from the dock's real size; the reading area ends there. */
+  --n-dock-h: 0px;
 
   /* ---- Elevation ---- */
   --n-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -78,6 +91,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* One focus ring for buttons and links. :where keeps it easy for a component to replace. */
+.narrator :where(button, a, [role="slider"]):focus-visible {
+  outline: 2px solid var(--n-fg-0);
+  outline-offset: 2px;
+}
+
 /* Scrollbars — quiet, dark */
 .narrator *::-webkit-scrollbar {
   width: 10px;
@@ -97,6 +116,38 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* The word being read, in the Flow and Document views. Every style underlines it, so colour
+   is never the only mark, and none of them changes the word's width: the line does not jump. */
+.narrator .word {
+  border-radius: 4px;
+  transition:
+    color 120ms var(--n-ease-out),
+    background 120ms;
+}
+.narrator .word.current {
+  text-decoration: underline;
+  text-decoration-color: var(--n-accent, var(--n-accent-app));
+  text-decoration-thickness: 0.09em;
+  text-underline-offset: 0.2em;
+}
+.narrator .word.current.underline {
+  color: var(--n-fg-0);
+  box-shadow: inset 0 -0.34em 0
+    color-mix(in srgb, var(--n-accent, var(--n-accent-app)) 45%, transparent);
+}
+.narrator .word.current.fill {
+  background: var(--n-accent, var(--n-accent-app));
+  color: var(--n-on-accent);
+  text-decoration-color: currentColor;
+  padding: 2px 5px;
+  margin: -2px -5px;
+}
+.narrator .word.current.glow {
+  color: var(--n-accent-text, var(--n-fg-0));
+  /* One soft halo, kept off the letter edges. */
+  text-shadow: 0 0 14px color-mix(in srgb, var(--n-accent, var(--n-accent-app)) 45%, transparent);
 }
 
 @keyframes n-eq {

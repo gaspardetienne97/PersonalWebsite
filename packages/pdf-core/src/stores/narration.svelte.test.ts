@@ -65,4 +65,27 @@ describe("NarrationPlayer, natural voice failure", () => {
     player.dispose();
     stop();
   });
+
+  it("tries the natural voice again when asked, and only after a fallback", async () => {
+    localStorage.clear();
+    vi.mocked(synthesize).mockClear();
+    const player = new NarrationPlayer(doc);
+    player.setEngine("natural");
+
+    player.retryNatural(); // nothing has failed yet
+    expect(synthesize).not.toHaveBeenCalled();
+
+    player.play();
+    await vi.waitFor(() => expect(player.usingFallback).toBe(true));
+    expect(synthesize).toHaveBeenCalledTimes(1);
+
+    player.retryNatural();
+    expect(player.engineMode).toBe("natural");
+    expect(player.usingFallback).toBe(false);
+    expect(player.playing).toBe(true);
+    await vi.waitFor(() => expect(player.usingFallback).toBe(true));
+    expect(synthesize).toHaveBeenCalledTimes(2);
+
+    player.dispose();
+  });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { BASE_WPM, buildModel, fmt, MS_PER_WORD, wordIndexAt } from "./model";
+import { BASE_WPM, buildModel, fmt, fmtLong, MS_PER_WORD, wordIndexAt } from "./model";
 import type { NarratorDoc } from "./types";
 
 function doc(paragraphsByChapter: string[][]): NarratorDoc {
@@ -90,5 +90,23 @@ describe("fmt", () => {
   it("clamps negative and non-finite input to zero", () => {
     expect(fmt(-5)).toBe("0:00");
     expect(fmt(Number.NaN)).toBe("0:00");
+  });
+});
+
+describe("fmtLong", () => {
+  it("gives minutes with a unit, and at least one for anything with a length", () => {
+    expect(fmtLong(0)).toBe("0 min");
+    expect(fmtLong(20_000)).toBe("1 min");
+    expect(fmtLong(220_000)).toBe("4 min");
+  });
+
+  it("gives hours and minutes, and whole hours alone", () => {
+    expect(fmtLong(3_840_000)).toBe("1 h 4 min");
+    expect(fmtLong(7_200_000)).toBe("2 h");
+  });
+
+  it("reads negative and non-finite input as nothing", () => {
+    expect(fmtLong(-5)).toBe("0 min");
+    expect(fmtLong(Number.NaN)).toBe("0 min");
   });
 });

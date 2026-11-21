@@ -40,7 +40,8 @@ const DEFAULTS: ReaderSettingsState = {
   fontSize: 21,
   lineHeight: 1.8,
   accent: "#1291FA",
-  accentAuto: true,
+  // Off for a new reader: one accent across the app. Anyone who saved settings keeps theirs.
+  accentAuto: false,
   engine: "system",
   systemVoice: "",
   naturalVoice: "af_heart",

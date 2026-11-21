@@ -6,6 +6,8 @@
  * karaoke highlight reads naturally.
  */
 
+import { m } from "@repo/i18n/messages.js";
+
 import type { NarrationModel, NarratorDoc, SentenceSpan, WordToken } from "./types";
 
 /** Words-per-minute baseline for the simulated narrator. */
@@ -95,6 +97,16 @@ export function fmt(ms: number): string {
   const sec = s % 60;
   const mm = String(m).padStart(h ? 2 : 1, "0");
   return (h ? h + ":" : "") + mm + ":" + String(sec).padStart(2, "0");
+}
+
+/** A length of time in words ("3 min", "1 h 4 min"), for places where "3:40" could be minutes or hours. */
+export function fmtLong(ms: number): string {
+  // Anything that has a length reads as at least a minute.
+  const total = Number.isFinite(ms) && ms > 0 ? Math.max(1, Math.round(ms / 60_000)) : 0;
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  if (!hours) return m.narrator_duration_min({ minutes });
+  return minutes ? m.narrator_duration_h_min({ hours, minutes }) : m.narrator_duration_h({ hours });
 }
 
 /** Index of the token whose start is at or before `pos` (binary search). */

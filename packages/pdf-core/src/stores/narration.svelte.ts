@@ -178,6 +178,17 @@ export class NarrationPlayer {
     }
   }
 
+  /** After a fallback: ask for the natural voice once more. */
+  retryNatural(): void {
+    if (!this.usingFallback || this.#requested !== "natural") return;
+    this.engineMode = "natural";
+    this.usingFallback = false;
+    if (this.playing) {
+      this.#stopPlayback();
+      this.#startEngine();
+    }
+  }
+
   seekTo(pos: number): void {
     this.pos = Math.max(0, Math.min(this.model.total, pos));
     this.#persist();
