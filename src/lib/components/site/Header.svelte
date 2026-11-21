@@ -2,19 +2,21 @@
   import { page } from "$app/state";
   import { resolve } from "$app/paths";
   import { MediaQuery } from "svelte/reactivity";
-  import { toggleMode } from "mode-watcher";
+  import { mode, setMode, toggleMode } from "mode-watcher";
+  import Check from "@lucide/svelte/icons/check";
   import Sun from "@lucide/svelte/icons/sun";
   import Moon from "@lucide/svelte/icons/moon";
   import Menu from "@lucide/svelte/icons/menu";
   import X from "@lucide/svelte/icons/x";
   import { fade } from "svelte/transition";
   import * as DropdownMenu from "@repo/ui/dropdown-menu";
-  import { Button, buttonVariants } from "@repo/ui/button";
+  import { Button } from "@repo/ui/button";
   import CircuitBackground from "./CircuitBackground.svelte";
   import LanguageMenu from "./LanguageMenu.svelte";
   import LogoMark from "./LogoMark.svelte";
   import { replayIntro, shortcutListener } from "./intro.svelte";
   import { isFullscreenApp, nav, shortName } from "#lib/config.ts";
+  import { projects } from "#lib/content/projects.ts";
   import { m } from "@repo/i18n/messages.js";
 
   const path = $derived(page.url?.pathname ?? "/");
@@ -22,8 +24,21 @@
   let menuOpen = $state(false);
   let menuPanel = $state<HTMLElement | null>(null);
   let menuByPointer = false;
+  // A project that lives inside the site's pages (Listplay) belongs to the Studio.
+  const inStudio = $derived(
+    projects.some(
+      ({ href, fullscreen }) =>
+        !fullscreen && !href.includes("#") && (path === href || path.startsWith(`${href}/`)),
+    ),
+  );
   const isCurrent = (href: string) =>
-    path === href || (href !== "/" && path.startsWith(`${href}/`));
+    path === href ||
+    (href !== "/" && path.startsWith(`${href}/`)) ||
+    (href === "/studio" && inStudio);
+  const themes = [
+    { value: "light", icon: Sun, label: () => m.header_theme_light() },
+    { value: "dark", icon: Moon, label: () => m.header_theme_dark() },
+  ] as const;
 
   // Ctrl+Shift+G, M, E replays the logo intro from any site page.
   const listen = shortcutListener(replayIntro);
@@ -66,18 +81,19 @@
              panel as wide as the screen, with the pages, the language and the theme. -->
         {#if narrow.current}
           <DropdownMenu.Root bind:open={menuOpen}>
+            <!-- The name stays "Site menu" for a screen reader; the eye gets "Menu". -->
             <DropdownMenu.Trigger
-              class="{buttonVariants({ variant: 'ghost' })} h-11 min-w-11 px-3 data-[state=open]:bg-accent"
+              class="gm-icon-btn menu-button"
+              aria-label={m.header_menu()}
               onpointerdown={() => (menuByPointer = true)}
               onkeydown={() => (menuByPointer = false)}
             >
               {#if menuOpen}
-                <X class="size-5" aria-hidden="true" />
+                <X aria-hidden="true" />
               {:else}
-                <Menu class="size-5" aria-hidden="true" />
+                <Menu aria-hidden="true" />
               {/if}
-              <!-- A phone has no room for the label beside the name: the icon stands alone. -->
-              <span class="max-[480px]:sr-only">{m.header_menu()}</span>
+              <span class="menu-word" aria-hidden="true">{m.header_menu_short()}</span>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
               <!-- Opened from the keyboard, focus lands on the first row. Opened by a tap
@@ -107,11 +123,34 @@
                   </DropdownMenu.Item>
                 {/each}
                 <LanguageMenu rows />
-                <DropdownMenu.Item class="site-menu-row" closeOnSelect={false} onSelect={toggleMode}>
-                  <Sun class="dark:hidden" aria-hidden="true" />
-                  <Moon class="hidden dark:block" aria-hidden="true" />
-                  {m.header_toggle_theme()}
-                </DropdownMenu.Item>
+                <!-- Theme: both choices shown, the one in use marked. Choosing keeps the menu open. -->
+                <DropdownMenu.Group class="site-menu-group">
+                  <DropdownMenu.GroupHeading class="site-menu-heading">
+                    {#if mode.current === "dark"}<Moon aria-hidden="true" />{:else}<Sun aria-hidden="true" />{/if}
+                    {m.header_theme()}
+                  </DropdownMenu.GroupHeading>
+                  <DropdownMenu.RadioGroup
+                    value={mode.current ?? "light"}
+                    onValueChange={(value) => setMode(value as "light" | "dark")}
+                    class="site-menu-options"
+                  >
+                    {#each themes as theme (theme.value)}
+                      <DropdownMenu.PlainRadioItem
+                        value={theme.value}
+                        closeOnSelect={false}
+                        class="site-menu-option"
+                      >
+                        {#snippet children({ checked })}
+                          <span class="site-menu-check">
+                            {#if checked}<Check aria-hidden="true" />{/if}
+                          </span>
+                          {theme.label()}
+                          <theme.icon class="site-menu-glyph" aria-hidden="true" />
+                        {/snippet}
+                      </DropdownMenu.PlainRadioItem>
+                    {/each}
+                  </DropdownMenu.RadioGroup>
+                </DropdownMenu.Group>
               </DropdownMenu.ContentStatic>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
@@ -119,17 +158,19 @@
 
         <div class="tools">
           <LanguageMenu />
-          <Button variant="ghost" size="icon" class="size-11" onclick={toggleMode}>
+          <!-- The icon is the theme in use. The tip, which is also the button's name,
+               says what a press gives. It shows on hover and on keyboard focus. -->
+          <button type="button" class="gm-icon-btn theme-button" onclick={toggleMode}>
             <Sun class="dark:hidden" aria-hidden="true" />
             <Moon class="hidden dark:block" aria-hidden="true" />
-            <span class="sr-only">{m.header_toggle_theme()}</span>
-          </Button>
+            <span class="gm-tip dark:hidden">{m.header_theme_to_dark()}</span>
+            <span class="gm-tip hidden dark:block">{m.header_theme_to_light()}</span>
+          </button>
         </div>
       </div>
     </div>
   </header>
-  <!-- Dims the page under the open phone menu. Outside the header, whose blur would
-       otherwise pin it to the header's own box. -->
+  <!-- Dims and blurs the page under the open phone menu. -->
   {#if menuOpen && narrow.current}
     <div class="scrim" transition:fade={{ duration: 150 }}></div>
   {/if}
@@ -140,8 +181,8 @@
     position: sticky;
     top: 0;
     z-index: 50;
-    background: color-mix(in oklab, var(--background) 88%, transparent);
-    backdrop-filter: blur(10px);
+    /* Opaque: scrolled content never shows through as a smudge. */
+    background: var(--background);
     border-bottom: 1px solid var(--border);
     font-family: var(--font-gm-display);
     color: var(--foreground);
@@ -191,7 +232,8 @@
     .tools {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.5rem;
+      margin-left: 0.5rem;
     }
   }
   .links ul {
@@ -233,14 +275,28 @@
     font-weight: 650;
   }
 
+  /* The phone's menu button: the shared bordered shape, an icon and the word. Under
+     360px the word goes and the button is a square. */
+  :global(.menu-button svg) {
+    width: 1.375rem;
+    height: 1.375rem;
+  }
+  @media (width < 360px) {
+    .menu-word {
+      display: none;
+    }
+  }
+
+  /* Under the open phone menu the page is dimmed and blurred until it cannot be read. */
   .scrim {
     position: fixed;
     inset: 4rem 0 0;
     z-index: 40;
-    background: color-mix(in oklab, var(--foreground) 45%, transparent);
+    background: color-mix(in oklab, var(--foreground) 55%, transparent);
+    backdrop-filter: blur(12px);
   }
   :global(.dark) .scrim {
-    background: rgb(0 0 0 / 0.6);
+    background: rgb(0 0 0 / 0.82);
   }
   /* The phone menu: a panel as wide as the screen, right under the header. It is
      portalled out of the header, hence :global. */
@@ -251,7 +307,7 @@
     z-index: 50;
     max-height: calc(100dvh - 4rem);
     overflow-y: auto;
-    padding: 0.25rem clamp(0.5rem, 2vw, 2.5rem) 0.75rem;
+    padding: 0.25rem clamp(0.75rem, 2vw, 2.5rem) 1rem;
     background: var(--background);
     color: var(--foreground);
     border-bottom: 1px solid var(--border);
@@ -266,34 +322,40 @@
       transform: translateY(-0.4rem);
     }
   }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.site-menu-panel) {
+      animation: none;
+    }
+  }
   :global(.site-menu-row) {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    min-height: 3.25rem;
+    gap: 0.85rem;
+    min-height: 3.5rem;
     padding-inline: 0.5rem 0.75rem;
     border-bottom: 1px solid var(--border);
     border-radius: 0;
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     cursor: default;
     user-select: none;
     outline: none;
   }
-  :global(.site-menu-row:last-child) {
-    margin-top: 0.75rem;
-    border-top: 1px solid var(--border);
-    border-bottom: 0;
-  }
   :global(.site-menu-row svg) {
     flex: none;
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.375rem;
+    height: 1.375rem;
     color: var(--muted-foreground);
   }
+  /* Under the pointer a row tints. Reached by keyboard it gets the site's blue
+     outline, the one the desktop links use, so focus never looks like a choice. */
   :global(.site-menu-row[data-highlighted]) {
     background: var(--accent);
     color: var(--accent-foreground);
+  }
+  :global(:is(.site-menu-row, .site-menu-option)[data-highlighted]:not(:hover)) {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
   }
   /* The page you are on: heavier type and a bar of the logo's gradient. */
   :global(.site-menu-row[aria-current="page"]) {
@@ -309,6 +371,69 @@
     width: 4px;
     border-radius: 4px;
     background: var(--gm-brand-down);
+  }
+
+  /* Language and theme: a heading over bounded options, two to a row. The one in
+     use carries a check mark, heavier type and a darker edge. LanguageMenu draws
+     its rows with the same classes. */
+  :global(.site-menu-heading) {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1.1rem 0.5rem 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 650;
+    color: var(--muted-foreground);
+  }
+  :global(.site-menu-heading svg) {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+  :global(.site-menu-options) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  :global(.site-menu-option) {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.75rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.5rem;
+    border: 1px solid color-mix(in oklab, var(--foreground) 22%, var(--border));
+    border-radius: var(--radius);
+    background: var(--card);
+    font-size: 1.0625rem;
+    line-height: 1.2;
+    cursor: default;
+    user-select: none;
+    outline: none;
+  }
+  :global(.site-menu-option:hover) {
+    border-color: var(--foreground);
+  }
+  :global(.site-menu-option[data-state="checked"]) {
+    border-color: var(--foreground);
+    font-weight: 700;
+  }
+  :global(.site-menu-check) {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  :global(.site-menu-check svg) {
+    width: 1.1rem;
+    height: 1.1rem;
+    stroke-width: 3;
+  }
+  :global(.site-menu-glyph) {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-left: auto;
+    color: var(--muted-foreground);
   }
   .brand:focus-visible {
     outline: 2px solid var(--ring);

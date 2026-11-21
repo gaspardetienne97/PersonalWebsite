@@ -29,6 +29,24 @@ export function comparePosts(a: Pick<Post, "date" | "slug">, b: Pick<Post, "date
 }
 
 /**
+ * Whether the first post of a newest-first list is the latest one for certain:
+ * the only post, or strictly newer than the second. Two posts of one date say
+ * nothing about which came last, so the list does not call either "Latest".
+ */
+export function hasLatest(posts: Pick<Post, "date">[]): boolean {
+  if (posts.length < 2) return posts.length === 1;
+  return parseDate(posts[0].date).getTime() > parseDate(posts[1].date).getTime();
+}
+
+/** Categories every post carries. A tag they all share tells none of them apart. */
+export function sharedCategories(posts: Pick<Post, "categories">[]): string[] {
+  if (posts.length < 2) return [];
+  return posts[0].categories.filter((name) =>
+    posts.every((post) => post.categories.includes(name)),
+  );
+}
+
+/**
  * The h2 and h3 headings of a post's Markdown, each with an id for a link.
  * ponytail: read from the source text, so smart punctuation and inline HTML in a
  * heading are not applied here. If that matters, turn on mdsvex's `heading_ids`

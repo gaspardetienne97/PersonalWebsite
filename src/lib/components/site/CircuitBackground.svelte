@@ -1,8 +1,8 @@
 <!--
   The circuit board behind every site page. It is the board the intro grew when
   there was one, otherwise a fresh one grown from the same ring, kept for the
-  session so it doesn't change between pages. It sits faintly behind the content
-  and comes through at full strength in the side margins.
+  session so it doesn't change between pages. It runs at full strength in the side
+  margins and shows faintly across the top of each page, then leaves the content alone.
 -->
 <script lang="ts">
   import { onMount } from "svelte";
@@ -58,40 +58,70 @@
 
 {#if site.board}
   {#key site.board}
-    <div class="backdrop" aria-hidden="true" transition:fade={{ duration: 600 }}>
+    <!-- One board, drawn twice: fixed in the margins beside the page column, and once
+         at the top of the page inside it, where it fades out and scrolls away. -->
+    <div class="backdrop strips" aria-hidden="true" transition:fade={{ duration: 600 }}>
+      <CircuitPaths board={site.board} />
+    </div>
+    <div class="backdrop band" aria-hidden="true" transition:fade={{ duration: 600 }}>
       <CircuitPaths board={site.board} />
     </div>
   {/key}
 {/if}
 
 <style>
-  /* Full strength in the margins outside the 76rem page column, faint inside it,
-     where the text is. Text blocks clear what is left (.gm-clear in site.css). */
-  .backdrop {
-    position: fixed;
-    inset: 0;
+  .strips,
+  .band {
+    inset: 0 0 auto;
     z-index: -1;
+    height: 100lvh;
     pointer-events: none;
     opacity: 0.38;
+  }
+  :global(.dark) :is(.strips, .band) {
+    opacity: 0.42;
+  }
+  /* At full strength in the margins beside the 76rem page column. It runs a little
+     way into the column's own gutter (3rem of padding, where nothing is drawn) and
+     is gone a rem before the content starts, so no trace sits behind content. */
+  .strips {
+    position: fixed;
+    --edge: 38rem - 1rem;
+    --stop: 38rem - 2.25rem;
     mask-image: linear-gradient(
       90deg,
-      #000 0,
-      #000 max(0px, 50% - 38rem),
-      rgb(0 0 0 / 0.32) max(1.5rem, 50% - 35rem),
-      rgb(0 0 0 / 0.16) 50%,
-      rgb(0 0 0 / 0.32) min(100% - 1.5rem, 50% + 35rem),
-      #000 min(100%, 50% + 38rem),
-      #000 100%
+      #000 calc(50% - (var(--edge))),
+      transparent calc(50% - (var(--stop))),
+      transparent calc(50% + (var(--stop))),
+      #000 calc(50% + (var(--edge)))
     );
   }
-  :global(.dark) .backdrop {
-    opacity: 0.4;
+  /* Inside the column the board shows under the header only: faint at the top of the
+     page, gone before the first tabs, tiles or running text, and it scrolls away
+     with the page. Text in the band still clears it (.gm-clear in site.css). */
+  .band {
+    position: absolute;
+    mask-image:
+      linear-gradient(rgb(0 0 0 / 0.45) 4rem, transparent min(45vh, 13rem)),
+      linear-gradient(
+        90deg,
+        transparent calc(50% - (var(--edge))),
+        #000 calc(50% - (var(--stop))),
+        #000 calc(50% + (var(--stop))),
+        transparent calc(50% + (var(--edge)))
+      );
+    mask-composite: intersect;
+    --edge: 38rem - 1rem;
+    --stop: 38rem - 2.25rem;
   }
-  /* A narrow screen has no margin, so the whole board steps back. */
-  @media (width < 900px) {
-    .backdrop,
-    :global(.dark) .backdrop {
-      opacity: 0.2;
+  /* Under 1200px the column's gutter narrows and then the margins go, so the strips
+     go too and the band alone carries the board, a little stronger and deeper. */
+  @media (width < 1200px) {
+    .strips {
+      display: none;
+    }
+    .band {
+      mask-image: linear-gradient(rgb(0 0 0 / 0.6) 4rem, transparent 45vh);
     }
   }
 </style>

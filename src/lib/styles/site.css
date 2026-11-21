@@ -48,6 +48,12 @@
   );
   /* The same ring for an upright bar (the current row in the phone menu). */
   --gm-brand-down: linear-gradient(180deg, #2bc4ff, #c531f2 35%, #ff1f2a 65%, #ff6fa6);
+  /* The paper a drawing sits on and its hairline: one warm off-white in both themes. */
+  --gm-paper: #f5f2ea;
+  --gm-paper-edge: rgb(0 0 0 / 0.08);
+  /* The quietest text allowed: 4.5:1 on the page colour, for a line most visitors
+     never need (the owner's sign-in link). */
+  --gm-dim: oklch(0.554 0.046 257.417);
 }
 .dark {
   --gm-red: oklch(0.72 0.17 28);
@@ -57,6 +63,7 @@
   --gm-yellow: oklch(0.86 0.15 88);
   --gm-pink: oklch(0.78 0.14 0);
   --gm-cyan: oklch(0.8 0.12 225);
+  --gm-dim: oklch(0.6 0.04 257);
 }
 
 /* Site pages only (the ones that draw the site header), so Woodshed and Narrator
@@ -68,6 +75,8 @@
 }
 .dark:has([data-site-chrome]) {
   --muted-foreground: oklch(0.78 0.035 256);
+  /* The main button is the bright foreground, so it never reads as a disabled grey. */
+  --primary: var(--foreground);
 }
 
 @theme inline {
@@ -173,6 +182,94 @@
   @media (pointer: coarse) {
     .gm-link {
       min-block-size: 44px;
+    }
+  }
+
+  /* An icon button at rest: a 44px bordered square on the card surface, so it reads
+     as a control before it is touched. With a label beside the icon it grows
+     sideways. Theme, the phone menu and any other icon-only control use it. */
+  .gm-icon-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex: none;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding-inline: 0.65rem;
+    border: 1px solid color-mix(in oklab, var(--foreground) 22%, var(--border));
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--foreground);
+    font-family: var(--font-gm-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    transition:
+      border-color 0.15s,
+      background-color 0.15s;
+  }
+  .gm-icon-btn:hover,
+  .gm-icon-btn[data-state="open"] {
+    border-color: var(--foreground);
+    background: var(--accent);
+  }
+  .gm-icon-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .gm-icon-btn svg {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gm-icon-btn {
+      transition: none;
+    }
+  }
+
+  /* A tip for a control: what a press does, shown under the control on hover and
+     keyboard focus. Inside the control it is part of its name (the theme button);
+     beside it, tie it on with aria-describedby and show it from the parent. The
+     control, or the parent, needs position: relative. `start` lines it up with the
+     control's leading edge, `wide` lets a sentence wrap. */
+  .gm-tip {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    padding: 0.45rem 0.7rem;
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--foreground);
+    color: var(--background);
+    font-family: var(--font-gm-display);
+    font-size: 0.875rem;
+    font-weight: 550;
+    line-height: 1.35;
+    text-align: left;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s;
+  }
+  .gm-tip.start {
+    right: auto;
+    left: 0;
+  }
+  .gm-tip.wide {
+    width: max-content;
+    max-width: min(19rem, 80vw);
+    white-space: normal;
+  }
+  :is(:hover, :focus-visible) > .gm-tip {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gm-tip {
+      transition: none;
     }
   }
 
@@ -315,16 +412,15 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  /* On a touch screen the button is a full 44px target, and looks it. */
   @media (pointer: coarse) {
     .gm-prose .gm-code-head {
-      padding-block: 0;
+      padding-block: 0.3rem;
     }
     .gm-prose .gm-code-copy {
+      min-width: 5.5rem;
       min-height: 44px;
-      border-color: transparent;
-      background: transparent;
-      text-decoration: underline;
-      text-underline-offset: 0.2em;
+      font-size: 0.9375rem;
     }
   }
   .gm-prose .gm-code pre {

@@ -16,7 +16,7 @@ export const load: PageLoad = async ({ params }) => {
     post: posts[index],
     Content,
     headings: postHeadings(params.slug),
-    // Posts are newest first, so the next one is older.
+    // The posts before and after this one in the list, which is newest first.
     newer: posts[index - 1] ?? null,
     older: posts[index + 1] ?? null,
   };

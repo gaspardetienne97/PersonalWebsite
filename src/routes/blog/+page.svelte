@@ -10,7 +10,7 @@
   import CircuitArt from "#lib/components/site/CircuitArt.svelte";
   import { MARKERS } from "#lib/circuit/router.ts";
   import { name } from "#lib/config.ts";
-  import { categoryLabel, parseDate } from "#lib/posts.ts";
+  import { categoryLabel, hasLatest, parseDate, sharedCategories } from "#lib/posts.ts";
   import { formatDate } from "#lib/utils.ts";
 
   let { data } = $props();
@@ -28,11 +28,18 @@
       : data.posts.filter((post) => post.categories.includes(category)),
   );
   const [featured, ...rest] = $derived(visible);
+  // "Latest" and "Earlier" are only said when the dates bear them out.
+  const latest = $derived(hasLatest(visible));
+  // A tag every post carries tells none of them apart, so it is not drawn.
+  const shared = $derived(sharedCategories(data.posts));
+  const tags = (post: (typeof data.posts)[number]) =>
+    post.categories.filter((name) => !shared.includes(name));
   // Year headings only earn their place once the list is long enough to need
   // them. A short list is one group under a plain heading.
   const groups = $derived.by(() => {
     if (rest.length === 0) return [];
-    if (visible.length < 4) return [{ id: "earlier", title: m.blog_earlier(), posts: rest }];
+    if (visible.length < 4)
+      return [{ id: "earlier", title: latest ? m.blog_earlier() : m.post_more(), posts: rest }];
     const byYear = new Map<number, typeof rest>();
     for (const post of rest) {
       const year = parseDate(post.date).getFullYear();
@@ -85,11 +92,13 @@
         {/if}
       </div>
       <div class="lead">
+        <!-- Each fact wraps whole, and the dot between them never ends or starts a line. -->
         <p class="when">
           <time datetime={featured.date}>
-            {m.blog_latest({ date: formatDate(featured.date, "long") })}
+            {latest
+              ? m.blog_latest({ date: formatDate(featured.date, "long") })
+              : formatDate(featured.date, "long")}
           </time>
-          <span aria-hidden="true">·</span>
           <span>{m.reading_time({ minutes: featured.readingMinutes })}</span>
         </p>
         <h2 class="lead-title">
@@ -100,7 +109,7 @@
         <p class="summary">{featured.description}</p>
         <div class="foot">
           <span class="chips">
-            {#each featured.categories as name (name)}
+            {#each tags(featured) as name (name)}
               <Badge variant="secondary" class="chip capitalize">{categoryLabel(name)}</Badge>
             {/each}
           </span>
@@ -124,7 +133,7 @@
                   <span class="title">{post.title}</span>
                   <span class="summary">{post.description}</span>
                   <span class="chips">
-                    {#each post.categories as name (name)}
+                    {#each tags(post) as name (name)}
                       <Badge variant="secondary" class="chip capitalize">
                         {categoryLabel(name)}
                       </Badge>
@@ -206,9 +215,21 @@
   .when {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.15rem 0.5rem;
+    gap: 0.15rem 1.25rem;
+    overflow-x: clip;
     font-size: 0.9375rem;
     color: var(--muted-foreground);
+  }
+  .when > * {
+    position: relative;
+    white-space: nowrap;
+  }
+  /* The dot hangs in the gap before a fact. On a new line that puts it past the
+     left edge, where it is cut off. */
+  .when > * + *::before {
+    content: "·";
+    position: absolute;
+    left: -0.8rem;
   }
   .lead-title {
     font-size: clamp(1.6rem, 3vw, 2rem);
@@ -250,7 +271,9 @@
 
   /* Older posts. Each row is one link: the whole row tints and its arrow steps
      forward under the pointer or the keyboard. */
+  /* The rows keep to a reading measure, so each arrow sits by its text. */
   .year {
+    max-width: 46rem;
     margin-top: clamp(3rem, 7vw, 4.5rem);
   }
   .year h2 {

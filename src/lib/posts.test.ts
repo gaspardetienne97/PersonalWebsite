@@ -1,5 +1,40 @@
 import { describe, expect, it } from "vite-plus/test";
-import { comparePosts, headingsOf } from "./posts.ts";
+import { comparePosts, hasLatest, headingsOf, sharedCategories } from "./posts.ts";
+
+describe("hasLatest", () => {
+  const dated = (...dates: string[]) => dates.map((date) => ({ date }));
+
+  it("is true for one post, and for a first post newer than the second", () => {
+    expect(hasLatest(dated("2024-9-16"))).toBe(true);
+    expect(hasLatest(dated("2025-1-2", "2024-9-16"))).toBe(true);
+    expect(hasLatest(dated("2024-9-16 18:30", "2024-9-16"))).toBe(true);
+  });
+
+  it("is false with no posts, and while the first two share a date", () => {
+    expect(hasLatest([])).toBe(false);
+    expect(hasLatest(dated("2024-9-16", "2024-9-16", "2024-9-16"))).toBe(false);
+  });
+});
+
+describe("sharedCategories", () => {
+  const tagged = (...lists: string[][]) => lists.map((categories) => ({ categories }));
+
+  it("lists the categories every post carries", () => {
+    expect(sharedCategories(tagged(["blog", "personal"], ["personal", "blog"]))).toEqual([
+      "blog",
+      "personal",
+    ]);
+    expect(sharedCategories(tagged(["blog", "svelte"], ["blog"], ["blog", "audio"]))).toEqual([
+      "blog",
+    ]);
+  });
+
+  it("is empty when nothing is shared, and for a single post", () => {
+    expect(sharedCategories(tagged(["svelte"], ["audio"]))).toEqual([]);
+    expect(sharedCategories(tagged(["blog"]))).toEqual([]);
+    expect(sharedCategories([])).toEqual([]);
+  });
+});
 
 describe("comparePosts", () => {
   const sorted = (posts: { date: string; slug: string }[]) =>

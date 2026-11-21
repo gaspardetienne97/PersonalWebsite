@@ -12,6 +12,7 @@
 
   const path = $derived(page.url?.pathname ?? "/");
   const year = new Date().getFullYear();
+  const hint = $props.id();
 </script>
 
 {#if page.error || !isFullscreenApp(path)}
@@ -21,31 +22,35 @@
         <LogoMark size={40} />
         <p class="name">{name}</p>
         <p class="note">{m.footer_note()}</p>
+        <!-- What the button does and its keyboard shortcut show under it on hover and
+             keyboard focus, and are read out as its description. -->
         <p class="replay">
-          <Button variant="outline" class="h-11" onclick={replayIntro}>
+          <Button variant="outline" class="h-11" onclick={replayIntro} aria-describedby={hint}>
             <RotateCcw aria-hidden="true" />{m.footer_replay()}
           </Button>
-          <!-- A keyboard shortcut is no use on a touch screen. -->
-          <span class="keys">
-            {m.footer_replay_or()} <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>G</kbd> <kbd>M</kbd> <kbd>E</kbd>
-          </span>
+          <span id={hint} class="gm-tip start wide">{m.footer_replay_hint()}</span>
         </p>
       </div>
 
       <nav aria-label={m.footer_nav_label()} class="cols">
+        <div class="projects">
+          <h2><a href="{resolve('/studio')}?type=projects">{m.footer_projects()}</a></h2>
+          <ul>
+            {#each projects as project (project.slug)}
+              <li>
+                <!-- The link is named by the project alone. Its line is the link's
+                     description, and the link's hit area covers both. -->
+                <a href={project.href} aria-describedby="{hint}-{project.slug}">{project.title}</a>
+                <span id="{hint}-{project.slug}" class="about">{project.summary}</span>
+              </li>
+            {/each}
+          </ul>
+        </div>
         <div>
           <h2>{m.footer_site()}</h2>
           <ul>
             {#each nav as link (link.href)}
               <li><a href={resolve(link.href)}>{link.label}</a></li>
-            {/each}
-          </ul>
-        </div>
-        <div>
-          <h2><a href="{resolve('/studio')}?type=projects">{m.footer_projects()}</a></h2>
-          <ul>
-            {#each projects as project (project.slug)}
-              <li><a href={project.href}>{project.title}</a></li>
             {/each}
           </ul>
         </div>
@@ -67,7 +72,9 @@
     </div>
     <p class="legal">
       <span>© {year} {name}</span>
-      <a href={resolve("/private")} class="social"><Lock size={16} aria-hidden="true" />{m.footer_private()}</a>
+      <a href={resolve("/private")} class="social owner">
+        <Lock size={16} aria-hidden="true" />{m.footer_private()}
+      </a>
     </p>
   </footer>
 {/if}
@@ -78,27 +85,29 @@
     align-items: center;
     gap: 0.5rem;
   }
-  /* A solid surface, so the board stops at the footer and never runs behind its links. */
+  /* A solid surface, so the board stops at the footer and never runs behind its links.
+     The space above it is the same on every page. */
   .site-footer {
-    margin-top: clamp(4rem, 10vw, 8rem);
+    margin-top: clamp(3.5rem, 8vw, 6rem);
     border-top: 1px solid var(--border);
     background: var(--background);
     font-family: var(--font-gm-display);
     color: var(--foreground);
   }
+  /* Who this is, then the links right beside it: projects with a line each, the
+     site's pages, and where else to find me. */
   .inner {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 2.5rem 4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    gap: 2.5rem clamp(2rem, 6vw, 5rem);
     max-width: 76rem;
     margin-inline: auto;
     padding: 3rem clamp(1rem, 4vw, 3rem) 2rem;
   }
   .who {
     display: grid;
+    align-content: start;
     gap: 0.6rem;
-    max-width: 22rem;
   }
   .name {
     font-weight: 650;
@@ -111,30 +120,18 @@
     line-height: 1.5;
   }
   .replay {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 0.75rem;
+    position: relative;
+    width: fit-content;
     margin-top: 0.4rem;
   }
-  .keys {
-    font-size: 0.85rem;
-    color: var(--muted-foreground);
-  }
-  kbd {
-    font-family: "Fira Mono", ui-monospace, monospace;
-    font-size: 0.75rem;
-    padding: 0.05rem 0.35rem;
-    border: 1px solid var(--border);
-    border-bottom-width: 2px;
-    border-radius: 4px;
-    background: var(--muted);
-    color: var(--foreground);
+  .replay:has(:global(button:hover), :global(button:focus-visible)) .gm-tip {
+    opacity: 1;
   }
   .cols {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2rem 4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 22rem) auto auto;
+    justify-content: space-between;
+    gap: 2rem clamp(1.5rem, 4vw, 4rem);
   }
   h2 {
     font-size: 0.95rem;
@@ -161,6 +158,39 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  /* A project is its name over one line about it. Only the name underlines. The
+     link stretches over the whole row, so the line under it presses too. */
+  .projects ul {
+    gap: 0.7rem;
+  }
+  .projects li {
+    position: relative;
+    display: grid;
+    gap: 0.1rem;
+    color: var(--muted-foreground);
+  }
+  .projects li a {
+    color: var(--foreground);
+    font-weight: 550;
+  }
+  .projects li a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .projects li a:focus-visible {
+    outline: none;
+  }
+  .projects li:has(a:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .about {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    text-wrap: pretty;
+  }
   .legal {
     display: flex;
     flex-wrap: wrap;
@@ -173,16 +203,24 @@
     font-size: 0.9rem;
     color: var(--muted-foreground);
   }
+  /* The owner's own door: there for the owner, quiet for everyone else. */
+  .owner {
+    color: var(--gm-dim);
+  }
 
-  /* A phone, or any touch screen: no shortcut keys, two columns of links, and every
-     link a row tall enough for a thumb. */
-  @media (hover: none), (width < 640px) {
-    .keys {
-      display: none;
+  @media (width < 900px) {
+    .inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .who {
+      max-width: 24rem;
     }
   }
+  /* A phone, or any touch screen: every link is a row tall enough for a thumb, with
+     a rule under it so the row can be seen. */
   @media (pointer: coarse), (width < 640px) {
-    ul {
+    ul,
+    .projects ul {
       gap: 0;
     }
     /* Headings take a row's height too, linked or not, so the columns line up. */
@@ -190,20 +228,47 @@
       margin-bottom: 0;
     }
     h2,
-    ul a,
     h2 a,
+    ul a,
     .legal a {
       display: flex;
       align-items: center;
       min-height: 2.75rem;
     }
+    .projects li {
+      align-content: center;
+      min-height: 2.75rem;
+      padding-block: 0.6rem;
+    }
+    .projects li a {
+      display: inline;
+      min-height: 0;
+    }
+    ul {
+      border-top: 1px solid var(--border);
+    }
+    li {
+      border-bottom: 1px solid var(--border);
+    }
   }
+  /* A phone: projects across the full width, then pages and elsewhere side by side,
+     and the last two lines each on its own row. */
   @media (width < 640px) {
+    .inner {
+      padding-top: 2.25rem;
+    }
     .cols {
-      display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1.5rem 1rem;
-      width: 100%;
+      gap: 1.25rem 1.5rem;
+      justify-content: stretch;
+    }
+    .projects {
+      grid-column: 1 / -1;
+    }
+    .legal {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0;
     }
   }
 </style>

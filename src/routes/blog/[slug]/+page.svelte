@@ -65,12 +65,14 @@
   <meta property="og:description" content={post.description} />
 </svelte:head>
 
-{#snippet neighbour(other: typeof post, label: string, side: "newer" | "older")}
+<!-- The posts on either side in the list's order. "Previous" and "next" say
+     nothing about dates, which two posts may share. -->
+{#snippet neighbour(other: typeof post, label: string, side: "previous" | "next")}
   <Card.Root class="stretch near {side} relative gap-1.5 px-5 py-4">
     <p class="near-label">
-      {#if side === "newer"}<ArrowLeft size={16} aria-hidden="true" />{/if}
+      {#if side === "previous"}<ArrowLeft size={16} aria-hidden="true" />{/if}
       {label}
-      {#if side === "older"}<ArrowRight size={16} aria-hidden="true" />{/if}
+      {#if side === "next"}<ArrowRight size={16} aria-hidden="true" />{/if}
     </p>
     <h2 class="near-title" lang="en">
       <a href={resolve("/blog/[slug]", { slug: other.slug })} class="stretch-link">
@@ -91,17 +93,8 @@
 
   <header class="head">
     <h1 class="title gm-clear" lang="en">{post.title}</h1>
-    <p class="gm-lede" lang="en">{post.description}</p>
-    {#if translated}
-      <p class="note gm-clear">
-        <Languages size={16} aria-hidden="true" />{m.post_in_english()}
-      </p>
-    {/if}
-  </header>
-
-  <!-- Beside the text on a wide screen, under the title on a narrow one. -->
-  <aside class="side" aria-label={m.post_about()}>
-    <ul class="facts gm-clear">
+    <!-- The facts, in one line under the title at every width. -->
+    <ul class="facts gm-clear" aria-label={m.post_about()}>
       <li>
         <CalendarDays size={16} aria-hidden="true" />
         <time datetime={post.date}>{formatDate(post.date, "long")}</time>
@@ -117,7 +110,18 @@
         </li>
       {/if}
     </ul>
-    {#if data.headings.length >= 2}
+    {#if translated}
+      <p class="note gm-clear">
+        <Languages size={16} aria-hidden="true" />{m.post_in_english()}
+      </p>
+    {/if}
+    <p class="gm-lede" lang="en">{post.description}</p>
+  </header>
+
+  <!-- A post with sections lists them: beside the text on a wide screen, under
+       the title on a narrow one. A short post has no side column at all. -->
+  {#if data.headings.length >= 2}
+    <aside class="side">
       <nav class="toc gm-clear" aria-labelledby="toc-title">
         <h2 id="toc-title">{m.post_on_this_page()}</h2>
         <ol lang="en">
@@ -126,8 +130,8 @@
           {/each}
         </ol>
       </nav>
-    {/if}
-  </aside>
+    </aside>
+  {/if}
 
   {#if post.cover}
     <div class="cover"><img src={post.cover} alt="" /></div>
@@ -143,8 +147,8 @@
   <footer class="end">
     {#if data.newer || data.older}
       <nav class="more" aria-label={m.post_more()}>
-        {#if data.newer}{@render neighbour(data.newer, m.post_newer(), "newer")}{/if}
-        {#if data.older}{@render neighbour(data.older, m.post_older(), "older")}{/if}
+        {#if data.newer}{@render neighbour(data.newer, m.post_previous(), "previous")}{/if}
+        {#if data.older}{@render neighbour(data.older, m.post_next(), "next")}{/if}
       </nav>
     {/if}
     <a href={resolve("/blog")} class="gm-link gm-clear">{m.post_all()}<ArrowRight /></a>
@@ -208,7 +212,7 @@
   }
 
   .side {
-    margin-top: 1.25rem;
+    margin-top: 1.5rem;
     font-size: 0.9375rem;
   }
   .facts {
@@ -217,6 +221,7 @@
     align-items: center;
     gap: 0.6rem 1.5rem;
     width: fit-content;
+    font-size: 0.9375rem;
   }
   .facts li {
     display: flex;
@@ -232,9 +237,14 @@
     font-size: 0.8125rem;
   }
   .toc {
-    margin-top: 1.5rem;
     padding-top: 1.25rem;
     border-top: 1px solid var(--border);
+  }
+  @media (width >= 1100px) {
+    .toc {
+      padding-top: 0;
+      border-top: 0;
+    }
   }
   .toc h2 {
     font-size: 0.8125rem;
@@ -272,14 +282,6 @@
       padding-block: 0.7rem;
     }
   }
-  @media (width >= 1100px) {
-    .facts {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.75rem;
-    }
-  }
-
   .cover {
     margin-top: 2rem;
     border: 1px solid var(--border);
@@ -318,11 +320,11 @@
     .more {
       grid-template-columns: 1fr 1fr;
     }
-    .more :global(.older) {
+    .more :global(.next) {
       grid-column: 2;
       text-align: right;
     }
-    .more :global(.older .near-label) {
+    .more :global(.next .near-label) {
       justify-content: flex-end;
     }
   }
@@ -353,10 +355,10 @@
   .near-label :global(svg) {
     transition: transform 0.15s;
   }
-  :global(.post .newer:hover .near-label svg) {
+  :global(.post .previous:hover .near-label svg) {
     transform: translateX(-0.2rem);
   }
-  :global(.post .older:hover .near-label svg) {
+  :global(.post .next:hover .near-label svg) {
     transform: translateX(0.2rem);
   }
   @media (prefers-reduced-motion: reduce) {
