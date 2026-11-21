@@ -67,6 +67,30 @@ describe("extractFile — epub", () => {
   });
 });
 
+describe("extractFile, files that cannot be read", () => {
+  it("says a damaged PDF could not be opened, not what pdf.js threw", async () => {
+    const file = new File(["%PDF-1.7 not really a pdf"], "broken.pdf", { type: "application/pdf" });
+
+    await expect(extractFile(file, "v", noProgress)).rejects.toThrow(
+      /^This PDF could not be opened\..* add another file\.$/,
+    );
+  });
+
+  it("says the same of an EPUB that is not a zip, or is missing its parts", async () => {
+    const notZip = new File(["plain bytes"], "broken.epub", { type: "application/epub+zip" });
+    await expect(extractFile(notZip, "v", noProgress)).rejects.toThrow(
+      /^This EPUB could not be opened\..* add another file\.$/,
+    );
+
+    const zip = new JSZip();
+    zip.file("mimetype", "application/epub+zip");
+    const empty = new File([await zip.generateAsync({ type: "blob" })], "empty.epub");
+    await expect(extractFile(empty, "v", noProgress)).rejects.toThrow(
+      /^This EPUB could not be opened\./,
+    );
+  });
+});
+
 describe("extractPaste", () => {
   it("titles the doc from the first sentence", () => {
     const doc = extractPaste("Hello there world. The rest of it.\n\nNext para.", "v");

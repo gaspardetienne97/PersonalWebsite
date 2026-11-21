@@ -14,3 +14,6 @@ export interface ExtractedContent {
 export type ExtractStage = "read" | "extract" | "clean" | "chapters" | "narration";
 
 export type ExtractProgress = (stage: ExtractStage) => void;
+
+/** A failure whose message is written for the listener: what happened and what to do next. */
+export class ExtractError extends Error {}

@@ -13,7 +13,7 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 import type { NarratorChapter } from "../../domain/types";
 import { paragraphsFromText, titleFromFilename } from "./normalize";
-import type { ExtractedContent, ExtractProgress } from "./types";
+import { ExtractError, type ExtractedContent, type ExtractProgress } from "./types";
 
 if (typeof window !== "undefined" && !pdfjs.GlobalWorkerOptions.workerSrc) {
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -24,7 +24,13 @@ const PAGES_PER_FALLBACK_CHAPTER = 8;
 export async function extractPdf(file: File, progress: ExtractProgress): Promise<ExtractedContent> {
   progress("read");
   const data = await file.arrayBuffer();
-  const doc = await pdfjs.getDocument({ data }).promise;
+  const doc = await pdfjs.getDocument({ data }).promise.catch((e: unknown) => {
+    // A locked PDF has its own way out; any other failure gets extractFile's plain message.
+    if (e instanceof Error && e.name === "PasswordException") {
+      throw new ExtractError(m.narrator_extract_pdf_locked());
+    }
+    throw e;
+  });
 
   progress("extract");
   const pageTexts: string[] = [];
@@ -49,7 +55,7 @@ export async function extractPdf(file: File, progress: ExtractProgress): Promise
     chapters.push({ id: "ch-" + (index + 1), title: range.title, paragraphs });
   }
   if (chapters.length === 0) {
-    throw new Error(m.narrator_extract_pdf_no_text());
+    throw new ExtractError(m.narrator_extract_pdf_no_text());
   }
 
   return {

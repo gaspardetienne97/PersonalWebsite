@@ -7,7 +7,7 @@ import JSZip from "jszip";
 
 import type { NarratorChapter } from "../../domain/types";
 import { paragraphsFromText, titleFromFilename, wordCount } from "./normalize";
-import type { ExtractedContent, ExtractProgress } from "./types";
+import { ExtractError, type ExtractedContent, type ExtractProgress } from "./types";
 
 const BLOCK_SELECTOR = "p, h1, h2, h3, h4, h5, h6, li, blockquote";
 
@@ -22,13 +22,13 @@ export async function extractEpub(
   const parser = new DOMParser();
 
   const containerXml = await readEntry(zip, "META-INF/container.xml");
-  if (!containerXml) throw new Error(m.narrator_extract_epub_no_container());
+  if (!containerXml) throw new ExtractError(m.narrator_extract_epub_unreadable());
   const container = parser.parseFromString(containerXml, "application/xml");
   const opfPath = container.querySelector("rootfile")?.getAttribute("full-path");
-  if (!opfPath) throw new Error(m.narrator_extract_epub_no_package());
+  if (!opfPath) throw new ExtractError(m.narrator_extract_epub_unreadable());
 
   const opfXml = await readEntry(zip, opfPath);
-  if (!opfXml) throw new Error(m.narrator_extract_epub_package_missing());
+  if (!opfXml) throw new ExtractError(m.narrator_extract_epub_unreadable());
   const opf = parser.parseFromString(opfXml, "application/xml");
   const opfDir = opfPath.includes("/") ? opfPath.slice(0, opfPath.lastIndexOf("/") + 1) : "";
 
@@ -47,7 +47,7 @@ export async function extractEpub(
     .map((ref) => ref.getAttribute("idref"))
     .map((id) => (id ? hrefById.get(id) : undefined))
     .filter((href): href is string => Boolean(href));
-  if (spineHrefs.length === 0) throw new Error(m.narrator_extract_epub_empty_spine());
+  if (spineHrefs.length === 0) throw new ExtractError(m.narrator_extract_epub_unreadable());
 
   progress("clean");
   progress("chapters");
@@ -76,7 +76,7 @@ export async function extractEpub(
       paragraphs,
     });
   }
-  if (chapters.length === 0) throw new Error(m.narrator_extract_epub_no_text());
+  if (chapters.length === 0) throw new ExtractError(m.narrator_extract_epub_no_text());
 
   return {
     title,

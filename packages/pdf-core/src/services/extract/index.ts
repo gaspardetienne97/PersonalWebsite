@@ -7,7 +7,7 @@ import { extractEpub } from "./epub";
 import { paragraphsFromText, wordCount } from "./normalize";
 import { extractPdf } from "./pdf";
 import { extractTxt } from "./txt";
-import type { ExtractedContent, ExtractProgress, ExtractStage } from "./types";
+import { ExtractError, type ExtractedContent, type ExtractProgress, type ExtractStage } from "./types";
 
 export type { ExtractedContent, ExtractProgress, ExtractStage };
 export {
@@ -35,6 +35,12 @@ export const ACCEPT_BY_KIND: Record<Exclude<DocKind, "paste">, string> = {
   txt: ".txt,.md,.markdown,text/plain,text/markdown",
 };
 
+const UNREADABLE: Record<Exclude<DocKind, "paste">, () => string> = {
+  pdf: () => m.narrator_extract_pdf_unreadable(),
+  epub: () => m.narrator_extract_epub_unreadable(),
+  txt: () => m.narrator_add_read_failed(),
+};
+
 /** Parse an uploaded file into a ready-to-narrate document. */
 export async function extractFile(
   file: File,
@@ -43,11 +49,15 @@ export async function extractFile(
 ): Promise<NarratorDoc> {
   const kind = kindForFile(file);
   if (!kind) {
-    throw new Error(m.narrator_extract_unsupported({ name: file.name }));
+    throw new ExtractError(m.narrator_extract_unsupported({ name: file.name }));
   }
 
   const extractor = kind === "pdf" ? extractPdf : kind === "epub" ? extractEpub : extractTxt;
-  const content = await extractor(file, progress);
+  const content = await extractor(file, progress).catch((e: unknown) => {
+    // What pdf.js, JSZip or the parser throw is written for developers ("Invalid PDF
+    // structure."). The listener gets what happened and what to do next instead.
+    throw e instanceof ExtractError ? e : new ExtractError(UNREADABLE[kind]());
+  });
 
   progress("narration");
   return toDoc(content, kind, voice);

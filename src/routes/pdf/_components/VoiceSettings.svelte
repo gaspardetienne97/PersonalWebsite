@@ -104,8 +104,9 @@
         if (previewAudio === audio) previewAudio = null;
       };
       await audio.play();
-    } catch (e) {
-      previewError = e instanceof Error ? e.message : m.narrator_settings_preview_failed();
+    } catch {
+      // The cause ("Failed to fetch") means nothing to a listener: say what to do instead.
+      previewError = m.narrator_settings_preview_failed();
       previewing = null;
       modelState = kokoroLoaded() ? "ready" : "idle";
     }
