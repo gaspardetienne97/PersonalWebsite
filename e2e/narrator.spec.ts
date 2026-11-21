@@ -19,7 +19,7 @@ test.describe("Narrator", () => {
     await expect(page.getByText("Add your first document")).toBeVisible();
     await expect(page.getByText("Continue listening")).not.toBeVisible();
 
-    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
     await page.getByRole("button", { name: "Next sentence" }).click();
     await page.getByRole("button", { name: "Back to library" }).click();
 
@@ -37,7 +37,7 @@ test.describe("Narrator", () => {
 
     await expect(page.getByText("Meditations, Book II").first()).toBeVisible();
     await expect(page.getByText("The Time Machine")).not.toBeVisible();
-    await expect(page.getByText("1 document", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "1 match for “meditations”" })).toBeVisible();
   });
 
   test("a search that matches nothing says so and can be cleared", async ({ page }) => {
@@ -45,7 +45,8 @@ test.describe("Narrator", () => {
     await search.fill("zebra");
 
     await expect(page.getByText("No documents match “zebra”")).toBeVisible();
-    await page.getByRole("button", { name: "Clear search" }).click();
+    // The field has its own clear button now; this is the one in the "no match" message.
+    await page.getByRole("status").getByRole("button", { name: "Clear search" }).click();
     await expect(search).toHaveValue("");
     await expect(page.getByText("The Time Machine").first()).toBeVisible();
   });
@@ -57,12 +58,11 @@ test.describe("Narrator", () => {
       .click();
 
     await expect(page.getByRole("dialog", { name: "Add a document" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "PDF" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "EPUB" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Text file" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Paste" })).toBeVisible();
+    // One tab takes every file (the kind is detected), the other takes pasted text.
+    await expect(page.getByRole("tab", { name: "File", exact: true })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Paste text" })).toBeVisible();
     await expect(page.getByText("Narrator voice")).toBeVisible();
-    await expect(page.getByText("Drop your PDF here")).toBeVisible();
+    await expect(page.getByText("Drop a file here")).toBeVisible();
   });
 
   test("pasting text lands in the reader with the real words", async ({ page }) => {
@@ -70,7 +70,7 @@ test.describe("Narrator", () => {
       .getByRole("button", { name: /Add document/ })
       .first()
       .click();
-    await page.getByRole("tab", { name: "Paste" }).click();
+    await page.getByRole("tab", { name: "Paste text" }).click();
     await page
       .getByLabel("Text to narrate")
       .fill("Hello world. This is a pasted narration test. It has three sentences.");
@@ -87,8 +87,6 @@ test.describe("Narrator", () => {
       .getByRole("button", { name: /Add document/ })
       .first()
       .click();
-    await page.getByRole("tab", { name: "Text file" }).click();
-
     // Real upload: the file is parsed in-browser (no mock content).
     await page.setInputFiles('input[type="file"]', {
       name: "uploaded-notes.md",
@@ -98,7 +96,7 @@ test.describe("Narrator", () => {
       ),
     });
 
-    await expect(page.getByText("Building your narration")).toBeVisible();
+    await expect(page.getByText("Preparing your document")).toBeVisible();
     await expect(page.getByRole("button", { name: "Back to library" })).toBeVisible({
       timeout: 15_000,
     });
@@ -107,7 +105,7 @@ test.describe("Narrator", () => {
   });
 
   test("opens a document in the reader with transport controls", async ({ page }) => {
-    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
 
     await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Previous sentence" })).toBeVisible();
@@ -125,7 +123,7 @@ test.describe("Narrator", () => {
   });
 
   test("chapters popover jumps within the document", async ({ page }) => {
-    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
     await page.getByRole("button", { name: "Chapters" }).click();
 
     await expect(page.getByRole("button", { name: /The Argument/ })).toBeVisible();
@@ -136,7 +134,7 @@ test.describe("Narrator", () => {
   test("a player menu closes on its chip or on a press outside, and never hides Play", async ({
     page,
   }) => {
-    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
     const chapters = page.getByRole("button", { name: "Chapters" });
     const item = page.getByRole("button", { name: /The Argument/ });
 
@@ -161,7 +159,7 @@ test.describe("Narrator", () => {
   });
 
   test("reader settings close on a press outside the panel", async ({ page }) => {
-    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
     await page.getByRole("button", { name: "Reader settings" }).click();
     const panel = page.getByRole("group", { name: "Reader settings panel" });
     await expect(panel).toBeVisible();
@@ -171,8 +169,9 @@ test.describe("Narrator", () => {
   });
 
   test("reader settings link opens the voice settings page", async ({ page }) => {
-    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
     await page.getByRole("button", { name: "Reader settings" }).click();
+    await page.getByRole("tab", { name: "Voice" }).click();
     await page
       .getByRole("group", { name: "Reader settings panel" })
       .getByRole("link", { name: /Voice settings/ })
@@ -184,8 +183,9 @@ test.describe("Narrator", () => {
   });
 
   test("reader settings expose the system/natural voice engine toggle", async ({ page }) => {
-    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
     await page.getByRole("button", { name: "Reader settings" }).click();
+    await page.getByRole("tab", { name: "Voice" }).click();
 
     const panel = page.getByRole("group", { name: "Reader settings panel" });
     await expect(panel.getByRole("button", { name: "System", exact: true })).toBeVisible();
@@ -197,7 +197,8 @@ test.describe("Narrator", () => {
 
   test("a document can be removed from the library", async ({ page }) => {
     const title = "Designing Data-Intensive Apps — Ch. 1";
-    await page.getByRole("button", { name: title, exact: true }).hover();
+    // Remove sits in the card's "More" menu, which is always in view: no hover needed.
+    await page.getByRole("button", { name: `More actions for ${title}` }).click();
     await page.getByRole("button", { name: `Remove ${title} from library` }).click();
     await page.getByRole("button", { name: "Remove", exact: true }).click();
 
@@ -205,7 +206,7 @@ test.describe("Narrator", () => {
   });
 
   test("back button returns to the library", async ({ page }) => {
-    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
     await page.getByRole("button", { name: "Back to library" }).click();
 
     await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
@@ -226,10 +227,11 @@ test.describe("Narrator on a phone", () => {
     );
     await expect(page.getByRole("button", { name: /Add document/ }).first()).toBeInViewport();
 
-    // No pointer has been over the card: the bin is there to tap all the same.
-    const remove = page.getByRole("button", { name: `Remove ${title} from library` });
-    await expect(remove).toHaveCSS("opacity", "1");
-    await remove.tap();
+    // No pointer has been over the card: its "More" button is there to tap all the same.
+    const more = page.getByRole("button", { name: `More actions for ${title}` });
+    await expect(more).toHaveCSS("opacity", "1");
+    await more.tap();
+    await page.getByRole("button", { name: `Remove ${title} from library` }).tap();
     await page.getByRole("button", { name: "Remove", exact: true }).tap();
 
     await expect(page.getByRole("button", { name: title, exact: true })).not.toBeVisible();

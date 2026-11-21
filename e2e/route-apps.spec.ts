@@ -39,9 +39,9 @@ test("narrow site menu supports keyboard and pointer navigation", async ({ page 
   for (const width of [375, 320]) {
     await page.setViewportSize({ width, height: 812 });
     if (width === 320) {
-      // On a phone the theme switch is a row of the site menu, and choosing it keeps the menu open.
+      // On a phone the theme is two choices in the site menu, and choosing one keeps the menu open.
       await trigger.click();
-      await page.getByRole("menuitem", { name: "Toggle theme", exact: true }).click();
+      await page.getByRole("menuitemradio", { name: "Dark", exact: true }).click();
       await expect(page.locator("html")).toHaveClass(/dark/);
       await expect(page.getByRole("menu")).toBeVisible();
       await page.keyboard.press("Escape");
@@ -157,12 +157,12 @@ test("narrator route app renders", async ({ page }) => {
 });
 
 // The e2e preview runs without a database, so sign-in is off: the private page
-// still sends you to sign in, and the sign-in page says it isn't set up.
+// still sends you to sign in, and the sign-in page says it is unavailable.
 test("the private page asks you to sign in", async ({ page }) => {
   await page.goto("/private");
   await expect(page).toHaveURL("/login?redirectTo=%2Fprivate");
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
-  await expect(page.getByText("Sign-in isn't set up on this server yet.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue with Authentik" })).toHaveCount(0);
+  await expect(page.getByText("Sign-in is unavailable right now.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in" })).toHaveCount(0);
   expect((await page.request.get("/api/auth/get-session")).status()).toBe(503);
 });

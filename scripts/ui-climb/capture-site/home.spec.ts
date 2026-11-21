@@ -48,7 +48,7 @@ for (const width of WIDTHS) {
         FLOW,
         "intro-waiting",
         width,
-        'first visit, the logo intro covers the page and waits to be pressed: a ring ripples out from the logo, a caption under it says "Press the logo", and "Skip intro" goes straight to the site',
+        'first visit, the logo intro covers the page and waits: a ring ripples out from the logo, the name sits under it with the caption "Press the logo" (any press, key or scroll starts it), and "Skip intro" goes straight to the site',
         { frozen: true, themes: [theme] },
       );
       await thaw(page);
@@ -76,7 +76,7 @@ for (const width of WIDTHS) {
         FLOW,
         "intro-settled",
         width,
-        "first visit, the intro once it has played: the initials, the name and a pulsing arrow to enter the site, over the grown circuit board",
+        'first visit, the intro once it has played: the initials, the name and the "Explore the site" button, over the grown circuit board (it stays until the visitor leaves it)',
       );
 
       await page.getByRole("button", { name: "Explore the site" }).click();
@@ -102,8 +102,19 @@ for (const width of WIDTHS) {
       FLOW,
       "home",
       width,
-      "home page for a returning visitor (no intro): name and introduction, the newest post and piece",
+      'home page for a returning visitor (no intro): name and introduction beside "Newest", a reel with one slide for each kind that holds work (the next slide peeks in), then one door per kind and a closing row of ways on',
       { full: true },
+    );
+    // The reel moves by its arrows, its dots or a swipe. It never moves by itself.
+    await page.getByRole("button", { name: "Next piece" }).click();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await settle(page, 700);
+    await snap(
+      page,
+      FLOW,
+      "home-reel-next",
+      width,
+      "home page after one press of the reel's next arrow: the second slide is in front, its dot is marked and the previous arrow is now live",
     );
     await scrollTo(page, "#everything-heading");
     await page.locator("#everything-heading").evaluate((el) => {
@@ -115,7 +126,7 @@ for (const width of WIDTHS) {
       FLOW,
       "home-doors",
       width,
-      "home page scrolled to 'Everything': one door per kind of work (drawings, music, projects, writing and so on)",
+      "home page scrolled to 'Everything': one equal, compact door per kind of work (drawings, music, projects, writing and so on), the kinds still empty marked \"Soon\", then the closing row",
     );
     if (width === "desktop") {
       // Pointer over a door.
@@ -125,6 +136,17 @@ for (const width of WIDTHS) {
       await snap(page, FLOW, "home-door-hover", width, "home page, pointer over the first door", {
         keepMouse: true,
       });
+      // An empty door keeps its sentence in a tip, shown on hover and keyboard focus.
+      await page.locator('.doors a[href*="type=doodles"]').hover();
+      await settle(page, 350);
+      await snap(
+        page,
+        FLOW,
+        "home-door-tip",
+        width,
+        "home page, pointer over an empty door (Doodles): a tip says what will go there",
+        { keepMouse: true },
+      );
     }
   });
 }
@@ -158,3 +180,30 @@ test("home first visit in French phone", async ({ page }) => {
     { fr: true },
   );
 });
+
+// Reduced motion: no ripple and no growing board. The first press shows the initials and the
+// name at once.
+for (const width of WIDTHS) {
+  test(`home first visit, reduced motion ${width}`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await firstVisit(page, width);
+    await page.goto("/");
+    const intro = page.getByRole("dialog", { name: "Introduction" });
+    await expect(intro).toBeVisible();
+    await settle(page, 800);
+    // A press anywhere but a button starts it. One before the page hydrates is lost, so it is
+    // tried again; a press once the board is there does nothing.
+    await expect(async () => {
+      await page.mouse.click(40, 300);
+      await expect(intro).toHaveClass(/revealed/, { timeout: 1500 });
+    }).toPass({ timeout: 20_000 });
+    await settle(page, 400);
+    await snap(
+      page,
+      FLOW,
+      "intro-reduced-motion",
+      width,
+      "first visit with reduced motion turned on, after a press anywhere on the screen: the initials, the name and the board are there at once, with no animation",
+    );
+  });
+}

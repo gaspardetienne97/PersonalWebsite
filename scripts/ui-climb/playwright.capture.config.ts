@@ -31,8 +31,10 @@ export default defineConfig({
       args: [
         "--autoplay-policy=no-user-gesture-required",
         "--use-fake-ui-for-media-stream",
-        // Narrator plays real audio with the natural voice: keep the capture silent.
-        ...(project.key === "woodshed" ? [] : ["--mute-audio"]),
+        // Narrator plays real audio with the natural voice. A null audio sink keeps the capture
+        // silent and keeps audio time moving whatever the machine's output device is doing
+        // (with --mute-audio it stalls when the laptop lid is closed on its own speakers).
+        ...(project.key === "woodshed" ? [] : ["--disable-audio-output"]),
       ],
     },
   },

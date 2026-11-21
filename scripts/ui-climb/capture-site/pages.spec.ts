@@ -13,9 +13,32 @@ for (const width of WIDTHS) {
   test(`about ${width}`, async ({ page }) => {
     await returning(page, width);
     await visit(page, "/about");
-    await snap(page, "about", "page", width, "About page, top: who this is and the work", {
-      full: true,
-    });
+    await snap(
+      page,
+      "about",
+      "page",
+      width,
+      width === "desktop"
+        ? "About page: the greeting with pieces of the work beside it, then a page index that stays in view beside the sections (work, outside work, this website, say hello)"
+        : "About page: the greeting with pieces of the work, then a page index as a row of chips over the sections (work, outside work, this website, say hello)",
+      {
+        full: true,
+      },
+    );
+    if (width === "desktop") {
+      await scrollTo(page, "#outside");
+      await expect(page.locator('nav.index a[href="#outside"]')).toHaveAttribute(
+        "aria-current",
+        "location",
+      );
+      await snap(
+        page,
+        "about",
+        "index-current",
+        width,
+        "About page scrolled to the section about life outside work: the page index beside it marks that section",
+      );
+    }
     await scrollTo(page, "#this-website");
     await snap(
       page,
@@ -28,7 +51,15 @@ for (const width of WIDTHS) {
       window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
     );
     await settle(page);
-    await snap(page, "about", "end", width, "About page, the end: contact links and the footer");
+    await snap(
+      page,
+      "about",
+      "end",
+      width,
+      width === "desktop"
+        ? 'About page, the end: contact links and the footer, with "Say hello" marked in the page index'
+        : "About page, the end: contact links and the footer",
+    );
     const colophon = page.locator("details.colophon > summary");
     await colophon.scrollIntoViewIfNeeded();
     await colophon.click();
@@ -51,7 +82,7 @@ for (const width of WIDTHS) {
       "blog-index",
       "list",
       width,
-      "Writing list: the latest post featured, earlier posts in a list",
+      "Writing list: one post featured with its date and reading time, the others in a list by year",
       { full: true },
     );
     const filter = page.getByRole("radio", { name: "personal" });
@@ -95,7 +126,7 @@ for (const width of WIDTHS) {
       "blog-post",
       "end",
       width,
-      "an article, the end: links to the newer and older posts, then the footer",
+      "an article, the end: links to the previous and next posts, then the footer",
     );
   });
 
@@ -129,7 +160,7 @@ for (const width of WIDTHS) {
       "sign-in",
       "login-unavailable",
       width,
-      "Sign-in page, signed out, on a server where sign-in is not set up (no database): a notice says so, with the way back to the site",
+      "Sign-in page, signed out, on a server where sign-in is not set up (no database): a short notice says sign-in is unavailable, with the way back to the site",
     );
   });
 
@@ -145,8 +176,22 @@ for (const width of WIDTHS) {
       "sign-in",
       "login",
       width,
-      "Sign-in page, signed out: what signing in is for, one button to continue with the identity provider, and the way back to the site",
+      'Sign-in page, signed out: what signing in is for, one "Sign in" button, a line that says which service it uses, and the way back to the site',
     );
+    if (width === "desktop") {
+      // Never pressed: the pointer only rests on it.
+      await button.hover();
+      await settle(page, 500);
+      await snap(
+        page,
+        "sign-in",
+        "login-hover",
+        width,
+        "Sign-in page, pointer over the Sign in button: the circuit traces at its sides light up",
+        { keepMouse: true },
+      );
+      await page.mouse.move(40, 700);
+    }
     await visit(page, at("/login?error=access_denied"));
     await expect(button).toBeVisible();
     await snap(
@@ -154,7 +199,7 @@ for (const width of WIDTHS) {
       "sign-in",
       "login-cancelled",
       width,
-      "Sign-in page after a cancelled sign-in: the error message and a button to try again",
+      "Sign-in page after a cancelled sign-in: an information notice says it was cancelled and what to do next, over the same Sign in button",
     );
     // The private page, opened signed out, sends you to /login?redirectTo=/private.
     await visit(page, at("/private"));
@@ -177,8 +222,32 @@ for (const width of WIDTHS) {
       "not-found",
       "404",
       width,
-      "a page that does not exist (404): the status drawn as a broken connection from the logo, a heading, the address asked for and buttons to each part of the site",
+      "a page that does not exist (404): the status drawn as a broken connection from the logo, a heading, the address asked for, buttons to each part of the site, and three pieces of the work to look at",
       { full: true },
+    );
+    if (width === "desktop") {
+      // The drawing answers the pointer: the gap in the connection closes.
+      await page.locator(".error .broken").hover();
+      await settle(page, 500);
+      await snap(
+        page,
+        "not-found",
+        "404-hover",
+        width,
+        "the 404 page with the pointer over the drawing: the broken connection joins up",
+        { keepMouse: true },
+      );
+      await page.mouse.move(40, 700);
+    }
+    // An address one slip away from a real page.
+    await visit(page, "/studoi");
+    await expect(page.locator(".error .guess")).toBeVisible();
+    await snap(
+      page,
+      "not-found",
+      "404-near",
+      width,
+      'a mistyped address (/studoi): the 404 page asks "Did you mean /studio?" with a link, above the same buttons and three pieces',
     );
     await visit(page, "/blog/no-such-post");
     await snap(
@@ -186,7 +255,7 @@ for (const width of WIDTHS) {
       "not-found",
       "404-post",
       width,
-      "an article that does not exist (404): the same page, leading with All posts and the recent posts",
+      "an article that does not exist (404): the same page, leading with All posts and the newest posts, with three pieces of the work beside them",
       { full: true },
     );
   });
@@ -200,11 +269,16 @@ test("pages in French phone", async ({ page }) => {
   await visit(page, "/blog");
   await snap(page, "blog-index", "list", "phone", "Writing list", { full: true, fr: true });
   await visit(page, "/blog/post3");
-  await snap(page, "blog-post", "top", "phone", "an article, top", {
-    fr: true,
-  });
+  await snap(
+    page,
+    "blog-post",
+    "top",
+    "phone",
+    "an article, top: the facts under the title, then a line saying the post is written in English",
+    { fr: true },
+  );
   await scrollTo(page, "nav.more");
-  await snap(page, "blog-post", "end", "phone", "an article, the end: newer and older posts", {
+  await snap(page, "blog-post", "end", "phone", "an article, the end: previous and next posts", {
     fr: true,
   });
   if (SIGNIN_BASE) {

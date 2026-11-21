@@ -43,7 +43,7 @@ for (const width of WIDTHS) {
         FLOW,
         "phone-menu",
         width,
-        "the site menu open at phone width: a panel as wide as the screen with the pages (the current one marked), the languages and the theme switch, the page dimmed behind it",
+        "the site menu open at phone width: a panel as wide as the screen with the pages (the current one marked), the languages, and the theme as two choices, Light and Dark, the current one marked, the page dimmed behind it",
       );
       // There is no separate language menu on a phone: the languages are rows of this panel.
       await page.getByRole("menuitemradio").first().focus();
@@ -87,6 +87,20 @@ for (const width of WIDTHS) {
           keepMouse: true,
         },
       );
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+      // The theme button's tip says what a press will do. It is also the button's name.
+      await page.locator(".site-header .theme-button").hover();
+      await settle(page, 350);
+      await snap(
+        page,
+        FLOW,
+        "theme-tooltip",
+        width,
+        "pointer over the theme button in the header: a tip under it says what a press does",
+        { keepMouse: true },
+      );
+      await page.mouse.move(640, 500);
     }
 
     // Closing a menu hands focus back to its button: let go of it, so the footer shot has no ring.
@@ -100,8 +114,20 @@ for (const width of WIDTHS) {
       FLOW,
       "footer",
       width,
-      "the footer: name and note, replay the intro, site links, projects, elsewhere, the owner sign-in link",
+      "the footer: name and note, replay the intro, the projects with a line each, the site's pages, elsewhere, the owner sign-in link",
     );
+    if (width === "desktop") {
+      await page.locator(".site-footer .replay button").hover();
+      await settle(page, 350);
+      await snap(
+        page,
+        FLOW,
+        "footer-replay-hint",
+        width,
+        'pointer over "Replay the intro" in the footer: a tip says what it does and gives the keyboard shortcut',
+        { keepMouse: true },
+      );
+    }
   });
 }
 
@@ -116,10 +142,10 @@ test("nav in French phone", async ({ page }) => {
     FLOW,
     "phone-menu",
     "phone",
-    "the site menu open at phone width: pages, languages with a check mark on French, and the theme switch",
+    "the site menu open at phone width: pages, languages with a check mark on French, and the theme as Light and Dark with the current one marked",
     { fr: true },
   );
-  await page.locator('[role="menuitemradio"][aria-checked="true"]').focus();
+  await page.locator('[role="menuitemradio"][aria-checked="true"][lang]').focus();
   await settle(page, 200);
   await snap(
     page,

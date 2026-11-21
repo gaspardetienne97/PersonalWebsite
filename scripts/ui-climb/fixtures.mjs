@@ -14,6 +14,8 @@ export const FILES = {
   pdf: join(FIXTURES, "walden.pdf"),
   epub: join(FIXTURES, "alice-in-wonderland.epub"),
   txt: join(FIXTURES, "the-tell-tale-heart.md"),
+  /** A text file whose middle chapter has a title long enough to wrap in the chapter list. */
+  longTitles: join(FIXTURES, "a-kitchen-garden.md"),
   /** Not a PDF at all: pdf.js rejects it. */
   brokenPdf: join(FIXTURES, "quarterly-report.pdf"),
   /** A valid PDF with no text layer, like a scan. */
@@ -95,6 +97,26 @@ Whenever it fell upon me, my blood ran cold; and so by degrees, very gradually, 
 Upon the eighth night I was more than usually cautious in opening the door. A watch's minute hand moves more quickly than did mine. Never before that night had I felt the extent of my own powers, of my sagacity. I could scarcely contain my feelings of triumph.
 
 To think that there I was, opening the door, little by little, and he not even to dream of my secret deeds or thoughts. I fairly chuckled at the idea; and perhaps he heard me; for he moved on the bed suddenly, as if startled.
+`;
+
+// Written for the capture: plain sentences under headings of very different lengths.
+const GARDEN = `# A Kitchen Garden
+
+A kitchen garden asks for little room. A bed two steps wide and four steps long will keep a household in salad from the last frost to the first.
+
+## Soil
+
+Dig the bed once, in autumn, and leave the clods rough. The frost breaks them down better than a spade can. In spring, rake the top fine and tread it lightly before sowing.
+
+## Choosing what to grow when the summer is short and the ground stays cold until late in the spring
+
+Sow what ripens fast. Radishes are ready in a month, lettuce in six weeks, and peas will stand a cold night that would kill a bean. Leave the melons to gardeners further south.
+
+Start the slow crops indoors, on a window that faces the sun, and set them out when the soil is warm to the hand.
+
+## Watering
+
+Water in the evening, at the root, and seldom. A good soaking once a week sends the roots down. A sprinkle every day keeps them at the surface, where the sun finds them.
 `;
 
 // ---- PDF (hand-written: Helvetica text, one outline entry per chapter) ----
@@ -242,6 +264,7 @@ export async function ensureFixtures(force = false) {
     }),
   );
   writeFileSync(FILES.txt, TELL_TALE);
+  writeFileSync(FILES.longTitles, GARDEN);
   writeFileSync(FILES.brokenPdf, "This file was renamed to .pdf by mistake. It is plain text.\n");
   writeFileSync(
     FILES.scannedPdf,

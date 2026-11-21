@@ -172,7 +172,8 @@ export async function nsnap(
 }
 
 export type Kind = "pdf" | "epub" | "txt";
-const TAB = { pdf: 0, epub: 1, txt: 2, paste: 3 } as const;
+// One tab takes every file (the kind is detected), the other takes pasted text.
+const TAB = { file: 0, paste: 1 } as const;
 
 /** Open the add modal from the library's app bar. */
 export async function openAdd(page: Page) {
@@ -187,15 +188,14 @@ export async function pickTab(page: Page, tab: keyof typeof TAB) {
 }
 
 /** Upload a file through the add modal (already open on any tab). Does not wait for the result. */
-export async function chooseFile(page: Page, tab: Kind, file: string) {
-  await pickTab(page, tab);
+export async function chooseFile(page: Page, file: string) {
   await page.setInputFiles(".overlay input.file-input", file);
 }
 
 /** Add a real file from the library and land in its reader. */
 export async function addFile(page: Page, kind: Kind) {
   await openAdd(page);
-  await chooseFile(page, kind, FILES[kind]);
+  await chooseFile(page, FILES[kind]);
   await expect(page.locator(".root .top")).toBeVisible({ timeout: 30_000 });
   await settle(page, 400);
 }
@@ -208,7 +208,7 @@ export const reader = {
   play: (page: Page) => page.locator(".root button.play"),
   speed: (page: Page) => page.locator(".root .extras .chip").nth(0),
   chapters: (page: Page) => page.locator(".root .extras .chip").nth(1),
-  voice: (page: Page) => page.locator(".root .extras .chip").nth(2),
+  voice: (page: Page) => page.locator(".root .voice-chip"),
   track: (page: Page) => page.locator(".root .scrubber .track"),
 };
 
@@ -217,6 +217,8 @@ export async function seek(page: Page, fraction: number) {
   const box = await reader.track(page).boundingBox();
   if (!box) throw new Error("no scrubber");
   await page.mouse.click(box.x + box.width * fraction, box.y + box.height / 2);
+  // A pointer left on the track keeps its time tip up: move away, so the next shot is clean.
+  await page.mouse.move(2, 2);
   await settle(page, 200);
 }
 
