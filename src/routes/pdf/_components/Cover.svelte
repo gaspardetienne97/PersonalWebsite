@@ -10,16 +10,17 @@
     playing = false,
   }: { doc: NarratorDoc; size?: number; radius?: number; playing?: boolean } = $props();
 
-  // A thumbnail is too small for words at a readable size: it carries the title's first letter,
-  // and the title, author and format sit beside it in the row.
+  // A thumbnail is too small for the title at a readable size: it carries the title's first
+  // letter over the format, so two rows that start with the same letter still differ. The title
+  // and author sit beside it in the row.
   const thumb = $derived(size < 90);
   const author = $derived(authorName(doc));
 
-  // The title is set as large as its widest word allows, so no word is cut at the cover's edge.
-  // ponytail: a word's width is estimated from four letter classes of the bold serif (in em,
-  // taken at about 22px, since Fraunces sets wider at small sizes), not measured. A word too
-  // wide even at the smallest size wraps (overflow-wrap) instead of being clipped. Measure in
-  // the page if covers ever take another typeface.
+  // The title is set at the largest size at which its widest word fits the cover's width and
+  // the whole title fits the room above the author, so no word and no line is cut.
+  // ponytail: widths are estimated from four letter classes of the bold serif (in em, taken at
+  // about 22px, since Fraunces sets wider at small sizes), not measured. Measure in the page if
+  // covers ever take another typeface.
   const emWidth = (word: string) =>
     [...word].reduce(
       (sum, c) =>
@@ -27,8 +28,29 @@
       0,
     );
   const titleSize = $derived.by(() => {
-    const widest = Math.max(...doc.title.split(/\s+|(?<=-)/).map(emWidth), 1);
-    return Math.max(12, size * 0.11, Math.min(size * 0.2, (size * 0.74) / widest));
+    const widths = doc.title
+      .split(/\s+|(?<=-)/)
+      .filter(Boolean)
+      .map(emWidth);
+    const width = size * 0.74;
+    const height = size * (author ? 0.56 : 0.8);
+    const lines = (font: number) => {
+      const room = width / font;
+      let count = 1;
+      let used = 0;
+      for (const w of widths) {
+        if (used && used + 0.25 + w > room) {
+          count++;
+          used = w;
+        } else used += (used ? 0.25 : 0) + w;
+      }
+      return count;
+    };
+    const smallest = Math.max(12, size * 0.09);
+    for (let font = size * 0.2; font > smallest; font -= 0.5) {
+      if (Math.max(...widths, 1) * font <= width && lines(font) * font * 1.08 <= height) return font;
+    }
+    return smallest;
   });
 </script>
 
@@ -41,14 +63,15 @@
   style:background="radial-gradient(120% 90% at 100% 0%, {doc.accent}38 0%, transparent 55%), linear-gradient(160deg, #0E1530 0%, #060B1E 100%)"
 >
   {#if thumb}
-    <div class="initial" style:font-size="{size * 0.5}px" aria-hidden="true">
-      {[...doc.title.trim()][0]?.toUpperCase() ?? ""}
+    <div class="thumb" aria-hidden="true">
+      <span class="initial" style:font-size="{size * 0.42}px">
+        {[...doc.title.trim()][0]?.toUpperCase() ?? ""}
+      </span>
+      <span class="kind">{formatLabel(doc)}</span>
     </div>
   {:else}
     <div class="inner" style:padding="{size * 0.12}px">
-      <div class="kind" style:font-size="{Math.max(12, size * 0.085)}px" style:color={doc.accent}>
-        {formatLabel(doc)}
-      </div>
+      <div class="kind" style:font-size="{Math.max(12, size * 0.085)}px">{formatLabel(doc)}</div>
       <div>
         <div class="title" style:font-size="{titleSize}px">{doc.title}</div>
         {#if author}
@@ -84,22 +107,29 @@
     flex-direction: column;
     justify-content: space-between;
   }
-  .initial {
+  .thumb {
     position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
+    inset: 0 0 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+  }
+  .initial {
     font-family: var(--n-font-serif);
     font-weight: 800;
     line-height: 1;
     color: var(--n-fg-0);
   }
+  /* The format, said once per document, here. Neutral, so it reads on every cover colour;
+     the document's own colour stays in the glow and the stripe. */
   .kind {
-    font-family: var(--n-font-mono);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    opacity: 0.95;
-    font-weight: 600;
+    font-family: var(--n-font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--n-fg-1);
   }
   .title {
     font-family: var(--n-font-serif);
@@ -107,11 +137,6 @@
     line-height: 1.05;
     color: var(--n-fg-0);
     letter-spacing: -0.02em;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
     overflow-wrap: break-word;
   }
   .author {

@@ -54,6 +54,19 @@ export class NarratorLibrary {
     return Math.max(0, Math.min(1, saved / model.total));
   }
 
+  /** The sentence the saved playhead is in, so the continue card can show where listening stopped. */
+  resumeLine(doc: NarratorDoc): string {
+    const saved = savedPosition(doc.id);
+    if (saved === null) return "";
+    const { sentences, tokens } = this.modelFor(doc);
+    const sentence = sentences.find((s) => saved < s.end) ?? sentences.at(-1);
+    if (!sentence) return "";
+    return tokens
+      .slice(sentence.wordStart, sentence.wordEnd + 1)
+      .map((t) => t.word)
+      .join(" ");
+  }
+
   get inProgress(): NarratorDoc | undefined {
     return [...this.docs]
       .filter((d) => this.progressOf(d) > 0)

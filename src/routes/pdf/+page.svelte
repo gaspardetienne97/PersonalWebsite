@@ -1,6 +1,6 @@
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
-  import type { DocKind, NarratorDoc } from "@repo/pdf-core/domain";
+  import type { NarratorDoc } from "@repo/pdf-core/domain";
   import { NarratorLibrary } from "@repo/pdf-core/stores/library";
   import { ReaderSettings } from "@repo/pdf-core/stores/settings";
 
@@ -13,8 +13,7 @@
   const settings = new ReaderSettings();
 
   let docId = $state<string | null>(null);
-  /** The add modal's opening tab while it is open. */
-  let adding = $state<DocKind | null>(null);
+  let adding = $state(false);
 
   const doc = $derived(docId ? library.find(docId) : undefined);
 
@@ -24,7 +23,7 @@
 
   function createDoc(d: NarratorDoc) {
     library.add(d);
-    adding = null;
+    adding = false;
     openDoc(d.id);
   }
 </script>
@@ -43,10 +42,10 @@
       <ReaderView {doc} {settings} onclose={() => (docId = null)} />
     {/key}
   {:else}
-    <LibraryView {library} onopen={openDoc} onadd={(tab = "pdf") => (adding = tab)} />
+    <LibraryView {library} onopen={openDoc} onadd={() => (adding = true)} />
   {/if}
 
   {#if adding}
-    <AddDocumentModal initialTab={adding} onclose={() => (adding = null)} oncreate={createDoc} />
+    <AddDocumentModal onclose={() => (adding = false)} oncreate={createDoc} />
   {/if}
 </div>

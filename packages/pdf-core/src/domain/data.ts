@@ -3,6 +3,7 @@
 
 import { m } from "@repo/i18n/messages.js";
 
+import { fmtLong } from "./model";
 import type { NarratorDoc } from "./types";
 
 export const SAMPLE_DOCS: NarratorDoc[] = [
@@ -166,10 +167,46 @@ export function authorName(doc: NarratorDoc): string {
   return named ? doc.author : "";
 }
 
-/** The line under a card's title: the author, with a sample's genre, or else the document's size. */
+/** The line under a card's title: the author, with a sample's genre. Empty when the document names no author. */
 export function byline(doc: NarratorDoc): string {
   const author = authorName(doc);
   const genre = sampleGenre(doc);
-  if (author) return genre ? `${author} · ${genre}` : author;
-  return doc.meta.split(" · ")[1] ?? "";
+  return author && genre ? `${author} · ${genre}` : author;
+}
+
+/** Whether a search finds a document: in its title or in the line under it, whatever the case. */
+export function matchesQuery(doc: NarratorDoc, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  return !q || [doc.title, byline(doc)].some((text) => text.toLowerCase().includes(q));
+}
+
+/** `text` cut around each place the search appears, so a card can mark the letters that matched. */
+export function markMatches(text: string, query: string): { text: string; hit: boolean }[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [{ text, hit: false }];
+  // ponytail: lower-casing changes the length of a few letters (the Turkish İ), which would
+  // shift the marks by one. Search with Intl.Collator if a library ever holds such titles.
+  const lower = text.toLowerCase();
+  const parts: { text: string; hit: boolean }[] = [];
+  let at = 0;
+  for (let i = lower.indexOf(q); i >= 0; i = lower.indexOf(q, at)) {
+    if (i > at) parts.push({ text: text.slice(at, i), hit: false });
+    parts.push({ text: text.slice(i, i + q.length), hit: true });
+    at = i + q.length;
+  }
+  if (at < text.length) parts.push({ text: text.slice(at), hit: false });
+  return parts;
+}
+
+/**
+ * How long a document is, said once: the whole length before it is started ("4 min"), what is
+ * left of it after ("1 min left of 4 min"). Just started, both round to the same minutes, and
+ * the whole length alone says it.
+ */
+export function lengthLine(total: number, progress: number): string {
+  const whole = fmtLong(total);
+  const left = fmtLong(total * (1 - progress));
+  return progress > 0 && left !== whole
+    ? m.narrator_library_left_of({ left, total: whole })
+    : whole;
 }

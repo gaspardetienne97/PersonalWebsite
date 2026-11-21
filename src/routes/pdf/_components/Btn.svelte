@@ -44,10 +44,19 @@
     opacity: 0.5;
     pointer-events: none;
   }
+  /* The one primary look: the brand gradient. A thin dark veil over it keeps the white label
+     at 4.5:1 from the blue end to the red end (bare, the blue end gives 3.3:1). */
   .primary {
-    background: var(--n-brand-gradient);
-    color: #fff;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+    background:
+      linear-gradient(var(--n-primary-veil, rgba(2, 6, 24, 0.2)) 0 0), var(--n-brand-gradient);
+    /* From edge to edge, so the border does not show the gradient's other end. */
+    background-origin: border-box;
+    color: var(--n-on-accent, #fff);
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  .primary:hover {
+    filter: brightness(1.12);
   }
   .secondary {
     background: var(--n-bg-2);
@@ -61,5 +70,13 @@
   .ghost {
     background: transparent;
     color: var(--n-fg-1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn {
+      transition: none;
+    }
+    .btn:active {
+      transform: none;
+    }
   }
 </style>

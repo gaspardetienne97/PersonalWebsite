@@ -1,6 +1,4 @@
 <script lang="ts">
-  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
-  import BookOpen from "@lucide/svelte/icons/book-open";
   import Check from "@lucide/svelte/icons/check";
   import FileText from "@lucide/svelte/icons/file-text";
   import Mic from "@lucide/svelte/icons/mic";
@@ -8,12 +6,13 @@
   import Play from "@lucide/svelte/icons/play";
   import Quote from "@lucide/svelte/icons/quote";
   import Sparkles from "@lucide/svelte/icons/sparkles";
-  import Type from "@lucide/svelte/icons/type";
+  import Upload from "@lucide/svelte/icons/upload";
   import X from "@lucide/svelte/icons/x";
-  import { onDestroy, onMount, untrack } from "svelte";
+  import { onDestroy, onMount } from "svelte";
 
+  import { formatNumber } from "@repo/i18n/format";
   import { m } from "@repo/i18n/messages.js";
-  import type { DocKind, NarratorDoc } from "@repo/pdf-core/domain";
+  import { fmtLong, MS_PER_WORD, type NarratorDoc } from "@repo/pdf-core/domain";
   import {
     ACCEPT_BY_KIND,
     extractFile,
@@ -31,49 +30,23 @@
   let {
     onclose,
     oncreate,
-    initialTab = "pdf",
   }: {
     onclose: () => void;
     oncreate: (doc: NarratorDoc) => void;
-    /** The tab to open on, when a format shortcut opened the modal. */
-    initialTab?: DocKind;
   } = $props();
 
-  // `drop` and `choose` label the file picker; the paste tab shows a text box instead.
+  // Two ways in: a file of any kind Narrator reads (the kind is read from the file), or text.
   const TABS = [
-    {
-      id: "pdf",
-      label: "PDF",
-      icon: FileText,
-      hint: m.narrator_add_hint_pdf(),
-      drop: m.narrator_add_drop_pdf(),
-      choose: m.narrator_add_choose_pdf(),
-    },
-    {
-      id: "epub",
-      label: "EPUB",
-      icon: BookOpen,
-      hint: m.narrator_add_hint_epub(),
-      drop: m.narrator_add_drop_epub(),
-      choose: m.narrator_add_choose_epub(),
-    },
-    {
-      id: "txt",
-      label: m.narrator_add_tab_txt(),
-      icon: Type,
-      hint: m.narrator_add_hint_txt(),
-      drop: m.narrator_add_drop_txt(),
-      choose: m.narrator_add_choose_txt(),
-    },
-    {
-      id: "paste",
-      label: m.narrator_kind_paste(),
-      icon: Quote,
-      hint: "",
-      drop: m.narrator_add_drop_txt(),
-      choose: m.narrator_add_choose_txt(),
-    },
+    { id: "file", label: m.narrator_add_tab_file(), icon: FileText },
+    { id: "paste", label: m.narrator_add_tab_paste(), icon: Quote },
   ] as const;
+
+  // What each kind of file gives, behind "What works".
+  const NOTES = [
+    { kind: "PDF", note: m.narrator_add_hint_pdf() },
+    { kind: "EPUB", note: m.narrator_add_hint_epub() },
+    { kind: m.narrator_add_tab_txt(), note: m.narrator_add_hint_txt() },
+  ];
 
   const STAGES: { k: ExtractStage; label: string }[] = [
     { k: "read", label: m.narrator_add_stage_read() },
@@ -83,23 +56,27 @@
     { k: "narration", label: m.narrator_add_stage_narration() },
   ];
 
-  // Whatever the tab, the picker and the drop area take every kind Narrator reads.
   const ACCEPT_ALL = Object.values(ACCEPT_BY_KIND).join(",");
 
-  let tab = $state<DocKind>(untrack(() => initialTab));
+  let tab = $state<(typeof TABS)[number]["id"]>("file");
   let voice = $state<string | undefined>(undefined);
   let choosingVoice = $state(false);
   let previewing = $state(false);
   let text = $state("");
+  let title = $state("");
+  let pasteBlocked = $state(false);
   let drag = $state(false);
   let busy = $state(false);
   let stageIndex = $state(0);
+  /** Where the reader is inside the step, when it says: page 12 of 240. */
+  let pages = $state<{ page: number; pages: number } | null>(null);
   let fileName = $state("");
-  let failure = $state<{ name: string; message: string } | null>(null);
+  /** `paste` is false when pasting the text would not help either (a scan has no text to copy). */
+  let failure = $state<{ name: string; message: string; paste: boolean } | null>(null);
   let fileInput = $state<HTMLInputElement | null>(null);
+  let textArea = $state<HTMLTextAreaElement | null>(null);
   let overlay = $state<HTMLDivElement | null>(null);
 
-  const activeTab = $derived(TABS.find((t) => t.id === tab) ?? TABS[0]);
   const voiceChoices = $derived(voiceCatalog.shortList(5));
   const selectedVoice = $derived(voice ?? voiceCatalog.defaultName);
   // Some devices put "Premium" or "Enhanced" in a voice's name. It reads like a paid tier, so
@@ -110,34 +87,74 @@
     ),
   );
 
-  // Reading a file cannot be stopped half way, so Cancel (and closing) drops its result:
-  // each read carries the number it started with and is ignored once that has moved on.
+  const step = $derived(Math.min(stageIndex + 1, STAGES.length));
+  // The bar moves with the steps, and inside a step with the pages when the reader counts them.
+  // A step under way counts as half done, so the bar is never empty while work goes on.
+  const done = $derived(
+    Math.min(STAGES.length, stageIndex + (pages ? pages.page / pages.pages : 0.5)) / STAGES.length,
+  );
+
+  const pastedWords = $derived(text.trim() ? text.trim().split(/\s+/).length : 0);
+  // The title pasted text gets when none is typed: the first sentence, cut short.
+  // ponytail: follows extractPaste's rule by hand. Export that rule from the extractor if the
+  // two ever drift.
+  const firstWords = $derived(text.trim().split(/[.!?\n]/)[0].slice(0, 48).trim());
+
+  const canReadClipboard = typeof navigator !== "undefined" && !!navigator.clipboard?.readText;
+
+  // Reading a file cannot be stopped half way, so Cancel drops its result: each read carries
+  // the number it started with and is ignored once that has moved on.
   let run = 0;
+
+  function pick() {
+    fileInput?.click();
+  }
 
   async function handleFile(file: File) {
     if (busy) return;
+    tab = "file";
     const kind = kindForFile(file);
     if (!kind) {
-      failure = { name: file.name, message: m.narrator_add_unsupported() };
+      failure = { name: file.name, message: m.narrator_add_unsupported(), paste: true };
       return;
     }
-    tab = kind;
+    // A file named .pdf that holds something else: say that, not "it may be damaged".
+    if (kind === "pdf" && !(await file.slice(0, 1024).text()).includes("%PDF-")) {
+      failure = { name: file.name, message: m.narrator_add_not_pdf(), paste: true };
+      return;
+    }
     failure = null;
     busy = true;
     fileName = file.name;
     stageIndex = 0;
+    pages = null;
     const mine = ++run;
     try {
-      const doc = await extractFile(file, selectedVoice ?? "", (stage) => {
-        if (mine === run) stageIndex = STAGES.findIndex((s) => s.k === stage);
-      });
+      const doc = await extractFile(
+        file,
+        selectedVoice ?? "",
+        // The second argument comes from an extractor that counts its pages (PDF does).
+        (stage: ExtractStage, at?: { page: number; pages: number }) => {
+          if (mine !== run) return;
+          stageIndex = STAGES.findIndex((s) => s.k === stage);
+          pages = at && at.pages > 0 ? at : null;
+        },
+      );
       if (mine !== run) return;
       stageIndex = STAGES.length; // every step done
+      pages = null;
       setTimeout(() => mine === run && oncreate(doc), 350);
     } catch (e) {
       if (mine !== run) return;
       busy = false;
-      failure = { name: file.name, message: e instanceof Error ? e.message : m.narrator_add_read_failed() };
+      // An extractor may tag its error with a code. A scan or a locked PDF has no text to copy,
+      // so pasting is not offered for those.
+      const code = (e as { code?: string } | null)?.code;
+      failure = {
+        name: file.name,
+        message: e instanceof Error ? e.message : m.narrator_add_read_failed(),
+        paste: code !== "pdf-no-text" && code !== "pdf-locked",
+      };
     }
   }
 
@@ -148,7 +165,21 @@
 
   function startPaste() {
     const doc = extractPaste(text, selectedVoice ?? "");
-    if (doc) oncreate(doc);
+    if (!doc) return;
+    if (title.trim()) doc.title = title.trim();
+    oncreate(doc);
+  }
+
+  async function pasteClipboard() {
+    try {
+      const clip = await navigator.clipboard.readText();
+      if (clip.trim()) text = text.trim() ? `${text.trimEnd()}\n\n${clip}` : clip;
+      pasteBlocked = false;
+    } catch {
+      // The browser said no (or the listener did). The keyboard still works: say so.
+      pasteBlocked = true;
+    }
+    textArea?.focus();
   }
 
   let spoken: SpeechSynthesisUtterance | null = null;
@@ -181,10 +212,11 @@
   });
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && onclose()} />
+<!-- While a file is read there is one way out, Cancel, and Escape is that. -->
+<svelte:window onkeydown={(e) => e.key === "Escape" && (busy ? cancel() : onclose())} />
 
-<!-- A press on the dimmed page around the sheet closes it. Focus starts on the dialog, so Tab
-     and Escape work from inside it. -->
+<!-- A press on the dimmed page around the sheet closes it (not while a file is read). Focus
+     starts on the dialog, so Tab and Escape work from inside it. -->
 <div
   bind:this={overlay}
   class="overlay"
@@ -192,21 +224,19 @@
   tabindex="-1"
   aria-modal="true"
   aria-label={m.narrator_add_dialog()}
-  onpointerdown={(e) => e.target === e.currentTarget && onclose()}
+  onpointerdown={(e) => e.target === e.currentTarget && !busy && onclose()}
 >
-  <div class="sheet">
+  <div class="sheet" class:tall={tab === "paste" && !busy}>
     <div class="glow"></div>
     <div class="grip"></div>
     <div class="head">
-      <!-- Nothing to go back to on the first step: the arrow comes with the second. -->
-      {#if busy}
-        <button class="icon-btn" onclick={cancel} aria-label={m.narrator_back()}><ArrowLeft size={18} strokeWidth={1.5} /></button>
-      {/if}
       <div class="head-text">
         <h2>{m.narrator_add_dialog()}</h2>
         <p>{m.narrator_add_subtitle()}</p>
       </div>
-      <button class="icon-btn close" onclick={onclose} aria-label={m.narrator_close()}><X size={18} strokeWidth={1.5} /></button>
+      {#if !busy}
+        <button class="icon-btn close" onclick={onclose} aria-label={m.narrator_close()}><X size={18} strokeWidth={2} /></button>
+      {/if}
     </div>
 
     <input
@@ -214,7 +244,7 @@
       type="file"
       accept={ACCEPT_ALL}
       class="file-input"
-      aria-label={activeTab.choose}
+      aria-label={m.narrator_add_choose()}
       onchange={(e) => {
         const file = e.currentTarget.files?.[0];
         if (file) void handleFile(file);
@@ -225,19 +255,32 @@
     {#if busy}
       <div class="scroll pipe">
         <div class="pipe-spinner">
-          <Equalizer color="var(--n-brand-blue)" size={40} />
+          <Equalizer color="var(--n-brand-blue)" size={32} />
           <div class="spin-ring"></div>
         </div>
         <h3>{m.narrator_add_building()}</h3>
         <p class="pipe-sub">{fileName}</p>
-        <div class="pipe-bar" aria-hidden="true">
-          <div style:width="{(Math.min(stageIndex, STAGES.length) / STAGES.length) * 100}%"></div>
+        <div
+          class="pipe-bar"
+          role="progressbar"
+          aria-label={m.narrator_add_building()}
+          aria-valuemin="0"
+          aria-valuemax={STAGES.length}
+          aria-valuenow={step}
+        >
+          <div style:width="{done * 100}%"></div>
         </div>
-        <p class="sr-only" role="status">{STAGES[stageIndex]?.label ?? ""}</p>
-        <div class="steps">
-          {#each STAGES as step, i (step.k)}
+        <p class="pipe-count" role="status">
+          <span>{m.narrator_add_step({ step, total: STAGES.length })}</span>
+          {#if pages}
+            <span>{m.narrator_add_page({ page: formatNumber(pages.page), pages: formatNumber(pages.pages) })}</span>
+          {/if}
+          <span class="sr-only">{STAGES[stageIndex]?.label ?? ""}</span>
+        </p>
+        <ol class="steps">
+          {#each STAGES as stage, i (stage.k)}
             {@const state = i < stageIndex ? "done" : i === stageIndex ? "active" : "pending"}
-            <div class="step {state}">
+            <li class="step {state}" aria-current={state === "active" ? "step" : undefined}>
               <div class="dot {state}">
                 {#if state === "done"}
                   <Check size={13} strokeWidth={2.5} style="color: #04240f" />
@@ -245,10 +288,10 @@
                   <div class="pulse"></div>
                 {/if}
               </div>
-              <div class="step-label">{step.label}</div>
-            </div>
+              <div class="step-label">{stage.label}</div>
+            </li>
           {/each}
-        </div>
+        </ol>
       </div>
       <div class="foot">
         <Btn class="wide" onclick={cancel}>{m.narrator_cancel()}</Btn>
@@ -267,53 +310,65 @@
                 failure = null;
               }}
             >
-              <t.icon size={16} strokeWidth={1.5} />
+              <t.icon size={16} strokeWidth={1.75} />
               {t.label}
             </button>
           {/each}
         </div>
 
-        {#if failure}
-          <Notice
-            tone="error"
-            class="add-error"
-            title={m.narrator_add_error_title({ name: failure.name })}
-            actions={[
-              { label: m.narrator_add_choose_another(), onclick: () => fileInput?.click(), primary: true },
-              {
-                label: m.narrator_add_paste_instead(),
-                onclick: () => {
-                  tab = "paste";
-                  failure = null;
-                },
-              },
-            ]}
-          >
-            {failure.message}
-          </Notice>
-        {/if}
-
         {#if tab === "paste"}
-          <textarea
-            bind:value={text}
-            placeholder={m.narrator_add_paste_placeholder()}
-            aria-label={m.narrator_add_paste_label()}
-          ></textarea>
+          <div class="paste">
+            <div class="field-head">
+              <label for="n-paste-text">{m.narrator_add_paste_text()}</label>
+              {#if canReadClipboard}
+                <button class="quiet-btn" onclick={pasteClipboard}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="8" y="2" width="8" height="4" rx="1" />
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  </svg>
+                  {m.narrator_add_paste_clipboard()}
+                </button>
+              {/if}
+            </div>
+            <textarea
+              id="n-paste-text"
+              bind:this={textArea}
+              bind:value={text}
+              placeholder={m.narrator_add_paste_placeholder()}
+              aria-label={m.narrator_add_paste_label()}
+              aria-describedby="n-paste-count"
+            ></textarea>
+            <p class="field-note" id="n-paste-count" role="status">
+              {#if pasteBlocked}
+                {m.narrator_add_paste_blocked()}
+              {:else if pastedWords}
+                {m.narrator_add_paste_count({
+                  words: m.narrator_library_words({ count: pastedWords, shown: formatNumber(pastedWords) }),
+                  time: fmtLong(pastedWords * MS_PER_WORD),
+                })}
+              {:else}
+                {m.narrator_add_paste_count_empty()}
+              {/if}
+            </p>
+            <div class="field-head">
+              <label for="n-paste-title">{m.narrator_add_paste_title()}</label>
+              <span class="field-opt">{m.narrator_add_optional()}</span>
+            </div>
+            <input
+              id="n-paste-title"
+              class="title-input"
+              type="text"
+              bind:value={title}
+              maxlength="120"
+              placeholder={firstWords || m.narrator_add_paste_title_hint()}
+            />
+          </div>
         {:else}
+          <!-- One area takes every kind of file, dropped or chosen. An error takes its place, so
+               the sheet does not grow and one main action is left. -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
-            class="drop"
-            class:drag
-            role="button"
-            tabindex="0"
-            aria-label={activeTab.choose}
-            onclick={() => fileInput?.click()}
-            onkeydown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                fileInput?.click();
-              }
-            }}
+            class="zone"
             ondragover={(e) => {
               e.preventDefault();
               drag = true;
@@ -326,87 +381,128 @@
               if (file) void handleFile(file);
             }}
           >
-            <div class="drop-icon"><activeTab.icon size={28} strokeWidth={1.5} /></div>
-            <div class="drop-text">
-              <!-- Dropping is for a mouse. A phone gets the button at the foot of the sheet. -->
-              <div class="drop-mouse">
-                <div class="drop-title">{activeTab.drop}</div>
-                <div class="drop-sub">{m.narrator_add_drop_or()} <span>{m.narrator_add_browse()}</span></div>
-              </div>
-              <div class="drop-hint">{activeTab.hint}</div>
-            </div>
-          </div>
-        {/if}
-
-        <div class="voice">
-          <div class="voice-row">
-            <Mic size={18} strokeWidth={1.5} style="color: var(--n-brand-blue); flex-shrink: 0" />
-            <div class="voice-text">
-              <span class="voice-label">{m.narrator_narrator_voice()}</span>
-              <span class="voice-name">{selectedVoice ?? m.narrator_add_system_default()}</span>
-            </div>
-            {#if speechAvailable()}
-              <button
-                class="icon-btn"
-                aria-pressed={previewing}
-                aria-label={previewing
-                  ? m.narrator_add_voice_stop()
-                  : m.narrator_add_voice_preview({ voice: selectedVoice ?? m.narrator_add_system_default() })}
-                title={previewing
-                  ? m.narrator_add_voice_stop()
-                  : m.narrator_add_voice_preview({ voice: selectedVoice ?? m.narrator_add_system_default() })}
-                onclick={preview}
+            {#if failure && !drag}
+              <Notice
+                tone="error"
+                class="add-error"
+                title={m.narrator_add_error_title({ name: failure.name })}
+                actions={[
+                  { label: m.narrator_add_choose_another(), onclick: pick, primary: true },
+                  ...(failure.paste
+                    ? [
+                        {
+                          label: m.narrator_add_paste_instead(),
+                          onclick: () => {
+                            tab = "paste";
+                            failure = null;
+                          },
+                        },
+                      ]
+                    : []),
+                ]}
               >
-                {#if previewing}
-                  <Pause size={16} strokeWidth={1.5} />
-                {:else}
-                  <Play size={16} strokeWidth={1.5} />
-                {/if}
-              </button>
-            {/if}
-            {#if voiceChoices.length > 1}
-              <button class="change" aria-expanded={choosingVoice} onclick={() => (choosingVoice = !choosingVoice)}>
-                {m.narrator_add_voice_change()}
-              </button>
-            {/if}
-          </div>
-          {#if choosingVoice}
-            <div class="voice-chips" role="radiogroup" aria-label={m.narrator_narrator_voice()}>
-              {#each voiceChoices as v (v.voiceURI)}
-                <button
-                  class="voice-chip"
-                  class:active={selectedVoice === v.name}
-                  role="radio"
-                  aria-checked={selectedVoice === v.name}
-                  onclick={() => {
-                    if (previewing) stopPreview();
-                    voice = v.name;
+                {failure.message}
+              </Notice>
+            {:else}
+              <!-- The whole area opens the picker, a convenience; the button inside is the
+                   control a keyboard and a screen reader use. -->
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <div class="drop" class:drag onclick={pick}>
+                <div class="drop-icon"><Upload size={28} strokeWidth={1.75} /></div>
+                <div class="drop-title" class:live={drag}>
+                  {drag ? m.narrator_add_release() : m.narrator_add_drop()}
+                </div>
+                <Btn
+                  variant="primary"
+                  class="choose-btn"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    pick();
                   }}
                 >
-                  {#if selectedVoice === v.name}
-                    <Check size={14} strokeWidth={2.5} />
+                  <FileText size={18} strokeWidth={1.75} /> {m.narrator_add_choose()}
+                </Btn>
+                <div class="drop-kinds">{m.narrator_add_kinds()}</div>
+              </div>
+            {/if}
+          </div>
+          {#if !failure}
+            <details class="works">
+              <summary>
+                <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m9 6 6 6-6 6" />
+                </svg>
+                {m.narrator_add_what_works()}
+              </summary>
+              <dl>
+                {#each NOTES as n (n.kind)}
+                  <div>
+                    <dt>{n.kind}</dt>
+                    <dd>{n.note}</dd>
+                  </div>
+                {/each}
+              </dl>
+            </details>
+          {/if}
+        {/if}
+
+        {#if !failure}
+          <div class="voice">
+            <div class="voice-row">
+              <Mic size={18} strokeWidth={1.75} style="color: var(--n-fg-1); flex-shrink: 0" />
+              <div class="voice-text">
+                <span class="voice-label">{m.narrator_narrator_voice()}</span>
+                <span class="voice-name">{selectedVoice ?? m.narrator_add_system_default()}</span>
+              </div>
+              {#if speechAvailable()}
+                <button class="quiet-btn" aria-pressed={previewing} onclick={preview}>
+                  {#if previewing}
+                    <Pause size={16} strokeWidth={1.75} /> {m.narrator_add_preview_stop()}
+                  {:else}
+                    <Play size={16} strokeWidth={1.75} /> {m.narrator_add_preview()}
                   {/if}
-                  {v.name}
                 </button>
-              {/each}
+              {/if}
+              {#if voiceChoices.length > 1}
+                <button class="quiet-btn" aria-expanded={choosingVoice} onclick={() => (choosingVoice = !choosingVoice)}>
+                  {m.narrator_add_voice_change()}
+                </button>
+              {/if}
             </div>
-          {/if}
-          {#if devicePremium}
-            <p class="voice-note">{m.narrator_add_premium_note()}</p>
-          {/if}
-        </div>
-      </div>
-      <div class="foot">
-        {#if tab === "paste"}
-          <Btn variant="primary" class="wide" disabled={!text.trim()} onclick={startPaste}>
-            <Sparkles size={16} strokeWidth={1.5} /> {m.narrator_add_narrate()}
-          </Btn>
-        {:else}
-          <Btn variant="primary" class="wide choose-btn" onclick={() => fileInput?.click()}>
-            <activeTab.icon size={18} strokeWidth={1.5} /> {activeTab.choose}
-          </Btn>
+            {#if choosingVoice}
+              <div class="voice-chips" role="radiogroup" aria-label={m.narrator_narrator_voice()}>
+                {#each voiceChoices as v (v.voiceURI)}
+                  <button
+                    class="voice-chip"
+                    class:active={selectedVoice === v.name}
+                    role="radio"
+                    aria-checked={selectedVoice === v.name}
+                    onclick={() => {
+                      if (previewing) stopPreview();
+                      voice = v.name;
+                    }}
+                  >
+                    {#if selectedVoice === v.name}
+                      <Check size={14} strokeWidth={2.5} />
+                    {/if}
+                    {v.name}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+            {#if devicePremium}
+              <p class="voice-note">{m.narrator_add_premium_note()}</p>
+            {/if}
+          </div>
         {/if}
       </div>
+      {#if tab === "paste"}
+        <div class="foot">
+          <Btn variant="primary" class="wide" disabled={!text.trim()} onclick={startPaste}>
+            <Sparkles size={16} strokeWidth={1.75} /> {m.narrator_add_narrate()}
+          </Btn>
+        </div>
+      {/if}
     {/if}
   </div>
 </div>
@@ -457,7 +553,9 @@
     display: flex;
     align-items: flex-start;
     gap: 14px;
-    padding: 28px 28px 24px;
+    padding: 24px 28px 20px;
+    /* The close button's height, so the head keeps its size while a file is read. */
+    min-height: 88px;
   }
   .head-text {
     min-width: 0;
@@ -472,7 +570,7 @@
   }
   .head p {
     margin: 2px 0 0;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
     font-size: 14px;
   }
   .icon-btn {
@@ -483,21 +581,21 @@
     place-items: center;
     flex-shrink: 0;
     background: var(--n-bg-2);
-    border: 1px solid var(--n-border-1);
-    color: var(--n-fg-1);
+    border: 1px solid var(--n-border-2);
+    color: var(--n-fg-0);
     cursor: pointer;
   }
   .icon-btn:hover {
-    color: var(--n-fg-0);
-    border-color: var(--n-border-2);
+    border-color: var(--n-border-3);
+    background: var(--n-bg-3);
   }
   .icon-btn.close {
     margin-left: auto;
   }
   .icon-btn:focus-visible,
   .tab:focus-visible,
-  .drop:focus-visible,
-  .change:focus-visible,
+  .quiet-btn:focus-visible,
+  .works summary:focus-visible,
   .voice-chip:focus-visible {
     outline: 2px solid var(--n-fg-0);
     outline-offset: 2px;
@@ -510,7 +608,13 @@
     overflow-x: hidden;
   }
   .body {
-    padding: 0 28px;
+    display: flex;
+    flex-direction: column;
+    padding: 0 28px 28px;
+  }
+  /* With a button under it, the body gives its bottom room to the foot. */
+  .body:not(:last-child) {
+    padding-bottom: 0;
   }
   .foot {
     position: relative;
@@ -519,13 +623,7 @@
   .foot :global(.wide) {
     width: 100%;
     min-height: 48px;
-  }
-  /* With a mouse the drop area is the way in, so the button at the foot is for touch only. */
-  .foot :global(.choose-btn) {
-    display: none;
-  }
-  .foot:has(:global(.choose-btn)) {
-    padding-top: 8px;
+    font-size: 15px;
   }
   .tabs {
     display: flex;
@@ -533,15 +631,16 @@
     padding: 4px;
     background: var(--n-bg-0);
     border-radius: 12px;
-    margin-bottom: 20px;
-    border: 1px solid var(--n-border-1);
+    margin-bottom: 16px;
+    border: 1px solid var(--n-border-2);
+    flex-shrink: 0;
   }
   .tab {
     flex: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: 8px;
     min-height: 44px;
     padding: 0 8px;
     border-radius: 9px;
@@ -549,38 +648,53 @@
     background: transparent;
     color: var(--n-fg-1);
     font-family: var(--n-font-sans);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
     transition: all 200ms var(--n-ease-out);
   }
-  .tab.active {
-    background: rgba(18, 145, 250, 0.16);
+  .tab:hover {
     color: var(--n-fg-0);
-    box-shadow: inset 0 0 0 1px rgba(18, 145, 250, 0.5);
+  }
+  .tab.active {
+    background: rgba(18, 145, 250, 0.18);
+    color: var(--n-fg-0);
+    box-shadow: inset 0 0 0 1.5px rgba(18, 145, 250, 0.7);
   }
   .file-input {
     display: none;
   }
-  .body :global(.add-error) {
-    margin-bottom: 16px;
+  .zone {
+    display: flex;
+    flex-direction: column;
   }
   .drop {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 36px 24px;
+    justify-content: center;
+    gap: 10px;
+    /* A height of its own, so "Release to add" does not move the sheet. */
+    min-height: 238px;
+    padding: 28px 24px 24px;
     border: 1.5px dashed var(--n-border-3);
     border-radius: 16px;
     cursor: pointer;
     text-align: center;
-    transition: all 200ms var(--n-ease-out);
+    transition:
+      border-color 200ms var(--n-ease-out),
+      background 200ms var(--n-ease-out);
     background: var(--n-bg-1);
   }
+  .drop:hover {
+    border-color: var(--n-fg-2);
+  }
+  /* A file over the area: a solid blue edge, a tint, a larger icon and "Release to add". */
   .drop.drag {
+    border-style: solid;
     border-color: var(--n-brand-blue);
-    background: rgba(18, 145, 250, 0.08);
+    background: rgba(18, 145, 250, 0.12);
   }
   .drop-icon {
     width: 60px;
@@ -590,7 +704,12 @@
     display: grid;
     place-items: center;
     background: var(--n-brand-gradient);
-    color: #fff;
+    color: var(--n-on-accent, #fff);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    transition: transform 200ms var(--n-ease-out);
+  }
+  .drop.drag .drop-icon {
+    transform: scale(1.18) translateY(-2px);
     box-shadow:
       var(--n-brand-glow),
       inset 0 0 0 1px rgba(255, 255, 255, 0.12);
@@ -598,79 +717,145 @@
   .drop-title {
     font-weight: 700;
     font-size: 17px;
+    color: var(--n-fg-0);
   }
-  .drop-sub {
+  .drop :global(.choose-btn) {
+    min-height: 48px;
+    min-width: 220px;
+    font-size: 15px;
+  }
+  .drop.drag :global(.choose-btn) {
+    display: none;
+  }
+  .drop.drag .drop-title {
+    font-size: 20px;
+    margin-top: 6px;
+  }
+  .drop-kinds {
+    font-size: 14px;
+    line-height: 1.45;
     color: var(--n-fg-1);
-    font-size: 14px;
-  }
-  .drop-sub span {
-    color: var(--n-link);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-  .drop-hint {
-    font-size: 14px;
-    line-height: 1.5;
-    color: var(--n-fg-2);
-    margin-top: 8px;
     max-width: 400px;
+  }
+  /* What each kind of file gives, for whoever wants it. */
+  .works {
+    margin-top: 6px;
+  }
+  .works summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 6px 0 2px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--n-link);
+    cursor: pointer;
+    list-style: none;
+  }
+  .works summary::-webkit-details-marker {
+    display: none;
+  }
+  .works[open] .chev {
+    transform: rotate(90deg);
+  }
+  .works dl {
+    margin: 0;
+    padding: 2px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .works dl div {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .works dt {
+    font-weight: 700;
+    color: var(--n-fg-0);
+  }
+  .works dd {
+    margin: 0;
+    color: var(--n-fg-1);
+  }
+  .paste {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .field-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+  }
+  .field-head label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--n-fg-0);
+  }
+  .field-opt {
+    font-size: 13.5px;
+    color: var(--n-fg-2);
+  }
+  .field-note {
+    margin: 6px 0 4px;
+    min-height: 20px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--n-fg-1);
+    font-variant-numeric: tabular-nums;
   }
   textarea {
     display: block;
     width: 100%;
-    min-height: 168px;
+    flex: 1 0 150px;
     resize: vertical;
-    padding: 16px;
+    padding: 14px 16px;
     border-radius: 12px;
     background: var(--n-bg-0);
-    border: 1px solid var(--n-border-2);
+    border: 1px solid var(--n-border-3);
     color: var(--n-fg-0);
     font-family: var(--n-font-serif);
     font-size: 16px;
     line-height: 1.6;
     outline: none;
   }
-  textarea:focus {
-    border-color: var(--n-brand-blue);
-  }
-  textarea::placeholder {
-    color: var(--n-fg-2);
-  }
-  .voice {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .voice-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 8px 8px 14px;
-    border-radius: 12px;
+  .title-input {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 10px;
     background: var(--n-bg-0);
-    border: 1px solid var(--n-border-1);
-  }
-  .voice-text {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    line-height: 1.3;
-  }
-  .voice-label {
-    color: var(--n-fg-2);
-    font-size: 13px;
-  }
-  .voice-name {
+    border: 1px solid var(--n-border-3);
     color: var(--n-fg-0);
+    font-family: var(--n-font-sans);
     font-size: 15px;
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    outline: none;
   }
-  .change {
+  /* The site's forms plugin rings a focused input in its own colour. One blue edge here. */
+  textarea:focus,
+  .title-input:focus {
+    border-color: var(--n-brand-blue);
+    box-shadow: 0 0 0 1px var(--n-brand-blue);
+  }
+  textarea::placeholder,
+  .title-input::placeholder {
+    color: var(--n-fg-2);
+  }
+  /* A small button with a word on it: Paste, Preview, Change. */
+  .quiet-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
     min-height: 44px;
     padding: 0 14px;
     border-radius: 10px;
@@ -679,8 +864,55 @@
     color: var(--n-fg-0);
     font-size: 14px;
     font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
     flex-shrink: 0;
+  }
+  .quiet-btn:hover {
+    background: var(--n-bg-3);
+    border-color: var(--n-border-3);
+  }
+  .quiet-btn[aria-pressed="true"] {
+    border-color: var(--n-brand-blue);
+    background: rgba(18, 145, 250, 0.16);
+  }
+  .voice {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .voice-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px 8px 14px;
+    border-radius: 12px;
+    background: var(--n-bg-0);
+    border: 1px solid var(--n-border-2);
+  }
+  /* One line: what it is, then which. */
+  .voice-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    line-height: 1.3;
+  }
+  .voice-label {
+    color: var(--n-fg-2);
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .voice-name {
+    color: var(--n-fg-0);
+    font-size: 15px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .voice-chips {
     display: flex;
@@ -710,7 +942,7 @@
   }
   .voice-note {
     margin: 0;
-    font-size: 13px;
+    font-size: 13.5px;
     line-height: 1.5;
     color: var(--n-fg-2);
   }
@@ -720,7 +952,7 @@
     align-items: center;
     text-align: center;
     /* Room above for the spinner's ring, which reaches past its box. */
-    padding: 18px 28px 4px;
+    padding: 12px 28px 4px;
   }
   .pipe h3 {
     margin: 0;
@@ -736,11 +968,10 @@
   .pipe-bar {
     width: 100%;
     max-width: 380px;
-    height: 4px;
+    height: 8px;
     border-radius: 999px;
     background: var(--n-bg-3);
     overflow: hidden;
-    margin-bottom: 12px;
   }
   .pipe-bar div {
     height: 100%;
@@ -748,17 +979,30 @@
     background: var(--n-accent-app, var(--n-brand-blue));
     transition: width 300ms var(--n-ease-out);
   }
+  .pipe-count {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 16px;
+    width: 100%;
+    max-width: 380px;
+    margin: 8px 0 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--n-fg-0);
+    font-variant-numeric: tabular-nums;
+  }
   .pipe-spinner {
     position: relative;
-    width: 64px;
-    height: 64px;
-    margin-bottom: 8px;
+    width: 52px;
+    height: 52px;
+    margin-bottom: 14px;
     display: grid;
     place-items: center;
   }
   .spin-ring {
     position: absolute;
-    inset: -10px;
+    inset: -8px;
     border-radius: 999px;
     border: 1.5px solid var(--n-border-1);
     border-top-color: var(--n-brand-blue);
@@ -767,17 +1011,19 @@
   .steps {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
     width: 100%;
     max-width: 380px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
   .step {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 9px 12px;
+    padding: 7px 12px;
     border-radius: 10px;
-    transition: all 200ms var(--n-ease-out);
     text-align: left;
   }
   .step.active {
@@ -827,34 +1073,22 @@
     white-space: nowrap;
   }
 
-  /* Touch, or a phone's width: the picker button is the way in, not dropping. */
+  /* Touch, or a phone's width: nothing is dropped there, so the area is the button's card.
+     "Release to add" still shows if something is dragged in. */
   @media (max-width: 560px), (hover: none), (pointer: coarse) {
-    .foot :global(.choose-btn) {
-      display: inline-flex;
-    }
-    .foot:has(:global(.choose-btn)) {
-      padding-top: 20px;
-    }
-    .drop-mouse {
+    .drop-title:not(.live) {
       display: none;
     }
     .drop {
-      flex-direction: row;
-      align-items: center;
-      gap: 14px;
-      padding: 14px;
-      text-align: left;
       border-style: solid;
-      border-color: var(--n-border-1);
+      border-color: var(--n-border-2);
       background: var(--n-bg-0);
+      min-height: 0;
+      padding: 22px 16px 20px;
     }
-    .drop-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-    }
-    .drop-hint {
-      margin-top: 0;
+    .drop :global(.choose-btn) {
+      width: 100%;
+      min-height: 52px;
     }
   }
   /* A phone: a sheet from the bottom edge, with the main action pinned under the thumb. */
@@ -868,6 +1102,11 @@
       border-radius: 20px 20px 0 0;
       border-bottom: none;
     }
+    /* Pasted text wants room to be read over: the sheet takes the screen. */
+    .sheet.tall {
+      height: 92vh;
+      height: 92dvh;
+    }
     .grip {
       display: block;
       width: 40px;
@@ -878,40 +1117,52 @@
       flex-shrink: 0;
     }
     .head {
-      padding: 12px 16px 16px;
+      padding: 12px 16px 14px;
+      min-height: 70px;
     }
     .head h2 {
       font-size: 20px;
     }
     .body {
-      padding: 0 16px;
+      padding: 0 16px max(20px, env(safe-area-inset-bottom));
     }
     .pipe {
-      padding: 16px 16px 4px;
+      padding: 12px 16px 4px;
     }
     .foot {
       padding: 14px 16px max(16px, env(safe-area-inset-bottom));
       border-top: 1px solid var(--n-border-1);
     }
-    .foot:has(:global(.choose-btn)) {
-      padding-top: 14px;
+    .body:not(:last-child) {
+      padding-bottom: 14px;
     }
-    .tabs {
-      margin-bottom: 16px;
+    /* The words over the name, and the two buttons keep their size. */
+    .voice-row {
+      padding-left: 12px;
     }
-    /* Four tabs with icons do not fit a phone: the labels alone, each on one line. */
-    .tab {
-      flex: 1 1 auto;
-      white-space: nowrap;
-    }
-    .tab :global(svg) {
+    .voice-row > :global(svg) {
       display: none;
     }
-    textarea {
-      min-height: 150px;
+    .voice-text {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
     }
-    .voice {
-      margin: 16px 0;
+    .voice-label {
+      font-size: 13px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tab,
+    .drop,
+    .drop-icon,
+    .voice-chip,
+    .pipe-bar div {
+      transition: none;
+    }
+    .spin-ring,
+    .pulse {
+      animation: none;
     }
   }
 </style>

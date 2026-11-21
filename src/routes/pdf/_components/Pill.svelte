@@ -19,9 +19,10 @@
     gap: 6px;
     padding: 4px 10px;
     border-radius: 999px;
-    font-size: 12px;
-    font-family: var(--n-font-mono);
-    letter-spacing: 0.02em;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    font-family: var(--n-font-sans);
     background: var(--n-bg-2);
     border: 1px solid var(--n-border-1);
     white-space: nowrap;

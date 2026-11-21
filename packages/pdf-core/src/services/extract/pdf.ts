@@ -27,7 +27,7 @@ export async function extractPdf(file: File, progress: ExtractProgress): Promise
   const doc = await pdfjs.getDocument({ data }).promise.catch((e: unknown) => {
     // A locked PDF has its own way out; any other failure gets extractFile's plain message.
     if (e instanceof Error && e.name === "PasswordException") {
-      throw new ExtractError(m.narrator_extract_pdf_locked());
+      throw new ExtractError(m.narrator_extract_pdf_locked(), "pdf-locked");
     }
     throw e;
   });
@@ -35,6 +35,7 @@ export async function extractPdf(file: File, progress: ExtractProgress): Promise
   progress("extract");
   const pageTexts: string[] = [];
   for (let i = 1; i <= doc.numPages; i++) {
+    progress("extract", { page: i, pages: doc.numPages });
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
     pageTexts.push(reconstructPage(content.items.filter(isTextItem)));
@@ -55,7 +56,7 @@ export async function extractPdf(file: File, progress: ExtractProgress): Promise
     chapters.push({ id: "ch-" + (index + 1), title: range.title, paragraphs });
   }
   if (chapters.length === 0) {
-    throw new ExtractError(m.narrator_extract_pdf_no_text());
+    throw new ExtractError(m.narrator_extract_pdf_no_text(), "pdf-no-text");
   }
 
   return {

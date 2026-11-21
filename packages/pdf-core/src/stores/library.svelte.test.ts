@@ -24,6 +24,21 @@ describe("NarratorLibrary", () => {
     expect(library.inProgress?.id).toBe(second.id);
   });
 
+  it("says which sentence listening stopped in", () => {
+    const library = new NarratorLibrary();
+    const doc = library.docs[0];
+    const second = library.modelFor(doc).sentences[1];
+
+    expect(library.resumeLine(doc)).toBe("");
+    localStorage.setItem("narrate.pos." + doc.id, String(second.start + 1));
+    expect(library.resumeLine(doc)).toBe(
+      "His pale grey eyes shone and twinkled, and his usually pale face was flushed and animated.",
+    );
+    // Past the end, the last sentence.
+    localStorage.setItem("narrate.pos." + doc.id, String(library.modelFor(doc).total + 5000));
+    expect(library.resumeLine(doc)).toMatch(/\.$/);
+  });
+
   it("puts a removed document back in its place with its progress", () => {
     const library = new NarratorLibrary();
     const second = library.docs[1];
