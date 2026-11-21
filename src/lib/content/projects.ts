@@ -3,6 +3,9 @@ import AudioLines from "@lucide/svelte/icons/audio-lines";
 import ListMusic from "@lucide/svelte/icons/list-music";
 import CircuitBoard from "@lucide/svelte/icons/circuit-board";
 import { MARKERS } from "#lib/circuit/router.ts";
+import woodshedCover from "#lib/images/projects/woodshed.webp";
+import narratorCover from "#lib/images/projects/narrator.webp";
+import siteCover from "#lib/images/projects/this-website.webp";
 import { m } from "@repo/i18n/messages.js";
 
 export type Project = {
@@ -22,6 +25,11 @@ export type Project = {
   icon: typeof Piano;
   /** Trace colours for the cover art. */
   colors: string[];
+  /**
+   * A square screenshot of the project (about 720px, in src/lib/images/projects/).
+   * Without one the cover is generated circuit art.
+   */
+  cover?: string;
   /** The year it started (its first commit), used to find what's newest. */
   year?: number;
 };
@@ -41,6 +49,7 @@ export const projects: Project[] = [
     stack: ["Svelte 5", "Web Audio", "Web MIDI", "Tone.js", "IndexedDB"],
     icon: Piano,
     colors: [MARKERS.yellow, MARKERS.red, MARKERS.green, MARKERS.violet],
+    cover: woodshedCover,
     year: 2026,
   },
   {
@@ -57,6 +66,7 @@ export const projects: Project[] = [
     stack: ["PDF.js", "Kokoro TTS", "WebGPU", "Svelte 5"],
     icon: AudioLines,
     colors: ["#1291fa", "#a21fb8", "#ff0c0d", MARKERS.blue],
+    cover: narratorCover,
     year: 2026,
   },
   {
@@ -91,5 +101,6 @@ export const projects: Project[] = [
     stack: ["SvelteKit", "Tailwind CSS", "PostgreSQL", "Nix"],
     icon: CircuitBoard,
     colors: ["#2bc4ff", "#c531f2", "#ff1f2a", "#ff6fa6"],
+    cover: siteCover,
   },
 ];

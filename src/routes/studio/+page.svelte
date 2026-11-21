@@ -4,15 +4,16 @@
   import LayoutGrid from "@lucide/svelte/icons/layout-grid";
   import Shapes from "@lucide/svelte/icons/shapes";
   import * as ToggleGroup from "@repo/ui/toggle-group";
+  import { Button } from "@repo/ui/button";
   import { Empty } from "@repo/ui/empty";
   import StudioDoors from "#lib/components/site/StudioDoors.svelte";
   import StudioTile from "#lib/components/site/StudioTile.svelte";
   import StudioViewer from "#lib/components/site/StudioViewer.svelte";
   import {
     STUDIO,
-    STUDIO_KINDS,
     everything,
     kindInfo,
+    kindsByWork,
     type StudioItem,
   } from "#lib/content/studio.ts";
   import { m } from "@repo/i18n/messages.js";
@@ -20,6 +21,9 @@
   let { data } = $props();
 
   const all = everything();
+  // Kinds that hold work lead the row; the empty ones follow, all still there.
+  const kinds = kindsByWork();
+  const withWork = kinds.filter((info) => STUDIO[info.kind].length > 0);
 
   // Both choices live in the URL so any view can be linked to.
   const type = $derived(data.type);
@@ -84,7 +88,7 @@
 </svelte:head>
 
 <div class="gm-page studio">
-  <header class="flex flex-col gap-5">
+  <header class="hero">
     <h1 class="gm-title">{m.studio_title()}</h1>
     <p class="gm-lede">{m.studio_lede()}</p>
   </header>
@@ -103,12 +107,16 @@
         <ToggleGroup.Item value="all" class="tab">
           {m.studio_all()} <span class="count">{all.length}</span>
         </ToggleGroup.Item>
-        {#each STUDIO_KINDS as info (info.kind)}
+        {#each kinds as info (info.kind)}
           {@const count = STUDIO[info.kind].length}
-          <ToggleGroup.Item value={info.kind} class="tab">
+          <ToggleGroup.Item value={info.kind} class="tab {count ? '' : 'none'}">
             <i class="dot" style:background={info.dot} aria-hidden="true"></i>
             {info.label}
-            <span class="count" class:none={count === 0}>{count}</span>
+            {#if count}
+              <span class="count">{count}</span>
+            {:else}
+              <span class="sr-only">, {m.studio_soon()}</span>
+            {/if}
           </ToggleGroup.Item>
         {/each}
       </ToggleGroup.Root>
@@ -134,11 +142,11 @@
       class="views"
       aria-label={m.studio_layout()}
     >
-      <ToggleGroup.Item value="wall" aria-label={m.studio_wall()} title={m.studio_wall_hint()}>
-        <LayoutGrid aria-hidden="true" />
+      <ToggleGroup.Item value="wall" title={m.studio_wall_hint()}>
+        <LayoutGrid aria-hidden="true" />{m.studio_wall()}
       </ToggleGroup.Item>
-      <ToggleGroup.Item value="kinds" aria-label={m.studio_kinds()} title={m.studio_kinds_hint()}>
-        <Shapes aria-hidden="true" />
+      <ToggleGroup.Item value="kinds" title={m.studio_kinds_hint()}>
+        <Shapes aria-hidden="true" />{m.studio_kinds()}
       </ToggleGroup.Item>
     </ToggleGroup.Root>
   </div>
@@ -155,6 +163,15 @@
         {@const info = kindInfo(type)}
         <Empty title={m.studio_empty_title({ kind: info.label.toLowerCase() })} description={info.empty}>
           {#snippet icon()}<info.icon />{/snippet}
+          <!-- The way back to what is here: everything, and each kind that holds work. -->
+          <Button href="?" class="h-11">{m.studio_see_everything()}</Button>
+          {#each withWork as other (other.kind)}
+            <Button variant="outline" href="?type={other.kind}" class="h-11">
+              <i class="dot" style:background={other.dot} aria-hidden="true"></i>
+              {other.label}
+              <span class="count">{STUDIO[other.kind].length}</span>
+            </Button>
+          {/each}
         </Empty>
       {:else}
         <ul class="wall">
@@ -171,7 +188,26 @@
 
 <style>
   .studio {
-    padding-top: clamp(3rem, 8vw, 6rem);
+    padding-top: 1.5rem;
+  }
+
+  /* The title on the left, the introduction on the right, sharing a baseline
+     (like the home page's hero), so the wall starts high on the screen. */
+  .hero {
+    display: grid;
+    gap: 1rem;
+    align-items: end;
+  }
+  @media (width >= 900px) {
+    .hero {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      gap: 3rem;
+    }
+    .hero :global(.gm-lede) {
+      font-size: 1.25rem;
+      max-width: 46ch;
+      justify-self: end;
+    }
   }
 
   /* The toolbar spans the wall's width and ends in a hairline; the current
@@ -180,8 +216,20 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-top: clamp(2.5rem, 6vw, 3.5rem);
+    margin-top: 1rem;
     border-bottom: 1px solid var(--border);
+  }
+  /* On a phone the layout switch gets its own row above the kinds, so the row
+     of kinds has the whole width to scroll in. */
+  @media (width < 640px) {
+    .toolbar {
+      flex-direction: column-reverse;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+    .toolbar :global(.views) {
+      align-self: flex-end;
+    }
   }
   .kinds {
     position: relative;
@@ -241,13 +289,25 @@
     border-radius: 0.375rem 0.375rem 0 0;
     font-family: var(--font-gm-display);
     font-size: 0.975rem;
-    color: var(--muted-foreground);
     background: transparent;
+  }
+  /* Kinds that hold work read at full strength; the ones still empty are
+     quieter and carry no count. */
+  .toolbar :global(.tab) {
+    color: var(--foreground);
+    font-weight: 500;
+  }
+  .toolbar :global(.tab.none) {
+    color: var(--muted-foreground);
+    font-weight: 400;
   }
   .toolbar :global(.tab:hover),
   .toolbar :global(.tab[data-state="on"]) {
     color: var(--foreground);
     background: transparent;
+  }
+  .toolbar :global(.tab[data-state="on"]) {
+    font-weight: 650;
   }
   .toolbar :global(.tab[data-state="on"])::after {
     content: "";
@@ -260,12 +320,9 @@
     background: var(--gm-brand);
   }
   .count {
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     font-variant-numeric: tabular-nums;
     color: var(--muted-foreground);
-  }
-  .count.none {
-    opacity: 0.55;
   }
   .dot {
     width: 0.5rem;
@@ -274,10 +331,22 @@
   }
   .toolbar :global(.views) {
     flex: none;
+    margin-bottom: 0.4rem;
+  }
+  .toolbar :global(.views > *) {
+    height: 2.75rem;
+    gap: 0.4rem;
+    padding-inline: 0.8rem;
+    font-size: 0.875rem;
+  }
+  @media (width >= 640px) and (pointer: fine) {
+    .toolbar :global(.views > *) {
+      height: 2.25rem;
+    }
   }
 
   .group {
-    margin-top: 2rem;
+    margin-top: 1rem;
   }
 
   /* One even wall: every piece gets the same square, whatever it is. */
@@ -294,7 +363,18 @@
   @media (width >= 1000px) {
     .wall {
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 2rem 1.25rem;
+      gap: 1.75rem 1.25rem;
+    }
+  }
+  /* Five across on a laptop, so two rows show before the fold. */
+  @media (width >= 1180px) {
+    .wall {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 1.5rem 1.25rem;
+    }
+    /* A touch smaller, so a project's line fits the narrower tile in two rows. */
+    .wall :global(.sub) {
+      font-size: 0.8125rem;
     }
   }
 </style>

@@ -364,6 +364,16 @@ export const STUDIO: Record<StudioKind, StudioItem[]> = {
 };
 
 /**
+ * The kinds for lists that lead with work: those that hold something first, the
+ * ones still empty after, each group in its usual (alphabetical) order. Every
+ * kind is still there and drawn the same size.
+ */
+export function kindsByWork(): StudioKindInfo[] {
+  const has = (info: StudioKindInfo) => STUDIO[info.kind].length > 0;
+  return [...STUDIO_KINDS.filter(has), ...STUDIO_KINDS.filter((info) => !has(info))];
+}
+
+/**
  * Everything together, dealt out one kind at a time (a drawing, then some music,
  * then a photo, and round again) so no kind crowds out the others.
  */

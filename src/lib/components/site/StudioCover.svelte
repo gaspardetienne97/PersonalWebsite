@@ -1,14 +1,24 @@
 <!--
   The picture for one Studio piece, filling its box: the image itself, a video's
-  poster, a song's cover, or generated circuit art (with the kind's icon) for
-  anything without one. Videos and music get a play mark.
+  poster, a song's cover, a project's screenshot (with its icon on a corner
+  chip), or generated circuit art (with the kind's icon) for anything without
+  one. Videos and music get a play mark.
 -->
 <script lang="ts">
   import Play from "@lucide/svelte/icons/play";
   import CircuitArt from "./CircuitArt.svelte";
   import { kindInfo, type StudioItem } from "#lib/content/studio.ts";
 
-  let { item, size = 400 }: { item: StudioItem; size?: number } = $props();
+  let {
+    item,
+    size = 400,
+    eager = false,
+  }: {
+    item: StudioItem;
+    size?: number;
+    /** Load the picture at once instead of when it nears the screen. */
+    eager?: boolean;
+  } = $props();
 
   const media = $derived(item.media);
   const info = $derived(kindInfo(item.kind));
@@ -17,6 +27,7 @@
     if (media.type === "video")
       return media.poster ?? (media.youtubeId && `https://i.ytimg.com/vi/${media.youtubeId}/hqdefault.jpg`);
     if (media.type === "audio") return media.cover;
+    if (media.type === "project") return media.project.cover;
     return undefined;
   });
   const plays = $derived(media.type === "video" || media.type === "audio");
@@ -24,7 +35,18 @@
 
 <span class="cover" class:paper={media.type === "image"}>
   {#if picture}
-    <img src={picture} alt="" loading="lazy" decoding="async" />
+    <!-- An eager picture is also decoded at once: left to "async", a phone browser
+         puts off decoding pictures that are off screen, and a door's cells stay
+         blank until they are scrolled to. -->
+    <img
+      src={picture}
+      alt=""
+      loading={eager ? "eager" : "lazy"}
+      decoding={eager ? "sync" : "async"}
+    />
+    {#if media.type === "project"}
+      <span class="chip" aria-hidden="true"><media.project.icon size={16} /></span>
+    {/if}
   {:else if media.type === "project"}
     <CircuitArt
       seed={media.id}
@@ -54,6 +76,10 @@
   .paper {
     background: #fff;
   }
+  /* On the dark page the paper is dimmed a little so a wall of drawings doesn't glare. */
+  :global(.dark) .paper {
+    filter: brightness(0.9);
+  }
   img {
     width: 100%;
     height: 100%;
@@ -70,6 +96,20 @@
     position: absolute;
     inset: 0;
     height: 100%;
+  }
+  /* A project's icon, in the corner of its screenshot. */
+  .chip {
+    position: absolute;
+    left: 0.5rem;
+    bottom: 0.5rem;
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.5rem;
+    color: var(--foreground);
+    background: color-mix(in oklab, var(--background) 88%, transparent);
+    backdrop-filter: blur(4px);
   }
   .play {
     position: absolute;

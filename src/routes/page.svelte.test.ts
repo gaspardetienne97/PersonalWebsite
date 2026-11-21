@@ -28,19 +28,19 @@ describe("/+page.svelte", () => {
     expect(document.querySelector<HTMLAnchorElement>('a[href="/music"]')?.textContent).toContain(
       "Woodshed",
     );
-    // One door per kind, with Writing as the last.
+    // One door per kind: the kinds with work in them first, then the rest by name.
     const doors = [...document.querySelectorAll('.doors [role="heading"]')].map((h) =>
       h.textContent?.trim(),
     );
     expect(doors).toEqual([
-      "Doodles",
       "Drawings",
+      "Projects",
+      "Writing",
+      "Doodles",
       "Music",
       "Paintings",
       "Photos",
-      "Projects",
       "Videos",
-      "Writing",
     ]);
     expect(document.querySelector('a[href="/blog"]')?.textContent).toContain("Hello");
   });

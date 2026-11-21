@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
-  import { Button } from "@repo/ui/button";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import CircuitArt from "#lib/components/site/CircuitArt.svelte";
   import StudioCover from "#lib/components/site/StudioCover.svelte";
   import StudioDoors from "#lib/components/site/StudioDoors.svelte";
@@ -42,13 +42,11 @@
       <p class="gm-lede">{m.home_lede()}</p>
     </div>
     <div class="flex flex-col items-start gap-3">
-      <p class="statement">{m.home_statement()}</p>
+      <p class="statement gm-clear">{m.home_statement()}</p>
 
-      <Button
-        variant="link"
-        href={resolve('about')}
-        class="h-auto px-0"
-      >{m.home_more_about()}</Button>
+      <a class="gm-link" href={resolve('about')}>
+        {m.home_more_about()}<ArrowRight aria-hidden="true" />
+      </a>
     </div>
   </header>
 
@@ -108,7 +106,7 @@
   <section class="block" aria-labelledby="everything-heading">
     <div class="block-head">
       <h2 id="everything-heading" class="gm-h2">{m.home_everything()}</h2>
-      <Button variant="link" href={studio} class="h-auto px-0">{m.home_open_studio()}</Button>
+      <a class="gm-link" href={studio}>{m.home_open_studio()}<ArrowRight aria-hidden="true" /></a>
     </div>
     <StudioDoors
       writing={{ titles: posts.map((post) => post.title), count: data.postCount ?? posts.length }}

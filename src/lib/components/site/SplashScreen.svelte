@@ -1,9 +1,10 @@
 <!--
   The logo intro, shown full screen over the home page on a visitor's first visit
-  (and again on Ctrl+Shift+G, M, E). Clicking the logo grows a circuit board out of
-  its ring, the logo unfolds into the initials G M E and the name appears.
-  "Explore the site" (or scrolling, or Escape) lifts the intro away; the board it
-  grew stays behind the site as the background.
+  (and again on Ctrl+Shift+G, M, E). A caption under the logo says to press it.
+  Pressing it grows a circuit board out of its ring, the logo unfolds into the
+  initials G M E and the name appears. The labelled button at the foot ("Skip
+  intro", then "Explore the site"), scrolling or Escape lifts the intro away; the
+  board it grew stays behind the site as the background.
 
   The root layout mounts this on "/" only. A one-line head script hides it before
   first paint for anyone who has already seen it, so returning visitors never
@@ -12,7 +13,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import ChevronsDown from "@lucide/svelte/icons/chevrons-down";
-  import { Button } from "@repo/ui/button";
   import type { Board } from "#lib/circuit/router.ts";
   import CircuitPaths from "./CircuitPaths.svelte";
   import GmeMark from "./GmeMark.svelte";
@@ -202,6 +202,7 @@
       >
         <GmeMark {spelled} />
         <span class="hit" aria-hidden="true"></span>
+        <span class="press" aria-hidden="true">{m.intro_press()}</span>
       </button>
 
       <div class="copy">
@@ -213,16 +214,10 @@
     </div>
 
     <div class="actions">
-      <Button
-        variant="ghost"
-        size="icon"
-        class="cue size-20 rounded-full"
-        aria-label={revealed ? m.intro_explore() : m.intro_skip()}
-        title={revealed ? m.intro_explore() : m.intro_skip()}
-        onclick={dismiss}
-      >
-        <ChevronsDown class="size-11" strokeWidth={1.75} aria-hidden="true" />
-      </Button>
+      <button type="button" class="cue" onclick={dismiss}>
+        <span class="disc" aria-hidden="true"><ChevronsDown strokeWidth={1.75} /></span>
+        <span class="cue-label">{revealed ? m.intro_explore() : m.intro_skip()}</span>
+      </button>
     </div>
   </div>
 {/if}
@@ -273,7 +268,7 @@
     align-items: center;
     gap: clamp(2.5rem, 7vh, 4.5rem);
     width: 100%;
-    padding: 6rem 1rem 8rem;
+    padding: 6rem 1.25rem 8rem;
     /* One steady hand across the whole logo area, so it never switches to an
        arrow at the ring's edge or in its gaps. */
     cursor: pointer;
@@ -406,6 +401,32 @@
     }
   }
 
+  /* What to do, in words, until the logo is pressed: just under the ring, which
+     is 41.4% of the button's width across and centred in it. A press on the
+     caption counts as a press on the logo. */
+  .press {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-top: calc(22.5% + 1.6rem);
+    translate: -50% 0;
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    color: var(--foreground);
+    background: var(--background);
+    pointer-events: auto;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+  .grown .press {
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .copy {
     position: relative;
     display: grid;
@@ -416,7 +437,8 @@
   }
   .name {
     font-weight: 700;
-    font-size: clamp(2rem, 5.2vw, 3.6rem);
+    /* Small enough at 390px to leave a gutter of 20px or more on each side. */
+    font-size: clamp(1.5rem, 7.2vw, 3.6rem);
     line-height: 1;
     letter-spacing: -0.035em;
     text-wrap: balance;
@@ -444,30 +466,47 @@
 
   .actions {
     position: absolute;
-    bottom: clamp(1.5rem, 5vh, 3rem);
+    bottom: clamp(1rem, 4vh, 2.5rem);
     left: 50%;
     z-index: 2;
     translate: -50% 0;
   }
-  /* A double chevron pulsing downward: quiet while the intro plays (skip),
-     full strength once the name is up (explore). */
-  .actions :global(.cue) {
-    color: var(--muted-foreground);
+  /* The way on: a double chevron on a disc with its name under it, "Skip intro"
+     while the intro waits or plays and "Explore the site" once the name is up. */
+  .cue {
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    min-width: 2.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    color: var(--foreground);
     cursor: pointer;
-    /* Sits on its own frosted disc so the traces pass behind it, not through it. */
+    outline: none;
+  }
+  .cue:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+  .disc {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    /* Frosted, so the traces pass behind it, not through it. */
     background: color-mix(in oklab, var(--background) 82%, transparent);
     backdrop-filter: blur(4px);
-    box-shadow: 0 0 1.25rem 0.75rem color-mix(in oklab, var(--background) 70%, transparent);
-    transition: color 0.6s ease;
+    box-shadow:
+      inset 0 0 0 1px var(--border),
+      0 0 1.25rem 0.75rem color-mix(in oklab, var(--background) 70%, transparent);
   }
-  .revealed .actions :global(.cue) {
-    color: var(--foreground);
+  .cue:hover .disc {
+    background: var(--accent);
   }
   /* Once the logo is clicked the disc takes on the ripple's gradient ring. */
-  .actions :global(.cue) {
-    position: relative;
-  }
-  .actions :global(.cue)::before {
+  .disc::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -481,24 +520,30 @@
     transition: opacity 0.8s ease 0.3s;
     pointer-events: none;
   }
-  .grown .actions :global(.cue)::before {
+  .grown .disc::before {
     opacity: 1;
   }
-  /* The Button sizes every icon at 1rem; this one is the whole control. */
-  .actions :global(.cue svg) {
-    width: 4.25rem;
-    height: 4.25rem;
-    opacity: 0.55;
+  .disc :global(svg) {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .cue-label {
+    padding: 0.15rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--background);
   }
   /* Still until the logo is clicked, then it starts to beckon downward. */
-  .grown .actions :global(.cue svg) {
+  .grown .disc :global(svg) {
     animation: cue-pulse 1.8s ease-in-out infinite;
   }
   @keyframes cue-pulse {
     0%,
     100% {
       translate: 0 -3px;
-      opacity: 0.55;
+      opacity: 0.6;
     }
     50% {
       translate: 0 4px;
@@ -542,9 +587,12 @@
     .copy::before {
       transition: none;
     }
-    .grown .actions :global(.cue svg) {
+    .grown .disc :global(svg) {
       animation: none;
       opacity: 1;
+    }
+    .press {
+      transition: none;
     }
     /* No ripple: a still, faint halo marks the logo as something to press. */
     .intro:not(.grown) .mark::after {
