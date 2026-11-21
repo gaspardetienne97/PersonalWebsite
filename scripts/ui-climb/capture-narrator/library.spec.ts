@@ -161,18 +161,19 @@ for (const width of WIDTHS) {
       width,
       'a started document\'s "More" menu open: Start over and Remove from library',
     );
+    // Start over opens the document from its first word.
     await started.locator(".menu button").first().click();
-    await expect(started.locator(".menu")).toHaveCount(0);
-    await page.mouse.move(2, 2);
-    await settle(page, 300);
+    await expect(page.locator(".root .top")).toBeVisible();
+    await settle(page, 400);
     await nsnap(
       page,
       "library",
       "after-start-over",
       width,
-      "the library after Start over on a started document: its card reads as not started again",
-      { full: true },
+      "after Start over in a started document's More menu: the document opens paused at its first word",
     );
+    await backToLibrary(page);
+    await page.mouse.move(2, 2);
 
     // Removing: "More" on a card, then Remove, then the card asks to confirm.
     const card = page.locator(".grid .card").nth(1);
