@@ -110,7 +110,7 @@ export class NarrationPlayer {
     this.doc = doc;
     this.model = buildModel(doc);
     const saved = savedPosition(doc.id);
-    this.pos = saved ?? (doc.progress || 0) * this.model.total;
+    this.pos = saved ?? 0;
     this.voice = doc.voice || undefined;
   }
 

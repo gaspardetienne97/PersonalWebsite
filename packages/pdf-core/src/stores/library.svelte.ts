@@ -43,13 +43,12 @@ export class NarratorLibrary {
     return model;
   }
 
-  /** Live progress fraction: saved playhead first, authored progress as fallback. */
+  /** Live progress fraction, from the saved playhead: nothing is in progress until it was played. */
   progressOf(doc: NarratorDoc): number {
     const model = this.modelFor(doc);
-    if (!model.total) return 0;
     const saved = savedPosition(doc.id);
-    if (saved !== null) return Math.max(0, Math.min(1, saved / model.total));
-    return doc.progress || 0;
+    if (!model.total || saved === null) return 0;
+    return Math.max(0, Math.min(1, saved / model.total));
   }
 
   get inProgress(): NarratorDoc | undefined {

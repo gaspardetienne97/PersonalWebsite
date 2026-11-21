@@ -8,7 +8,7 @@
 
   import { m } from "@repo/i18n/messages.js";
   import { KOKORO_VOICES } from "@repo/pdf-core";
-  import type { NarratorDoc } from "@repo/pdf-core/domain";
+  import { kindLabel, type NarratorDoc } from "@repo/pdf-core/domain";
   import { NarrationPlayer } from "@repo/pdf-core/stores/narration";
   import type { ReaderSettings } from "@repo/pdf-core/stores/settings";
 
@@ -111,7 +111,7 @@
           <div class="settings-pop"><SettingsPanel {settings} /></div>
         {/if}
       </div>
-      <Pill accent={doc.accent} class="meta-pill">{doc.meta.split(" · ")[0]}</Pill>
+      <Pill accent={doc.accent} class="meta-pill">{kindLabel(doc)}</Pill>
     </div>
   </div>
 {/snippet}

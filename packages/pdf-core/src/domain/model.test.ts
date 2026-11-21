@@ -12,7 +12,6 @@ function doc(paragraphsByChapter: string[][]): NarratorDoc {
     accent: "#1291FA",
     meta: "test",
     voice: "Aria — calm British",
-    progress: 0,
     chapters: paragraphsByChapter.map((paragraphs, i) => ({
       id: "c" + i,
       title: "Chapter " + (i + 1),

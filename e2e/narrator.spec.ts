@@ -12,7 +12,17 @@ test.describe("Narrator", () => {
     await expect(page.getByText("Meditations, Book II").first()).toBeVisible();
   });
 
-  test("shows a continue-listening hero for the furthest-along document", async ({ page }) => {
+  test("a first visit invites a first document; a played one is offered to continue", async ({
+    page,
+  }) => {
+    // Nothing was played yet, so no sample is offered as "Continue listening".
+    await expect(page.getByText("Add your first document")).toBeVisible();
+    await expect(page.getByText("Continue listening")).not.toBeVisible();
+
+    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "Next sentence" }).click();
+    await page.getByRole("button", { name: "Back to library" }).click();
+
     await expect(page.getByText("Continue listening")).toBeVisible();
     await expect(page.getByRole("button", { name: /Resume/ })).toBeVisible();
   });

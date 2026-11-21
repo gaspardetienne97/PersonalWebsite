@@ -3,7 +3,7 @@
   import Trash2 from "@lucide/svelte/icons/trash-2";
 
   import { m } from "@repo/i18n/messages.js";
-  import { fmt, type NarrationModel, type NarratorDoc } from "@repo/pdf-core/domain";
+  import { fmt, kindLabel, type NarrationModel, type NarratorDoc } from "@repo/pdf-core/domain";
 
   import Cover from "./Cover.svelte";
   import Pill from "./Pill.svelte";
@@ -64,7 +64,7 @@
     </div>
     <div class="author">{doc.author}</div>
     <div class="foot">
-      <Pill class="kind-pill">{doc.meta.split(" · ")[0]}</Pill>
+      <Pill class="kind-pill">{kindLabel(doc)}</Pill>
       <span class="duration"><Clock size={11} strokeWidth={1.5} />{fmt(model.total)}</span>
     </div>
   </div>

@@ -19,8 +19,6 @@ export interface NarratorDoc {
   meta: string;
   /** Narrator voice label, e.g. "Aria — calm British". */
   voice: string;
-  /** Initial progress fraction (0..1) used before any saved position exists. */
-  progress: number;
   chapters: NarratorChapter[];
 }
 

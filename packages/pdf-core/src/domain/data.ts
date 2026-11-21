@@ -1,6 +1,8 @@
 /** Sample library — public-domain texts seeded on first load so the reader
  * has something to narrate before any uploads. */
 
+import { m } from "@repo/i18n/messages.js";
+
 import type { NarratorDoc } from "./types";
 
 export const SAMPLE_DOCS: NarratorDoc[] = [
@@ -12,7 +14,6 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     accent: "#1291FA",
     meta: "Novel · 1895",
     voice: "",
-    progress: 0.18,
     chapters: [
       {
         id: "tm-1",
@@ -51,7 +52,6 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     accent: "#A21FB8",
     meta: "Article · pasted",
     voice: "",
-    progress: 0,
     chapters: [
       {
         id: "sh-1",
@@ -81,7 +81,6 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     accent: "#FF0C0D",
     meta: "Philosophy · 170 AD",
     voice: "",
-    progress: 0.62,
     chapters: [
       {
         id: "me-1",
@@ -111,7 +110,6 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     accent: "#22C55E",
     meta: "Technical · PDF, OCR",
     voice: "",
-    progress: 0.04,
     chapters: [
       {
         id: "dd-1",
@@ -125,3 +123,16 @@ export const SAMPLE_DOCS: NarratorDoc[] = [
     ],
   },
 ];
+
+// By id, so a sample saved in a listener's library still follows the interface language.
+const SAMPLE_KINDS: Record<string, () => string> = {
+  "time-machine": () => m.narrator_sample_novel(),
+  "self-hosting": () => m.narrator_sample_article(),
+  meditations: () => m.narrator_sample_philosophy(),
+  ddia: () => m.narrator_sample_technical(),
+};
+
+/** The short kind shown on a card and in the reader: "Novel", "PDF", "Plain text". */
+export function kindLabel(doc: NarratorDoc): string {
+  return SAMPLE_KINDS[doc.id]?.() ?? doc.meta.split(" · ")[0];
+}

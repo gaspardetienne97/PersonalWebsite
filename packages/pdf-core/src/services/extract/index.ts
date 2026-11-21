@@ -81,7 +81,6 @@ function toDoc(content: ExtractedContent, kind: DocKind, voice: string): Narrato
     accent: accentFor(content.title),
     meta: content.meta,
     voice,
-    progress: 0,
     chapters: content.chapters,
   };
 }
