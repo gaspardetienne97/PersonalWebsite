@@ -161,19 +161,10 @@ for (const width of WIDTHS) {
       width,
       'a started document\'s "More" menu open: Start over and Remove from library',
     );
-    // Start over opens the document from its first word.
-    await started.locator(".menu button").first().click();
-    await expect(page.locator(".root .top")).toBeVisible();
-    await settle(page, 400);
-    await nsnap(
-      page,
-      "library",
-      "after-start-over",
-      width,
-      "after Start over in a started document's More menu: the document opens paused at its first word",
-    );
-    await backToLibrary(page);
-    await page.mouse.move(2, 2);
+    // Close the menu; Start over is shot last, so the shots between keep the library as it was.
+    await page.keyboard.press("Escape");
+    await page.mouse.click(2, 2);
+    await expect(started.locator(".menu")).toHaveCount(0);
 
     // Removing: "More" on a card, then Remove, then the card asks to confirm.
     const card = page.locator(".grid .card").nth(1);
@@ -250,6 +241,24 @@ for (const width of WIDTHS) {
       width,
       'the library searched for a word nothing matches: a message naming the search and a "Show all documents" button',
     );
+    await search.fill("");
+    await settle(page, 300);
+    await started.scrollIntoViewIfNeeded();
+    await started.locator("button.more").click();
+    await expect(started.locator(".menu")).toBeVisible();
+    // Start over opens the document from its first word.
+    await started.locator(".menu button").first().click();
+    await expect(page.locator(".root .top")).toBeVisible();
+    await settle(page, 400);
+    await nsnap(
+      page,
+      "library",
+      "after-start-over",
+      width,
+      "after Start over in a started document's More menu: the document opens paused at its first word",
+    );
+    await backToLibrary(page);
+    await page.mouse.move(2, 2);
   });
 }
 
