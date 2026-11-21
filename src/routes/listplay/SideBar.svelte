@@ -1,46 +1,42 @@
 <script lang="ts">
 	import { Button } from '@repo/ui/button';
 	import * as Avatar from '@repo/ui/avatar';
-	import { fly } from 'svelte/transition';
 	import PlayListIcon from '@lucide/svelte/icons/list';
 	import { readSpotifyStore } from './spotifyStore';
-	import { Separator } from '@repo/ui/separator';
 	import { ScrollArea } from '@repo/ui/scroll-area';
-	const snapPoints = ['148px', '355px', 1];
-	let open = $state(true);
-	let activeSnapPoint = $state(snapPoints[0]);
+	import { m } from '@repo/i18n/messages.js';
 	const spotify = readSpotifyStore();
 </script>
 
-<section class="flex justify-between rounded-md border p-4">
+<section class="flex items-center justify-between gap-3 rounded-md border p-4">
 	{#await spotify.getUser() then spotifyUser}
-		<Avatar.Root>
-			<Avatar.Image src={spotifyUser?.images[0].url} alt={spotifyUser?.display_name} />
-			<Avatar.Fallback>{spotifyUser?.display_name[0]}</Avatar.Fallback>
-		</Avatar.Root>
-	{/await}
-	{#await spotify.isAuthenticated() then isAuthenticated}
-		{#if isAuthenticated}
-			<Button onclick={spotify.logout}>Logout</Button>
-		{:else}
-			<Button onclick={spotify.login}>Login</Button>
+		{#if spotifyUser}
+			<Avatar.Root>
+				<Avatar.Image src={spotifyUser.images[0]?.url} alt={spotifyUser.display_name} />
+				<Avatar.Fallback>{spotifyUser.display_name[0]}</Avatar.Fallback>
+			</Avatar.Root>
 		{/if}
 	{/await}
+	<Button class="ml-auto" onclick={spotify.logout}>{m.listplay_sign_out()}</Button>
 </section>
-<nav class="h-full rounded-md border p-4">
-	<h2 class="relative text-lg font-semibold tracking-tight">Playlists</h2>
-	<ScrollArea class="max-h-96 " orientation="vertical">
-		{#await spotify.getUserPlaylists() then playlists}
-			{#each playlists as playlist}
-				<Button
-					variant="link"
-					href={`/listplay/playlist/${playlist.id}`}
-					class="w-full justify-start font-normal"
-				>
-					<PlayListIcon />
-					{playlist.name}
-				</Button>
-			{/each}
-		{/await}
-	</ScrollArea>
-</nav>
+{#await spotify.getUserPlaylists() then playlists}
+	{#if playlists.length > 0}
+		<nav class="rounded-md border p-4" aria-labelledby="listplay-nav">
+			<h2 id="listplay-nav" class="text-lg font-semibold tracking-tight">
+				{m.listplay_playlists()}
+			</h2>
+			<ScrollArea class="max-h-96" orientation="vertical">
+				{#each playlists as playlist (playlist.id)}
+					<Button
+						variant="link"
+						href={`/listplay/playlist/${playlist.id}`}
+						class="w-full justify-start font-normal"
+					>
+						<PlayListIcon />
+						{playlist.name}
+					</Button>
+				{/each}
+			</ScrollArea>
+		</nav>
+	{/if}
+{/await}
