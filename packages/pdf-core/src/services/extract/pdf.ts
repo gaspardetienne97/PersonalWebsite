@@ -65,7 +65,9 @@ function isTextItem(item: unknown): item is TextItem {
 }
 
 /** Sort glyph runs into reading order and rebuild line/paragraph structure. */
-function reconstructPage(items: TextItem[]): string {
+export function reconstructPage(
+  items: Pick<TextItem, "str" | "transform" | "width">[],
+): string {
   const runs = items
     .filter((item) => item.str.trim().length > 0)
     .map((item) => ({
@@ -76,8 +78,8 @@ function reconstructPage(items: TextItem[]): string {
       height: Math.abs(item.transform[0] as number) || 10,
     }))
     .sort((a, b) => {
-      const yDiff = b.y - a.y; // PDF y grows upward; read top-down
-      if (Math.abs(yDiff) > 4) return yDiff > 0 ? -1 : 1;
+      const yDiff = b.y - a.y; // PDF y grows upward, so the higher run comes first
+      if (Math.abs(yDiff) > 4) return yDiff;
       return a.x - b.x;
     });
 
