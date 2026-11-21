@@ -280,7 +280,20 @@
     border-radius: 20px;
     box-shadow: var(--n-shadow-lg);
   }
+  /* The glow hangs past the sheet's corner. This box clips it, so it adds nothing to the
+     sheet's scrollable width; it is large enough to leave the blur whole. */
   .glow {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: min(100%, 380px);
+    height: 330px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow::before {
+    content: "";
     position: absolute;
     top: -30px;
     right: -30px;
@@ -289,8 +302,6 @@
     border-radius: 999px;
     background: var(--n-brand-gradient-soft);
     filter: blur(60px);
-    pointer-events: none;
-    z-index: 0;
   }
   .content {
     position: relative;
@@ -577,5 +588,24 @@
     font-size: 11px;
     color: var(--n-fg-3);
     margin-top: 2px;
+  }
+  @media (max-width: 560px) {
+    .head {
+      padding: 20px;
+    }
+    .head h2 {
+      font-size: 18px;
+    }
+    .body {
+      padding: 0 20px 20px;
+    }
+    /* Four tabs with icons do not fit a phone: the labels alone, each on one line. */
+    .tab {
+      flex: 1 1 auto;
+      white-space: nowrap;
+    }
+    .tab :global(svg) {
+      display: none;
+    }
   }
 </style>
