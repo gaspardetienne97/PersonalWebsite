@@ -5,6 +5,9 @@ import {
   DEFAULT_KOKORO_VOICE,
   KOKORO_QUALITIES,
   KOKORO_VOICES,
+  downloadTracker,
+  kokoroDownloadMb,
+  kokoroStatus,
   kokoroUsesGpu,
   mapAudioToPos,
   webgpuAvailable,
@@ -23,6 +26,63 @@ describe("KOKORO_VOICES", () => {
 
   it("tags each voice with a BCP-47 language", () => {
     for (const v of KOKORO_VOICES) expect(v.lang).toMatch(/^[a-z]{2}-[A-Z]{2}$/);
+  });
+});
+
+describe("voice type", () => {
+  it("reads the voice type from Kokoro's own ids", () => {
+    const byId = Object.fromEntries(KOKORO_VOICES.map((v) => [v.id, v.gender]));
+    expect(byId.af_heart).toBe("female");
+    expect(byId.am_michael).toBe("male");
+    expect(byId.bf_emma).toBe("female");
+    expect(byId.bm_george).toBe("male");
+  });
+});
+
+describe("downloadTracker", () => {
+  const MB = 1_000_000;
+
+  it("reports bytes and a fraction for the model file", () => {
+    const track = downloadTracker();
+    expect(
+      track({ status: "progress", file: "model.onnx", loaded: 23 * MB, total: 92 * MB }),
+    ).toEqual({ fraction: 0.25, loadedBytes: 23 * MB, totalBytes: 92 * MB });
+  });
+
+  it("ignores the small config files, so the bar never jumps to full and back", () => {
+    const track = downloadTracker();
+    expect(track({ status: "progress", file: "config.json", loaded: 900, total: 900 })).toBeNull();
+    expect(
+      track({ status: "progress", file: "model.onnx", loaded: 0, total: 92 * MB })?.fraction,
+    ).toBe(0);
+  });
+
+  it("adds large files together", () => {
+    const track = downloadTracker();
+    track({ status: "progress", file: "a.onnx", loaded: 10 * MB, total: 10 * MB });
+    expect(track({ status: "progress", file: "b.onnx", loaded: 5 * MB, total: 30 * MB })).toEqual({
+      fraction: 15 / 40,
+      loadedBytes: 15 * MB,
+      totalBytes: 40 * MB,
+    });
+  });
+
+  it("falls back to a bare percentage, and skips events that are not progress", () => {
+    const track = downloadTracker();
+    expect(track({ status: "progress", progress: 40 })).toEqual({ fraction: 0.4 });
+    expect(track({ status: "done", file: "model.onnx" })).toBeNull();
+  });
+});
+
+describe("kokoroDownloadMb and kokoroStatus", () => {
+  it("sizes each preset by the model this device would download", () => {
+    expect(kokoroDownloadMb("compact")).toBe(90);
+    expect(kokoroDownloadMb("recommended")).toBe(webgpuAvailable() ? 330 : 90);
+  });
+
+  it("is idle before anything was asked for", () => {
+    expect(kokoroStatus("recommended")).toBe("idle");
+    expect(kokoroStatus("compact")).toBe("idle");
   });
 });
 

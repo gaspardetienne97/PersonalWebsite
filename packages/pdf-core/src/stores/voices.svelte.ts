@@ -23,6 +23,16 @@ export class VoiceCatalog {
     return this.voices.length > 0;
   }
 
+  /** The voice that reads when none was chosen: the browser speaks with the device's own default. */
+  get deviceDefault(): SpeechSynthesisVoice | undefined {
+    return this.voices.find((v) => v.default) ?? this.voices[0];
+  }
+
+  /** The system voice in use for a saved choice ("" means none was saved). */
+  inUse(saved: string): SpeechSynthesisVoice | undefined {
+    return (saved && this.voices.find((v) => v.name === saved)) || this.deviceDefault;
+  }
+
   /** Default narrator: the system default if it speaks the UI language, else the first local match. */
   get defaultName(): string | undefined {
     return (this.preferred[0] ?? this.voices[0])?.name;

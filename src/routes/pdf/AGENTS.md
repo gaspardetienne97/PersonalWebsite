@@ -72,6 +72,10 @@ This file provides guidance for agents working on the Narrator app under
     `wordIndex` / `sentenceIndex`.
   - `SettingsPanel.svelte` — the production form of the handoff "tweaks":
     voice engine, layout, highlight style, font, type metrics, accent.
+  - `Notice.svelte`: the one look for every error and status message. Props
+    `tone` (`"error"` draws `role="alert"`, `"info"` draws `role="status"`),
+    `title`, `actions` (`{ label, onclick, primary? }[]`, drawn as 44 px buttons)
+    and the body as children. Use it instead of a bare error paragraph.
   - Presentational primitives: `Cover`, `Equalizer`, `ProgressRing`, `Pill`,
     `Btn`, `ChapterList`.
 
@@ -87,8 +91,14 @@ through private file paths when an export exists. Current export map:
     `ChapterSpan`, `NarrationModel`, `DocKind`.
   - `model.ts` — `buildModel(doc)` tokenizes a document onto a virtual 1× word
     timeline (ms); `fmt(ms)` and `wordIndexAt(model, pos)` are pure helpers.
+    `fmtLong(ms)` writes a length of time in words through messages ("3 min",
+    "1 h 4 min"): use it wherever "3:40" could be read as minutes or hours.
     Unit-tested in `model.test.ts`.
-  - `data.ts` — `SAMPLE_DOCS` (public-domain seed library).
+  - `data.ts` — `SAMPLE_DOCS` (public-domain seed library), and what a card or
+    the reader says about a document: `isSample`, `sampleGenre`, `kindLabel`,
+    `formatLabel`, `byline` and `authorName(doc)`. The extractors store the
+    format's name as `doc.author` when a file names no author, so show
+    `authorName(doc)`, never `doc.author`.
 - `@repo/pdf-core/services/extract` — `src/services/extract/`: real File →
   `NarratorDoc`. `extractFile()` dispatches by kind to `pdf.ts` (pdf.js),
   `epub.ts` (JSZip + spine walk), or `txt.ts` (txt/markdown). `extractPaste()`
@@ -97,7 +107,10 @@ through private file paths when an export exists. Current export map:
 - `@repo/pdf-core/services/tts` — `src/services/tts/`: Web Speech helpers
   (`getSynth`, `resolveVoice`, `speechAvailable`) and the Kokoro neural engine
   (`kokoro.ts`: `loadKokoro`, `synthesize`, `KOKORO_VOICES`, `mapAudioToPos`).
-  Pure parts unit-tested in `kokoro.test.ts`.
+  For the settings page: `kokoroStatus(quality)` (`"idle"`, `"loading"` or
+  `"ready"`), `kokoroDownloadMb(quality)` (the download's size for the device
+  in use) and `downloadTracker()` (turns the loader's progress events into one
+  running total). Pure parts unit-tested in `kokoro.test.ts`.
 - `@repo/pdf-core/stores/narration` — `NarrationPlayer` (`*.svelte.ts`): the
   dual-engine playhead. See below.
 - `@repo/pdf-core/stores/library` — `NarratorLibrary`: the document list +
@@ -186,6 +199,18 @@ Keep these two settings together if you touch either.
   narrator components, and do not push `--n-*` tokens into the rest of the site.
 - Match the existing radii, glass surfaces, and motion (`var(--n-ease-out)`,
   the `n-*` keyframes).
+- Tokens to reach for before adding a colour: `--n-fg-2` and `--n-fg-3`
+  (secondary and quiet text; the quiet one keeps 4.5:1 up to `--n-bg-3`),
+  `--n-on-accent` (text and icons on an accent fill), `--n-accent-app` (the one
+  accent for progress and playing state unless "Match each document" is on; read
+  it as `var(--n-accent, var(--n-accent-app))`), `--n-bar-bg` (the reader's top
+  bar) and `--n-dock-h` (the height the player dock takes, set on the reader
+  root from the dock's real size; the reading area ends there).
+- `narrator.css` also owns the focus ring for buttons, links and sliders, and
+  the current word's styles (`.word.current` with `underline`, `fill`, `glow`).
+  Every style underlines the word, so colour is never the only mark.
+- Never name a class `ring`. Tailwind has a `ring` utility, and it adds its own
+  box shadow to the element.
 - Keep desktop and mobile widths free of horizontal overflow; the reader is
   `position: fixed` chrome over a scrolling text area.
 - Do not close a menu with a `position: fixed` backdrop. The player dock and the

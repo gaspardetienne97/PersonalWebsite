@@ -8,8 +8,11 @@ export {
   kokoroSupported,
   webgpuAvailable,
   kokoroUsesGpu,
+  kokoroDownloadMb,
+  downloadTracker,
   loadKokoro,
   kokoroLoaded,
+  kokoroStatus,
   clearKokoro,
   synthesize,
   mapAudioToPos,
@@ -17,6 +20,7 @@ export {
   type KokoroQuality,
   type KokoroQualityOption,
   type KokoroLoadProgress,
+  type KokoroProgressEvent,
   type SynthResult,
 } from "./kokoro";
 

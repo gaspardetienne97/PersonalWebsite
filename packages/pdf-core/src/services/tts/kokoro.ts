@@ -17,9 +17,11 @@ export interface KokoroVoice {
   id: string;
   /** The voice's own name ("Heart"), the same in every language. */
   name: string;
-  /** Name and accent, in the interface language ("Heart — American"). */
+  /** Name and accent, in the interface language ("Heart (American)"). */
   readonly label: string;
   lang: string;
+  /** The voice type Kokoro's own ids encode: "af_" is an American female voice, "bm_" a British male one. */
+  gender: "female" | "male";
 }
 
 /** A voice whose label follows the interface language: a getter, so don't spread or clone it. */
@@ -27,6 +29,7 @@ const voice = (id: string, name: string, lang: "en-US" | "en-GB"): KokoroVoice =
   id,
   name,
   lang,
+  gender: id[1] === "m" ? "male" : "female",
   get label() {
     const accent = lang === "en-GB" ? m.narrator_voice_british() : m.narrator_voice_american();
     return m.narrator_voice_label({ name, accent });
@@ -51,6 +54,7 @@ export type KokoroQuality = "recommended" | "compact";
 export interface KokoroQualityOption {
   id: KokoroQuality;
   readonly label: string;
+  /** Size and what it costs, in plain words. The size is the one this device would download. */
   readonly detail: string;
 }
 
@@ -62,7 +66,7 @@ export const KOKORO_QUALITIES: KokoroQualityOption[] = [
       return m.narrator_quality_recommended();
     },
     get detail() {
-      return m.narrator_quality_recommended_detail();
+      return m.narrator_quality_recommended_detail({ size: kokoroDownloadMb("recommended") });
     },
   },
   {
@@ -71,7 +75,7 @@ export const KOKORO_QUALITIES: KokoroQualityOption[] = [
       return m.narrator_quality_compact();
     },
     get detail() {
-      return m.narrator_quality_compact_detail();
+      return m.narrator_quality_compact_detail({ size: kokoroDownloadMb("compact") });
     },
   },
 ];
@@ -81,6 +85,45 @@ export const DEFAULT_KOKORO_QUALITY: KokoroQuality = "recommended";
 export interface KokoroLoadProgress {
   /** 0..1 across model file downloads. */
   fraction: number;
+  /** Bytes received and expected, when the loader reports them. */
+  loadedBytes?: number;
+  totalBytes?: number;
+}
+
+/** One event from the loader's `progress_callback`. */
+export interface KokoroProgressEvent {
+  status?: string;
+  file?: string;
+  progress?: number;
+  loaded?: number;
+  total?: number;
+}
+
+// The loader reports each file on its own. The few-KB config and tokenizer files finish
+// first and would swing a bar to 100% and back, so only the files that are the download count.
+const DOWNLOAD_FILE_BYTES = 1_000_000;
+
+/** Fold the loader's per-file events into one honest download progress. */
+export function downloadTracker(): (info: KokoroProgressEvent) => KokoroLoadProgress | null {
+  const files = new Map<string, { loaded: number; total: number }>();
+  return (info) => {
+    if (info?.status !== "progress") return null;
+    if (typeof info.loaded !== "number" || typeof info.total !== "number" || info.total <= 0) {
+      // An older loader: a percentage only, no byte counts.
+      return typeof info.progress === "number"
+        ? { fraction: Math.min(1, info.progress / 100) }
+        : null;
+    }
+    if (info.total < DOWNLOAD_FILE_BYTES) return null;
+    files.set(info.file ?? "", { loaded: info.loaded, total: info.total });
+    let loadedBytes = 0;
+    let totalBytes = 0;
+    for (const f of files.values()) {
+      loadedBytes += Math.min(f.loaded, f.total);
+      totalBytes += f.total;
+    }
+    return { fraction: loadedBytes / totalBytes, loadedBytes, totalBytes };
+  };
 }
 
 export function webgpuAvailable(): boolean {
@@ -109,6 +152,11 @@ export function kokoroUsesGpu(quality: KokoroQuality): boolean {
   return resolveConfig(quality).device === "webgpu";
 }
 
+/** Roughly what a preset downloads on this device, in megabytes (the fp32 model or the int8 one). */
+export function kokoroDownloadMb(quality: KokoroQuality): number {
+  return resolveConfig(quality).dtype === "fp32" ? 330 : 90;
+}
+
 // kokoro-js has no published types we import directly; keep the surface minimal.
 interface RawAudioLike {
   audio: Float32Array;
@@ -121,47 +169,72 @@ interface KokoroModel {
 
 let loadedQuality: KokoroQuality | null = null;
 let modelPromise: Promise<KokoroModel> | null = null;
+let modelReady = false;
+// Everyone waiting on the load in flight hears its progress, not only the first caller.
+const progressListeners = new Set<(p: KokoroLoadProgress) => void>();
 
 /** Load (and cache) the model for a quality preset. Reloads if the preset changed. */
 export function loadKokoro(
   quality: KokoroQuality = DEFAULT_KOKORO_QUALITY,
   onProgress?: (p: KokoroLoadProgress) => void,
 ): Promise<KokoroModel> {
-  if (modelPromise && loadedQuality === quality) return modelPromise;
+  if (modelPromise && loadedQuality === quality) {
+    if (onProgress && !modelReady) progressListeners.add(onProgress);
+    return modelPromise;
+  }
   loadedQuality = quality;
+  modelReady = false;
+  progressListeners.clear();
+  if (onProgress) progressListeners.add(onProgress);
   const { device, dtype } = resolveConfig(quality);
-  modelPromise = (async () => {
+  const track = downloadTracker();
+  const promise = (async () => {
     const { KokoroTTS } = await import("kokoro-js");
     const tts = await KokoroTTS.from_pretrained(MODEL_ID, {
       dtype,
       device,
-      progress_callback: (info: { status?: string; progress?: number }) => {
-        if (info?.status === "progress" && typeof info.progress === "number") {
-          onProgress?.({ fraction: Math.min(1, info.progress / 100) });
-        }
+      progress_callback: (info: KokoroProgressEvent) => {
+        const p = modelPromise === promise ? track(info) : null;
+        if (p) for (const listener of progressListeners) listener(p);
       },
     });
     return tts as unknown as KokoroModel;
   })();
-  // Let a failed load be retried on a later attempt.
-  modelPromise.catch(() => {
-    if (loadedQuality === quality) {
+  modelPromise = promise;
+  promise.then(
+    () => {
+      if (modelPromise !== promise) return;
+      modelReady = true;
+      progressListeners.clear();
+    },
+    // Let a failed load be retried on a later attempt.
+    () => {
+      if (modelPromise !== promise) return;
       modelPromise = null;
       loadedQuality = null;
-    }
-  });
-  return modelPromise;
+      progressListeners.clear();
+    },
+  );
+  return promise;
 }
 
-/** True once a model is loaded in memory this session. */
+/** True once a model is loaded, or loading, in memory this session. */
 export function kokoroLoaded(): boolean {
   return modelPromise !== null;
+}
+
+/** Where a preset's model stands this session: not asked for, on its way, or ready to speak. */
+export function kokoroStatus(quality: KokoroQuality): "idle" | "loading" | "ready" {
+  if (!modelPromise || loadedQuality !== quality) return "idle";
+  return modelReady ? "ready" : "loading";
 }
 
 /** Drop the in-memory model and clear the browser's cached model/voice files. */
 export async function clearKokoro(): Promise<void> {
   modelPromise = null;
   loadedQuality = null;
+  modelReady = false;
+  progressListeners.clear();
   if (typeof caches === "undefined") return;
   try {
     const names = await caches.keys();
