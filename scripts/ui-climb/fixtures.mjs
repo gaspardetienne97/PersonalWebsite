@@ -202,7 +202,9 @@ async function buildEpub({ title, author, chapters }) {
     "OEBPS/content.opf",
     `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">ui-climb-fixture</dc:identifier><dc:title>${xml(title)}</dc:title><dc:creator>${xml(author)}</dc:creator><dc:language>en</dc:language></metadata><manifest>${ids
       .map((id) => `<item id="${id}" href="${id}.xhtml" media-type="application/xhtml+xml"/>`)
-      .join("")}</manifest><spine>${ids.map((id) => `<itemref idref="${id}"/>`).join("")}</spine></package>`,
+      .join(
+        "",
+      )}</manifest><spine>${ids.map((id) => `<itemref idref="${id}"/>`).join("")}</spine></package>`,
   );
   chapters.forEach((chapter, i) =>
     zip.file(

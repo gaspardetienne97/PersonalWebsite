@@ -115,7 +115,10 @@ mkdirSync(outDir, { recursive: true });
 const sidecarCaption = (p) => {
   const other = shots.some(
     (a) =>
-      a.shotFlow === p.shotFlow && a.state === p.state && a.width === p.width && a.theme !== p.theme,
+      a.shotFlow === p.shotFlow &&
+      a.state === p.state &&
+      a.width === p.width &&
+      a.theme !== p.theme,
   );
   const theme = other ? `${p.theme} theme` : `${p.theme} (this screen has one theme)`;
   return `${WIDTH_WORDS[p.width]}, ${theme}, ${p.caption ?? p.state.replaceAll("-", " ")}`;

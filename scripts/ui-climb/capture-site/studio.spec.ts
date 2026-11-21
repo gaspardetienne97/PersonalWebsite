@@ -58,7 +58,10 @@ for (const width of WIDTHS) {
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(dialog.locator("img").first()).toBeVisible();
-    await dialog.locator("img").first().evaluate((img: HTMLImageElement) => img.decode().catch(() => {}));
+    await dialog
+      .locator("img")
+      .first()
+      .evaluate((img: HTMLImageElement) => img.decode().catch(() => {}));
     await settle(page, 600);
     await snap(
       page,
@@ -69,7 +72,10 @@ for (const width of WIDTHS) {
     );
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowRight");
     await settle(page, 900);
-    await dialog.locator("img").nth(2).evaluate((img: HTMLImageElement) => img.decode().catch(() => {}));
+    await dialog
+      .locator("img")
+      .nth(2)
+      .evaluate((img: HTMLImageElement) => img.decode().catch(() => {}));
     await settle(page, 300);
     await snap(
       page,

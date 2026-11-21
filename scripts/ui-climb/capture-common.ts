@@ -107,7 +107,8 @@ export async function snap(
     }
     return { extra, worst };
   });
-  if (overflow) audit({ kind: "overflow-x", flow, state: name, width, url: page.url(), ...overflow });
+  if (overflow)
+    audit({ kind: "overflow-x", flow, state: name, width, url: page.url(), ...overflow });
   await shot(page, flow, name, width, {
     ...rest,
     caption: fr ? `${caption} (interface in French)` : caption,

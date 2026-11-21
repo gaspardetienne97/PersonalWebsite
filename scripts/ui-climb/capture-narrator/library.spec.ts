@@ -62,17 +62,36 @@ for (const width of WIDTHS) {
     if (width === "desktop") {
       await page.locator(".grid .card").nth(1).hover();
       await settle(page, 400);
-      await nsnap(page, "library", "card-hover", width, "the library, pointer over a document card", {
-        keepMouse: true,
-      });
+      await nsnap(
+        page,
+        "library",
+        "card-hover",
+        width,
+        "the library, pointer over a document card",
+        {
+          keepMouse: true,
+        },
+      );
     }
     const search = page.locator(".search-wrap input");
     await search.fill("al");
     await settle(page, 300);
-    await nsnap(page, "library", "search", width, "the library searched for 'al': two documents match");
+    await nsnap(
+      page,
+      "library",
+      "search",
+      width,
+      "the library searched for 'al': two documents match",
+    );
     await search.fill("zebra");
     await settle(page, 300);
-    await nsnap(page, "library", "search-none", width, "the library searched for a word nothing matches");
+    await nsnap(
+      page,
+      "library",
+      "search-none",
+      width,
+      "the library searched for a word nothing matches",
+    );
   });
 }
 
@@ -91,5 +110,8 @@ test("library in French phone", async ({ page }) => {
   }
   await expect(page.locator(".empty")).toBeVisible();
   await settle(page, 300);
-  await nsnap(page, "library-empty", "empty", "phone", "an empty library", { full: true, fr: true });
+  await nsnap(page, "library-empty", "empty", "phone", "an empty library", {
+    full: true,
+    fr: true,
+  });
 });

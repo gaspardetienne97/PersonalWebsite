@@ -181,32 +181,55 @@ test("reader, listening and chapters in French phone", async ({ page }) => {
   await narrator(page, "phone", { locale: "fr" });
   await openLibrary(page);
   await addFile(page, "epub");
-  await nsnap(page, "reader", "flow-start", "phone", "an uploaded EPUB just opened, paused, Flow view (the book is in English)", {
-    fr: true,
-  });
+  await nsnap(
+    page,
+    "reader",
+    "flow-start",
+    "phone",
+    "an uploaded EPUB just opened, paused, Flow view (the book is in English)",
+    {
+      fr: true,
+    },
+  );
   await reader.chapters(page).click();
   await expect(page.locator(".chapters-pop")).toBeVisible();
   await settle(page, 300);
-  await nsnap(page, "chapters", "list", "phone", "the chapter list open from the player bar", { fr: true });
-  await page.locator(".chapters-pop .row").nth(0).click();
-  await play(page, 4200);
-  await nsnap(page, "listening", "flow-playing", "phone", `playing in the Flow view (${SPEECH_NOTE})`, {
+  await nsnap(page, "chapters", "list", "phone", "the chapter list open from the player bar", {
     fr: true,
   });
+  await page.locator(".chapters-pop .row").nth(0).click();
+  await play(page, 4200);
+  await nsnap(
+    page,
+    "listening",
+    "flow-playing",
+    "phone",
+    `playing in the Flow view (${SPEECH_NOTE})`,
+    {
+      fr: true,
+    },
+  );
   await reader.speed(page).click();
   await expect(page.locator(".pop").first()).toBeVisible();
   await settle(page, 250);
-  await nsnap(page, "listening", "speed-menu", "phone", "the speed menu open while playing", { fr: true });
-  // The menu's backdrop only covers the player dock: close it from the dock's top right corner.
-  const backdrop = page.locator(".extras .backdrop");
-  const box = await backdrop.boundingBox();
-  await backdrop.click({ position: { x: (box?.width ?? 20) - 4, y: 4 }, force: true });
+  await nsnap(page, "listening", "speed-menu", "phone", "the speed menu open while playing", {
+    fr: true,
+  });
+  // Menus close on a press anywhere outside them.
+  await page.mouse.click(12, 200);
   await expect(page.locator(".pop")).toHaveCount(0);
   await reader.play(page).click();
   await reader.settings(page).click();
   await expect(page.locator(".settings-pop")).toBeVisible();
   await settle(page, 300);
-  await nsnap(page, "settings", "reader-panel", "phone", "the reader's settings panel open over a document", {
-    fr: true,
-  });
+  await nsnap(
+    page,
+    "settings",
+    "reader-panel",
+    "phone",
+    "the reader's settings panel open over a document",
+    {
+      fr: true,
+    },
+  );
 });

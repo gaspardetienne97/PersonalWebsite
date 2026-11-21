@@ -18,7 +18,9 @@ for (const width of WIDTHS) {
       width,
       "About page scrolled to the section about this website and its links into the site",
     );
-    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+    await page.evaluate(() =>
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
+    );
     await settle(page);
     await snap(page, "about", "end", width, "About page, the end: contact links and the footer");
   });
@@ -62,7 +64,13 @@ for (const width of WIDTHS) {
       { full: true },
     );
     await scrollTo(page, ".gm-prose pre");
-    await snap(page, "blog-post", "code", width, "an article scrolled to its body and a code block");
+    await snap(
+      page,
+      "blog-post",
+      "code",
+      width,
+      "an article scrolled to its body and a code block",
+    );
     await scrollTo(page, "nav.more");
     await snap(
       page,

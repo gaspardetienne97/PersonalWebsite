@@ -23,7 +23,13 @@ for (const width of WIDTHS) {
 
     await page.evaluate(() => window.scrollTo({ top: 520, behavior: "instant" }));
     await settle(page);
-    await snap(page, FLOW, "header-scrolled", width, "the header staying on top while the page scrolls");
+    await snap(
+      page,
+      FLOW,
+      "header-scrolled",
+      width,
+      "the header staying on top while the page scrolls",
+    );
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
 
     const language = page.locator(controls).nth(width === "phone" ? 1 : 0);
@@ -44,7 +50,13 @@ for (const width of WIDTHS) {
       await page.locator(controls).first().click();
       await expect(page.getByRole("menu")).toBeVisible();
       await settle(page, 300);
-      await snap(page, FLOW, "phone-menu", width, "the site menu open at phone width, the current page marked");
+      await snap(
+        page,
+        FLOW,
+        "phone-menu",
+        width,
+        "the site menu open at phone width, the current page marked",
+      );
       await page.keyboard.press("Escape");
       await expect(page.getByRole("menu")).toHaveCount(0);
     } else {
@@ -53,12 +65,21 @@ for (const width of WIDTHS) {
       await page.keyboard.press("Tab");
       await page.keyboard.press("Tab");
       await settle(page, 200);
-      await snap(page, FLOW, "keyboard-focus", width, "the header with keyboard focus on a nav link (reached with Tab)", {
-        keepMouse: true,
-      });
+      await snap(
+        page,
+        FLOW,
+        "keyboard-focus",
+        width,
+        "the header with keyboard focus on a nav link (reached with Tab)",
+        {
+          keepMouse: true,
+        },
+      );
     }
 
-    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+    await page.evaluate(() =>
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
+    );
     await settle(page);
     await snap(
       page,
@@ -82,10 +103,14 @@ test("nav in French phone", async ({ page }) => {
   await page.locator(controls).nth(1).click();
   await expect(page.getByRole("menu")).toBeVisible();
   await settle(page, 300);
-  await snap(page, FLOW, "language-menu", "phone", "the language menu open, French ticked", { fr: true });
+  await snap(page, FLOW, "language-menu", "phone", "the language menu open, French ticked", {
+    fr: true,
+  });
   await page.keyboard.press("Escape");
   await expect(page.getByRole("menu")).toHaveCount(0);
-  await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+  await page.evaluate(() =>
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
+  );
   await settle(page);
   await snap(page, FLOW, "footer", "phone", "the footer", { fr: true });
 });

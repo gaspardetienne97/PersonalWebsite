@@ -17,7 +17,8 @@ import {
 } from "./narrator.ts";
 
 // The settings page's cards, in order: language, reading voice (engine), natural voice, system voices.
-const card = (page: import("@playwright/test").Page, n: number) => page.locator(".wrap > section.card").nth(n);
+const card = (page: import("@playwright/test").Page, n: number) =>
+  page.locator(".wrap > section.card").nth(n);
 const natural = (page: import("@playwright/test").Page) => card(page, 2);
 const system = (page: import("@playwright/test").Page) => card(page, 3);
 const modelRow = ".model-row";
@@ -67,7 +68,13 @@ for (const width of WIDTHS) {
     await first.locator("button.preview").click();
     await first.locator("button.choose").click();
     await settle(page, 300);
-    await nsnap(page, "voices", "system-selected", width, "a system voice chosen: its row says Selected");
+    await nsnap(
+      page,
+      "voices",
+      "system-selected",
+      width,
+      "a system voice chosen: its row says Selected",
+    );
     // Every language and network voices too.
     for (const box of await system(page).locator(".filters input").all()) await box.uncheck();
     await settle(page, 300);
@@ -84,7 +91,13 @@ for (const width of WIDTHS) {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     await card(page, 1).locator("button.engine").nth(1).click();
     await settle(page, 300);
-    await nsnap(page, "settings", "natural-selected", width, "the settings page with the natural voice chosen as the reading voice");
+    await nsnap(
+      page,
+      "settings",
+      "natural-selected",
+      width,
+      "the settings page with the natural voice chosen as the reading voice",
+    );
   });
 
   test(`reader voice menu ${width}`, async ({ page }) => {
@@ -108,7 +121,9 @@ for (const width of WIDTHS) {
     await blockModel(page);
     await openSettings(page);
     await natural(page).locator(`${modelRow} button.ghost`).click();
-    await expect(natural(page).locator(`${modelRow} .model-state.err`)).toBeVisible({ timeout: 60_000 });
+    await expect(natural(page).locator(`${modelRow} .model-state.err`)).toBeVisible({
+      timeout: 60_000,
+    });
     await scrollTo(page, ".wrap > section.card:nth-of-type(3) .model-row");
     await nsnap(
       page,
@@ -208,7 +223,9 @@ test("natural voice downloaded and playing", async ({ page }) => {
     downloadThroughput: -1,
     uploadThroughput: -1,
   });
-  await expect(natural(page).locator(`${modelRow} .model-state.ok`)).toBeVisible({ timeout: 400_000 });
+  await expect(natural(page).locator(`${modelRow} .model-state.ok`)).toBeVisible({
+    timeout: 400_000,
+  });
   const heart = natural(page).locator(".voices li").first();
   await heart.locator("button.choose").click();
   for (const width of WIDTHS) {
@@ -228,7 +245,13 @@ test("natural voice downloaded and playing", async ({ page }) => {
   await page.waitForTimeout(1500);
   await page.setViewportSize(VIEWPORTS.desktop);
   await scrollTo(page, ".wrap > section.card:nth-of-type(3) .voices");
-  await nsnap(page, "voices", "kokoro-preview", "desktop", "previewing a natural voice: its button shows pause while the sample is prepared and played");
+  await nsnap(
+    page,
+    "voices",
+    "kokoro-preview",
+    "desktop",
+    "previewing a natural voice: its button shows pause while the sample is prepared and played",
+  );
   await heart.locator("button.preview").click();
 
   // Read a document with it. Back to the library by the page's own link keeps the model loaded.
@@ -267,13 +290,30 @@ test("natural voice downloaded and playing", async ({ page }) => {
 test("voice settings in French phone", async ({ page }) => {
   await narrator(page, "phone", { locale: "fr" });
   await openSettings(page);
-  await nsnap(page, "settings", "page", "phone", "the settings page, top", { full: true, fr: true });
+  await nsnap(page, "settings", "page", "phone", "the settings page, top", {
+    full: true,
+    fr: true,
+  });
   await scrollTo(page, ".wrap > section.card:nth-of-type(3) .model-row");
-  await nsnap(page, "voices", "kokoro-idle", "phone", "the natural voice section before its model is downloaded", {
-    fr: true,
-  });
+  await nsnap(
+    page,
+    "voices",
+    "kokoro-idle",
+    "phone",
+    "the natural voice section before its model is downloaded",
+    {
+      fr: true,
+    },
+  );
   await scrollTo(page, ".wrap > section.card:nth-of-type(4) .voices li:nth-child(3)");
-  await nsnap(page, "voices", "system-voices", "phone", "the system voices section (stand-in voice list)", {
-    fr: true,
-  });
+  await nsnap(
+    page,
+    "voices",
+    "system-voices",
+    "phone",
+    "the system voices section (stand-in voice list)",
+    {
+      fr: true,
+    },
+  );
 });

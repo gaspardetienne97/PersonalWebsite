@@ -54,7 +54,10 @@ for (const dir of dirs) {
     writeFileSync(file, html);
     await page.goto(pathToFileURL(file).href);
     await page.waitForLoadState("networkidle");
-    await page.screenshot({ path: join(out, `${dir}${full ? "-full" : ""}-${n + 1}.png`), fullPage: true });
+    await page.screenshot({
+      path: join(out, `${dir}${full ? "-full" : ""}-${n + 1}.png`),
+      fullPage: true,
+    });
   }
 }
 await browser.close();

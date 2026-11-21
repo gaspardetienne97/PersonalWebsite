@@ -20,19 +20,37 @@ for (const width of WIDTHS) {
     );
     await page.locator(".overlay .drop").dispatchEvent("dragover");
     await settle(page, 200);
-    await nsnap(page, "add-document", "drag-over", width, "the add modal while a file is dragged over the drop area");
+    await nsnap(
+      page,
+      "add-document",
+      "drag-over",
+      width,
+      "the add modal while a file is dragged over the drop area",
+    );
     await page.locator(".overlay .drop").dispatchEvent("dragleave");
     await pickTab(page, "epub");
     await nsnap(page, "add-document", "modal-epub", width, "the add modal on its EPUB tab");
     await pickTab(page, "paste");
-    await nsnap(page, "add-document", "paste-empty", width, "the add modal on its Paste tab, nothing typed yet");
+    await nsnap(
+      page,
+      "add-document",
+      "paste-empty",
+      width,
+      "the add modal on its Paste tab, nothing typed yet",
+    );
     await page
       .locator(".overlay textarea")
       .fill(
         "The sea was calm that morning, and the harbour was quiet. A single gull stood on the mooring post and watched the boats come in. Nobody spoke until the first net was hauled up.",
       );
     await settle(page, 200);
-    await nsnap(page, "add-document", "paste-typed", width, "the add modal on its Paste tab with text typed, ready to narrate");
+    await nsnap(
+      page,
+      "add-document",
+      "paste-typed",
+      width,
+      "the add modal on its Paste tab with text typed, ready to narrate",
+    );
   });
 
   test(`add document parsing ${width}`, async ({ page }) => {
@@ -126,13 +144,27 @@ test("add document in French phone", async ({ page }) => {
   await expect(page.locator(".overlay .pipe")).toHaveCount(0, { timeout: 30_000 });
   await expect(page.locator(error)).toBeVisible();
   await settle(page, 200);
-  await nsnap(page, "narrator-error", "parse-failed", "phone", "the add modal after picking a file that is not really a PDF", {
-    fr: true,
-  });
+  await nsnap(
+    page,
+    "narrator-error",
+    "parse-failed",
+    "phone",
+    "the add modal after picking a file that is not really a PDF",
+    {
+      fr: true,
+    },
+  );
   await chooseFile(page, "pdf", FILES.unsupported);
   await expect(page.locator(error)).toBeVisible();
   await settle(page, 200);
-  await nsnap(page, "narrator-error", "unsupported", "phone", "the add modal after picking a kind of file it cannot read", {
-    fr: true,
-  });
+  await nsnap(
+    page,
+    "narrator-error",
+    "unsupported",
+    "phone",
+    "the add modal after picking a kind of file it cannot read",
+    {
+      fr: true,
+    },
+  );
 });

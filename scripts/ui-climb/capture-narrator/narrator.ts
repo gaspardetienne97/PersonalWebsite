@@ -32,7 +32,8 @@ export const VOICES: FakeVoice[] = [
   { name: "Google français", lang: "fr-FR", localService: false, default: false },
 ];
 
-export const SPEECH_NOTE = "speech is silent in the capture, the marking and times are the app's own";
+export const SPEECH_NOTE =
+  "speech is silent in the capture, the marking and times are the app's own";
 
 /** Replace speechSynthesis with the silent stand-in. `voices: []` is a device with no voices. */
 export async function fakeSpeech(page: Page, voices: FakeVoice[] = VOICES) {
@@ -259,4 +260,3 @@ export async function usedLibrary(page: Page) {
 export async function blockModel(page: Page) {
   await page.route(/huggingface\.co|\.hf\.co/, (route) => route.abort("failed"));
 }
-
