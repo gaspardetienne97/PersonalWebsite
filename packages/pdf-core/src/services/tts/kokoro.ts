@@ -54,8 +54,6 @@ export type KokoroQuality = "recommended" | "compact";
 export interface KokoroQualityOption {
   id: KokoroQuality;
   readonly label: string;
-  /** Size and what it costs, in plain words. The size is the one this device would download. */
-  readonly detail: string;
 }
 
 // Getters, so the text follows the interface language.
@@ -65,17 +63,11 @@ export const KOKORO_QUALITIES: KokoroQualityOption[] = [
     get label() {
       return m.narrator_quality_recommended();
     },
-    get detail() {
-      return m.narrator_quality_recommended_detail({ size: kokoroDownloadMb("recommended") });
-    },
   },
   {
     id: "compact",
     get label() {
       return m.narrator_quality_compact();
-    },
-    get detail() {
-      return m.narrator_quality_compact_detail({ size: kokoroDownloadMb("compact") });
     },
   },
 ];

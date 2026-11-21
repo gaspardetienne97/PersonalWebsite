@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { languageName, sampleFor, sampleWords, wordAtChar, wordAtFraction } from "./languages";
+import {
+  languageInSentence,
+  languageName,
+  sampleFor,
+  sampleWords,
+  wordAtChar,
+  wordAtFraction,
+} from "./languages";
 
 describe("languageName", () => {
   it("names a voice's language in words, in the interface language", () => {
@@ -26,6 +33,19 @@ describe("languageName", () => {
 
   it("shows the tag itself when it cannot be named", () => {
     expect(languageName("not a tag", "en")).toBe("not a tag");
+  });
+});
+
+describe("languageInSentence", () => {
+  it("keeps English's capital and lowers the first letter in the other interface languages", () => {
+    expect(languageInSentence("en", "en")).toBe("English");
+    expect(languageInSentence("en", "fr")).toBe("anglais");
+    expect(languageInSentence("en", "es")).toBe("inglés");
+    expect(languageInSentence("en", "ht")).toBe("anglè");
+  });
+
+  it("leaves a tag it cannot name as it is", () => {
+    expect(languageInSentence("not a tag", "fr")).toBe("not a tag");
   });
 });
 

@@ -75,20 +75,31 @@ This file provides guidance for agents working on the Narrator app under
     `wordIndex` / `sentenceIndex`.
   - `SettingsPanel.svelte` — the reader's settings in three tabs, one in view at
     a time: Text (size, line spacing and the reading face, Sans or Serif, saved
-    as `settings.font`), Colour (accent, "Match each document") and Voice
-    (engine, language and the link to the full Settings page).
-  - `Notice.svelte`: the one look for every error and status message. Props
-    `tone` (`"error"` is red and draws `role="alert"`; `"warn"` is amber, for
-    "fell back and still works"; `"info"` is blue; both draw `role="status"`),
-    `variant` (`"block"`, a card inside the page, or `"line"`, one 44 px row on
-    the edge of something else), `title`, `actions`
+    as `settings.font`), Colour (accent, "Match each document") and "Voice and
+    language" (engine, the link to the full Settings page, and the menus'
+    language under its own heading). Each slider shows its value as a share of
+    the default ("110%", from `shareOfDefault`) and a Reset button while it is
+    not the default (`settings.isDefault(key)`, `settings.reset(key)`).
+  - `Notice.svelte`: the one look for every error and status message. Every
+    tone draws on the same neutral raised surface; the meaning is in the left
+    rule and the icon: `tone` `"error"` is red and draws `role="alert"`,
+    `"warn"` is amber, for "fell back and still works", `"info"` is blue (both
+    draw `role="status"`). So a primary button never sits on a red panel.
+    `variant` is `"block"`, a card inside the page, or `"line"`, one 48 px row
+    on the edge of something else whose sentence cuts with an ellipsis (the
+    whole sentence is in its tooltip and for screen readers). `short` (line
+    only) is a shorter sentence shown under 480 px. `title`, `actions`
     (`{ label, onclick, primary? }[]`: the one primary is a `Btn`, the others
-    are links), `ondismiss` (draws a close button; the caller removes the
-    notice) and the body as children. Use it instead of a bare error paragraph.
-    The reader's notices (resume, "Back to", fallback) are line notices above
-    the dock.
-  - Presentational primitives: `Cover`, `Equalizer`, `ProgressRing`, `Pill`,
-    `Btn`, `ChapterList`.
+    are 44 px outlined buttons), `ondismiss` (draws a close button; the caller
+    removes the notice) and the body as children. Use it instead of a bare
+    error paragraph. One notice per cause: a failure that shares a cause with
+    a notice already shown adds its sentence to that notice. The reader's
+    notices (resume, the jump notice with "Back to", fallback) are line
+    notices above the dock; the library's Undo is a line notice in a bar on
+    the bottom edge.
+  - Presentational primitives: `Cover` (the generated cover carries the title
+    and author, in one of `COVER_HUES` hues from `coverHue(title)`),
+    `Equalizer`, `Pill`, `Btn`, `ChapterList`.
 
 ### Core Package (`packages/pdf-core/`)
 
@@ -106,7 +117,9 @@ through private file paths when an export exists. Current export map:
     sentence being read at a position) are pure helpers.
     `fmtLong(ms)` writes a length of time in words through messages ("3 min",
     "1 h 4 min"): use it wherever "3:40" could be read as minutes or hours.
-    Unit-tested in `model.test.ts`.
+    `chapterHeading(model, ci)` gives the words of a chapter's opening heading
+    when they repeat its title, so Flow shows them as a title and not as a
+    sentence. Unit-tested in `model.test.ts`.
   - `data.ts` — `SAMPLE_DOCS` (public-domain seed library), and what a card or
     the reader says about a document: `isSample`, `sampleGenre`, `kindLabel`,
     `formatLabel`, `byline` and `authorName(doc)`. The extractors store the
@@ -114,7 +127,11 @@ through private file paths when an export exists. Current export map:
     `authorName(doc)`, never `doc.author`. `byline(doc)` is the line under a
     card's title: the author, with a sample's genre, and empty when the document
     names no author. `lengthLine(total, progress)` says a document's length once
-    ("4 min", then "1 min left of 4 min"). `matchesQuery` and `markMatches`
+    ("4 min", then "1 min left of 4 min"), and `leftLine` the continue card's
+    "2 min left". `listenTime(ms)` says a short text's time in seconds under a
+    minute ("about 15 s"). `coverHue(title)` picks one of `COVER_HUES` cover
+    hues from the title. `suggestTitle(text)` is the title pasted text gets:
+    its first six words, cut on a word. `matchesQuery` and `markMatches`
     are the library search and the marks on what matched.
 - `@repo/pdf-core/services/extract` — `src/services/extract/`: real File →
   `NarratorDoc`. `extractFile()` dispatches by kind to `pdf.ts` (pdf.js),
@@ -137,10 +154,13 @@ through private file paths when an export exists. Current export map:
   dual-engine playhead. See below. `seekSentence(pos)` moves to the start of
   the sentence at a position and `replaySentence()` says the current one again.
 - `@repo/pdf-core/stores/library` — `NarratorLibrary`: the document list +
-  per-doc live progress, persisted to `localStorage`.
+  per-doc live progress, persisted to `localStorage`. `startOver(id)` forgets
+  where listening stopped.
 - `@repo/pdf-core/stores/settings` — `ReaderSettings`: persisted reader prefs
   (`engine`, `naturalVoice`, layout, highlight, font (`"sans"` or `"serif"`),
-  fontSize, lineHeight, accent, accentAuto).
+  fontSize, lineHeight, accent, accentAuto), with `isDefault(key)` and
+  `reset(key)`. `shareOfDefault(key, value)` is a slider's value as a share
+  of its default.
 - `@repo/pdf-core/stores/voices` — `VoiceCatalog` / `voiceCatalog`: reactive
   list of the system's Web Speech voices.
 

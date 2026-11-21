@@ -52,6 +52,18 @@ export function languageName(tag: string, locale: string = getLocale(), short = 
   }
 }
 
+/**
+ * A language's name for the middle of a sentence ("No English voices", "aucune voix en anglais").
+ * English writes its language names with a capital; the other interface languages do not.
+ */
+export function languageInSentence(tag: string, locale: string = getLocale()): string {
+  const name = languageName(tag, locale);
+  if (locale === "en" || name === tag) return name;
+  return (
+    name.charAt(0).toLocaleLowerCase(locale === "ht" ? "fr-HT" : intlLocale(locale)) + name.slice(1)
+  );
+}
+
 // What a voice reads as its sample, in the voice's own language. This is spoken content, not
 // interface text, so it follows the voice and never the interface language.
 const SAMPLES: Record<string, string> = {

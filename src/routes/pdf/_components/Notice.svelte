@@ -2,7 +2,7 @@
   export interface NoticeAction {
     label: string;
     onclick: () => void;
-    /** The one action to take first. Drawn as the app's primary button; the others are links. */
+    /** The one action to take first. Drawn as the app's primary button; the others are outlined buttons. */
     primary?: boolean;
   }
 </script>
@@ -15,14 +15,19 @@
   import Btn from "./Btn.svelte";
 
   // One look for every Narrator error and status: an icon, a plain sentence and what to do next.
-  // One colour per meaning: red for "failed", amber for "fell back", blue for information.
+  // The surface is always the same neutral one. The meaning is in the rule on the left edge and
+  // the icon: red for "failed", amber for "fell back", blue for information. So a main button
+  // never sits on a red panel.
   // Errors interrupt a screen reader (role="alert"); the others wait their turn (role="status").
-  // "block" is a card inside the page. "line" is one row for a status that sits on the edge of
-  // something else (above the player, at the bottom of the library).
+  // "block" is a card inside the page. "line" is one row, 48 px tall at every width, for a status
+  // that sits on the edge of something else (above the player, at the bottom of the library):
+  // the sentence is cut with an ellipsis when it runs out of room, and its action and close
+  // button are cells at the row's end.
   let {
     tone = "error",
     variant = "block",
     title,
+    short,
     actions = [],
     ondismiss,
     class: className = "",
@@ -31,6 +36,8 @@
     tone?: "error" | "warn" | "info";
     variant?: "block" | "line";
     title?: string;
+    /** "line" only: a shorter sentence shown under 480 px. Screen readers still get the full one. */
+    short?: string;
     actions?: NoticeAction[];
     /** Draws a close button. The caller removes the notice. */
     ondismiss?: () => void;
@@ -40,10 +47,20 @@
 
   // One primary at most, and it comes first.
   const primary = $derived(actions.find((a) => a.primary));
-  const links = $derived(actions.filter((a) => a !== primary));
+  const others = $derived(actions.filter((a) => a !== primary));
+
+  // A cut sentence shows whole in a tooltip. Read when the pointer arrives, so it is never stale.
+  let words = $state<HTMLElement>();
+  const tip = () => {
+    if (words) words.title = words.querySelector(".full")?.textContent?.trim() ?? "";
+  };
 </script>
 
-<div class="notice {tone} {variant} {className}" role={tone === "error" ? "alert" : "status"}>
+<div
+  class="notice {tone} {variant} {className}"
+  class:has-short={variant === "line" && short}
+  role={tone === "error" ? "alert" : "status"}
+>
   <!-- Inline icons: a new lucide import would need an entry in vite.config.ts's optimizeDeps. -->
   <svg
     class="icon"
@@ -73,22 +90,22 @@
     {/if}
   </svg>
   <div class="body">
-    <div class="words">
-      {#if title}<strong class="title">{title}</strong>{/if}
-      {#if children}<div class="text">{@render children()}</div>{/if}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="words" bind:this={words} onpointerenter={variant === "line" ? tip : undefined}>
+      <div class="full">
+        {#if title}<strong class="title">{title}</strong>{/if}
+        {#if children}<div class="text">{@render children()}</div>{/if}
+      </div>
+      {#if variant === "line" && short}<span class="short" aria-hidden="true">{short}</span>{/if}
     </div>
     {#if actions.length}
       <div class="actions">
         {#if primary}
           <Btn variant="primary" type="button" onclick={primary.onclick}>{primary.label}</Btn>
         {/if}
-        {#if links.length}
-          <div class="links">
-            {#each links as a (a.label)}
-              <button type="button" class="link" onclick={a.onclick}>{a.label}</button>
-            {/each}
-          </div>
-        {/if}
+        {#each others as a (a.label)}
+          <button type="button" class="second" onclick={a.onclick}>{a.label}</button>
+        {/each}
       </div>
     {/if}
   </div>
@@ -107,17 +124,18 @@
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    padding: 14px 16px;
+    padding: 14px 16px 14px 18px;
     border-radius: 12px;
-    border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
-    /* Mixed over an opaque surface so the notice reads the same above the reader's text. */
-    background: color-mix(in srgb, var(--tone) 11%, var(--n-bg-1));
+    border: 1px solid var(--n-border-2);
+    /* A neutral raised surface, opaque so the notice reads the same above the reader's text.
+       The tone is a rule down the left edge, inside the rounded corner. */
+    background: var(--n-bg-2);
+    box-shadow: inset 4px 0 0 var(--tone);
     color: var(--n-fg-0);
     font-family: var(--n-font-sans);
     text-align: left;
   }
   .warn {
-    /* WP4 defines --n-warn in narrator.css; this amber until then. */
     --tone: var(--n-warn, #f59e0b);
   }
   .info {
@@ -126,7 +144,7 @@
   .icon {
     flex-shrink: 0;
     margin-top: 1px;
-    color: color-mix(in srgb, var(--tone) 70%, var(--n-fg-0));
+    color: color-mix(in srgb, var(--tone) 75%, var(--n-fg-0));
   }
   .body {
     flex: 1;
@@ -142,44 +160,38 @@
   .text {
     font-size: 15px;
     line-height: 1.5;
-    /* Lighter than --n-fg-2: the tinted surface is brighter than the page. */
     color: var(--n-fg-1);
     overflow-wrap: anywhere;
   }
   .title + .text {
     margin-top: 2px;
   }
-  /* One filled button per notice. Every other action is a link, in a row under it. */
+  .short {
+    display: none;
+  }
+  /* One filled button per notice, first. Every other action is an outlined button of the same
+     height beside it. */
   .actions {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-top: 12px;
   }
-  .links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 24px;
-  }
-  .link {
+  .second {
     min-height: 44px;
-    padding: 0;
-    border: 0;
-    background: none;
+    padding: 0 14px;
+    border: 1px solid var(--n-border-3);
+    border-radius: 8px;
+    background: transparent;
     color: var(--n-fg-0);
     font: inherit;
     font-size: 14px;
     font-weight: 600;
-    line-height: 1.3;
-    text-align: left;
-    text-decoration: underline;
-    text-decoration-color: color-mix(in srgb, var(--n-fg-0) 45%, transparent);
-    text-underline-offset: 3px;
+    line-height: 1.25;
     cursor: pointer;
   }
-  .link:hover {
-    text-decoration-color: currentColor;
+  .second:hover {
+    background: var(--n-bg-3);
   }
   .dismiss {
     width: 44px;
@@ -195,10 +207,10 @@
     cursor: pointer;
   }
   .dismiss:hover {
-    background: color-mix(in srgb, var(--n-fg-0) 10%, transparent);
+    background: var(--n-bg-3);
     color: var(--n-fg-0);
   }
-  .link:focus-visible,
+  .second:focus-visible,
   .dismiss:focus-visible {
     outline: 2px solid var(--n-fg-0);
     outline-offset: 2px;
@@ -206,61 +218,95 @@
 
   /* ---- one row: icon, one sentence, one action, an optional close ---- */
   .line {
-    align-items: center;
-    min-height: 44px;
-    padding: 4px 6px 4px 14px;
-  }
-  /* With no close button the action is the last thing on the row: it keeps the left edge's inset. */
-  .line:not(:has(.dismiss)) {
-    padding-right: 14px;
+    align-items: stretch;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 0 0 16px;
+    overflow: hidden;
   }
   .line .icon {
+    align-self: center;
     margin-top: 0;
   }
   .line .body {
     display: flex;
-    align-items: center;
-    gap: 2px 14px;
+    align-items: stretch;
   }
+  /* The sentence never takes a second row: it is cut, and the tooltip has the rest. */
   .line .words {
     flex: 1;
     min-width: 0;
-    padding: 6px 0;
+    align-self: center;
+    padding-right: 12px;
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .line :is(.title, .text) {
+  .line :is(.full, .title, .text) {
     display: inline;
     font-size: 14px;
     line-height: 1.4;
   }
+  .line .text {
+    color: var(--n-fg-0);
+  }
+  .line .title + .text {
+    margin-left: 0.3em;
+  }
+  /* The action and the close button are cells the height of the row, each behind a rule. */
   .line .actions {
-    flex-direction: row;
-    align-items: center;
-    gap: 14px;
+    flex-wrap: nowrap;
     flex-shrink: 0;
+    gap: 0;
     margin-top: 0;
   }
+  .line .second,
   .line .dismiss {
+    min-height: 46px;
+    height: auto;
     margin: 0;
+    border: 0;
+    border-left: 1px solid var(--n-border-2);
+    border-radius: 0;
+    white-space: nowrap;
+  }
+  .line .second {
+    font-weight: 700;
+  }
+  .line .dismiss {
+    width: 48px;
+  }
+  .line :is(.second, .dismiss):focus-visible {
+    outline-offset: -3px;
+  }
+  /* A filled button keeps its own shape inside the row. */
+  .line .actions :global(.btn) {
+    align-self: center;
+    margin-right: 2px;
   }
 
   @media (max-width: 560px) {
-    /* One thumb-sized column: the main action is the full width of the notice. */
+    /* One thumb-sized column: every action is the full width of the notice (under the icon too),
+       the main one first. */
     .block .actions {
-      align-items: stretch;
-    }
-    .block .links {
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
+      margin-left: -34px;
     }
-    .block .link {
-      text-align: center;
+  }
+  @media (max-width: 479px) {
+    /* The shorter sentence takes the full one's place. The full one stays for screen readers. */
+    .has-short .full {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
     }
-    /* A long sentence and its action do not fit one row on a phone: the action drops under it. */
-    .line .body {
-      flex-wrap: wrap;
-    }
-    .line .words {
-      flex-basis: 12em;
+    .has-short .short {
+      display: inline;
     }
   }
 </style>
