@@ -80,6 +80,7 @@
   "narrator_library_add_card_sub": "PDF, EPUB, fichier texte ou collage",
   "narrator_library_add_first": "Ajoutez votre premier document",
   "narrator_library_add_first_sub": "Importez un PDF, un EPUB ou un fichier texte, ou collez n’importe quel texte, et je le lirai à voix haute en surlignant chaque mot au fil de la lecture.",
+  "narrator_library_clear_search": "Effacer la recherche",
   "narrator_library_continue": "Reprendre l’écoute",
   "narrator_library_count": [
     {
@@ -96,6 +97,8 @@
   "narrator_library_get_started": "Pour commencer",
   "narrator_library_heading": "Votre bibliothèque",
   "narrator_library_home": "Retour au site de Gaspard",
+  "narrator_library_no_match_sub": "Vérifiez l’orthographe, ou effacez la recherche pour voir toute votre bibliothèque.",
+  "narrator_library_no_match_title": "Aucun document ne correspond à « {query} »",
   "narrator_library_resume": "Reprendre",
   "narrator_library_search": "Rechercher dans votre bibliothèque",
   "narrator_library_tagline": "LIT À VOIX HAUTE",

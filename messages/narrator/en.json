@@ -80,6 +80,7 @@
   "narrator_library_add_card_sub": "PDF, EPUB, text file, or paste",
   "narrator_library_add_first": "Add your first document",
   "narrator_library_add_first_sub": "Upload a PDF, EPUB, or text file — or paste anything — and I'll read it aloud, highlighting each word as it goes.",
+  "narrator_library_clear_search": "Clear search",
   "narrator_library_continue": "Continue listening",
   "narrator_library_count": [
     {
@@ -96,6 +97,8 @@
   "narrator_library_get_started": "Get started",
   "narrator_library_heading": "Your Library",
   "narrator_library_home": "Back to Gaspard's site",
+  "narrator_library_no_match_sub": "Check the spelling, or clear the search to see your whole library.",
+  "narrator_library_no_match_title": "No documents match “{query}”",
   "narrator_library_resume": "Resume",
   "narrator_library_search": "Search your library",
   "narrator_library_tagline": "READS ALOUD",

@@ -80,6 +80,7 @@
   "narrator_library_add_card_sub": "PDF, EPUB, archivo de texto o pegar",
   "narrator_library_add_first": "Agrega tu primer documento",
   "narrator_library_add_first_sub": "Sube un PDF, un EPUB o un archivo de texto, o pega lo que quieras, y lo leeré en voz alta resaltando cada palabra a medida que avanzo.",
+  "narrator_library_clear_search": "Borrar búsqueda",
   "narrator_library_continue": "Seguir escuchando",
   "narrator_library_count": [
     {
@@ -96,6 +97,8 @@
   "narrator_library_get_started": "Empieza",
   "narrator_library_heading": "Tu biblioteca",
   "narrator_library_home": "Volver al sitio de Gaspard",
+  "narrator_library_no_match_sub": "Revisa cómo lo escribiste o borra la búsqueda para ver toda tu biblioteca.",
+  "narrator_library_no_match_title": "Ningún documento coincide con “{query}”",
   "narrator_library_resume": "Reanudar",
   "narrator_library_search": "Busca en tu biblioteca",
   "narrator_library_tagline": "LEE EN VOZ ALTA",

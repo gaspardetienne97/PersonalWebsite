@@ -80,6 +80,7 @@
   "narrator_library_add_card_sub": "PDF, EPUB, fichye tèks oswa kole",
   "narrator_library_add_first": "Ajoute premye dokiman ou",
   "narrator_library_add_first_sub": "Mete yon PDF, yon EPUB oswa yon fichye tèks, oswa kole nenpòt tèks, epi m ap li l awotvwa, m ap make chak mo pandan m ap li.",
+  "narrator_library_clear_search": "Efase rechèch la",
   "narrator_library_continue": "Kontinye koute",
   "narrator_library_count": [
     {
@@ -96,6 +97,8 @@
   "narrator_library_get_started": "Kòmanse",
   "narrator_library_heading": "Bibliyotèk ou",
   "narrator_library_home": "Retounen sou sit Gaspard la",
+  "narrator_library_no_match_sub": "Tcheke òtograf la, oswa efase rechèch la pou wè tout bibliyotèk ou.",
+  "narrator_library_no_match_title": "Pa gen dokiman ki koresponn ak “{query}”",
   "narrator_library_resume": "Kontinye",
   "narrator_library_search": "Chèche nan bibliyotèk ou",
   "narrator_library_tagline": "LI AWOTVWA",

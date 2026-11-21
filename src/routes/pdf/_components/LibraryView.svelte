@@ -66,7 +66,9 @@
     <a class="icon-btn" href="/pdf/settings" title={m.narrator_voice_settings()} aria-label={m.narrator_voice_settings()}>
       <SlidersHorizontal size={18} strokeWidth={1.5} />
     </a>
-    <Btn variant="primary" onclick={onadd}><Plus size={18} strokeWidth={1.5} /> {m.narrator_add_document()}</Btn>
+    <Btn variant="primary" onclick={onadd}>
+      <Plus size={18} strokeWidth={1.5} /> <span class="add-label">{m.narrator_add_document()}</span>
+    </Btn>
   </header>
 
   <main class="main">
@@ -134,6 +136,13 @@
           <Plus size={18} strokeWidth={1.5} /> {m.narrator_add_document()}
         </Btn>
       </div>
+    {:else if filtered.length === 0}
+      <div class="empty" role="status">
+        <div class="empty-icon"><Search size={26} strokeWidth={1.5} style="color: var(--n-fg-3)" /></div>
+        <div class="empty-title">{m.narrator_library_no_match_title({ query: query.trim() })}</div>
+        <div class="empty-sub">{m.narrator_library_no_match_sub()}</div>
+        <Btn class="empty-add" onclick={() => (query = "")}>{m.narrator_library_clear_search()}</Btn>
+      </div>
     {:else}
       <div class="grid">
         {#each filtered as doc (doc.id)}
@@ -186,6 +195,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
   }
   .wordmark {
     display: flex;
@@ -206,6 +216,7 @@
     color: var(--n-fg-3);
     letter-spacing: 0.14em;
     margin-top: 3px;
+    white-space: nowrap;
   }
   .search-wrap {
     margin-left: auto;
@@ -231,6 +242,13 @@
   }
   .search-wrap input::placeholder {
     color: var(--n-fg-3);
+  }
+  /* The site's forms plugin rings every focused text input, square. The pill shows focus instead. */
+  .search-wrap input:focus {
+    box-shadow: none;
+  }
+  .search-wrap:focus-within {
+    border-color: var(--n-brand-blue);
   }
   .icon-btn {
     width: 40px;
@@ -464,6 +482,8 @@
   .empty-title {
     font-weight: 600;
     color: var(--n-fg-1);
+    text-align: center;
+    overflow-wrap: anywhere;
   }
   .empty-sub {
     font-size: 13px;
@@ -474,7 +494,33 @@
   .empty :global(.empty-add) {
     margin-top: 6px;
   }
+  /* Below this the bar's contents do not fit one row (the French needs about 730px):
+     the search field takes a row of its own. */
+  @media (max-width: 720px) {
+    .bar {
+      height: auto;
+      flex-wrap: wrap;
+      padding-block: 12px;
+      row-gap: 12px;
+    }
+    .brand {
+      margin-right: auto;
+    }
+    .search-wrap {
+      order: 1;
+      width: 100%;
+    }
+  }
   @media (max-width: 560px) {
+    /* The plus alone on a phone; the label stays for screen readers. */
+    .add-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
     .hero-card {
       flex-direction: column !important;
       text-align: center;

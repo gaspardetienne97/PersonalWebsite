@@ -40,6 +40,16 @@ test.describe("Narrator", () => {
     await expect(page.getByText("1 document", { exact: true })).toBeVisible();
   });
 
+  test("a search that matches nothing says so and can be cleared", async ({ page }) => {
+    const search = page.getByLabel("Search your library");
+    await search.fill("zebra");
+
+    await expect(page.getByText("No documents match “zebra”")).toBeVisible();
+    await page.getByRole("button", { name: "Clear search" }).click();
+    await expect(search).toHaveValue("");
+    await expect(page.getByText("The Time Machine").first()).toBeVisible();
+  });
+
   test("opens the add-document modal with input tabs and voices", async ({ page }) => {
     await page
       .getByRole("button", { name: /Add document/ })
@@ -162,5 +172,27 @@ test.describe("Narrator", () => {
     await page.getByRole("button", { name: "Back to library" }).click();
 
     await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
+  });
+});
+
+test.describe("Narrator on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test("the library fits the screen and a document is removed without hovering", async ({
+    page,
+  }) => {
+    await page.goto("/pdf");
+    const title = "Designing Data-Intensive Apps — Ch. 1";
+    await expect(page.getByRole("button", { name: title, exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    await expect(page.getByRole("button", { name: /Add document/ }).first()).toBeInViewport();
+
+    // No pointer has been over the card: the bin is there to tap all the same.
+    const remove = page.getByRole("button", { name: `Remove ${title} from library` });
+    await expect(remove).toHaveCSS("opacity", "1");
+    await remove.tap();
+    await page.getByRole("button", { name: "Remove", exact: true }).tap();
+
+    await expect(page.getByRole("button", { name: title, exact: true })).not.toBeVisible();
   });
 });
