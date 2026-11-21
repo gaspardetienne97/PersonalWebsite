@@ -89,6 +89,8 @@ for (const width of WIDTHS) {
       );
     }
 
+    // Closing a menu hands focus back to its button: let go of it, so the footer shot has no ring.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.evaluate(() =>
       window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
     );
@@ -129,6 +131,7 @@ test("nav in French phone", async ({ page }) => {
   );
   await page.keyboard.press("Escape");
   await expect(page.getByRole("menu")).toHaveCount(0);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.evaluate(() =>
     window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
   );

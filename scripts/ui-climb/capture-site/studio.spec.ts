@@ -94,6 +94,8 @@ for (const width of WIDTHS) {
     await dialog.getByRole("button", { name: "Zoom out" }).click();
     await expect(dialog.locator(".zoombox")).toHaveCount(0);
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowRight");
+    // The Zoom button was the last thing pressed: let go of it, so the shot has no focus ring.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await pieceShown(page);
     await snap(
       page,

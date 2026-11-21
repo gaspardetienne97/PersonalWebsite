@@ -67,7 +67,8 @@ export const PROJECTS = {
     suffix: "-site",
     port: 5181,
     fableLabel: "Claude Fable 5.2",
-    notes: "",
+    notes:
+      "Harness notes: from round 1 the sign-in screens come from a second server with sign-in switched on (round 0 could only show 'not set up'), so the panel shows the button, the cancelled state with Try again, and the page reached from the private area. The writing list panel shows the list in both themes in place of the filtered state, which no longer exists while every post shares its categories. The viewer panel gains the zoomed state and the About panel the opened 'How it's built' disclosure. Part of a round 1 change on those flows may come from the panel, not the site.",
     sidecarCaptions: true,
   },
   narrator: {
@@ -93,7 +94,8 @@ export const PROJECTS = {
     suffix: "-narrator",
     port: 5181,
     fableLabel: "Claude Fable 5.2",
-    notes: "",
+    notes:
+      "Harness notes: from round 1 the panels add states that did not exist in round 0: a first visit after a sample was played, the Undo notice after removing a document (in place of the card hover), a chapter list with a long title, and the notice when the voice filters hide every voice (in place of the damaged EPUB, which looks like the other failed files). The natural voice fallback is shot with the menu closed, showing its notice. Part of a round 1 change on those flows may come from the panel, not the app.",
     sidecarCaptions: true,
   },
 };
