@@ -9,6 +9,7 @@ export {
   webgpuAvailable,
   kokoroUsesGpu,
   kokoroDownloadMb,
+  bytesToMb,
   downloadTracker,
   loadKokoro,
   kokoroLoaded,

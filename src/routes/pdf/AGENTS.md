@@ -57,8 +57,11 @@ This file provides guidance for agents working on the Narrator app under
 - `_components/`:
   - `LibraryView.svelte` — app bar, search, continue-listening / add-first hero,
     document grid (`DocCard`), add tile, empty state.
-  - `AddDocumentModal.svelte` — PDF/EPUB/Text/Paste tabs, real file input +
-    drag-drop, the extraction-progress pipeline, and the voice picker.
+  - `AddDocumentModal.svelte` — two tabs, "File" and "Paste text". The file tab
+    takes PDF, EPUB and text files through one input and drag-drop, and the kind
+    is detected (`kindForFile`). It also holds the extraction progress (steps,
+    and "page 12 of 240" for a PDF) and the voice picker. A failed file offers
+    pasting unless the error's `code` says there is no text to copy.
   - `ReaderView.svelte` — the reader shell with three layouts (immersive /
     audiobook / document), the Flow ↔ Document text toggle, the settings
     popover, and the audio player. Constructs the `NarrationPlayer` and disposes
@@ -70,12 +73,20 @@ This file provides guidance for agents working on the Narrator app under
   - `TextBody.svelte` (scrolling document karaoke) and `Teleprompter.svelte`
     (sentence-focused "flow" karaoke). Both highlight via the player's
     `wordIndex` / `sentenceIndex`.
-  - `SettingsPanel.svelte` — the production form of the handoff "tweaks":
-    voice engine, layout, highlight style, font, type metrics, accent.
+  - `SettingsPanel.svelte` — the reader's settings in three tabs, one in view at
+    a time: Text (size, line spacing and the reading face, Sans or Serif, saved
+    as `settings.font`), Colour (accent, "Match each document") and Voice
+    (engine, language and the link to the full Settings page).
   - `Notice.svelte`: the one look for every error and status message. Props
-    `tone` (`"error"` draws `role="alert"`, `"info"` draws `role="status"`),
-    `title`, `actions` (`{ label, onclick, primary? }[]`, drawn as 44 px buttons)
-    and the body as children. Use it instead of a bare error paragraph.
+    `tone` (`"error"` is red and draws `role="alert"`; `"warn"` is amber, for
+    "fell back and still works"; `"info"` is blue; both draw `role="status"`),
+    `variant` (`"block"`, a card inside the page, or `"line"`, one 44 px row on
+    the edge of something else), `title`, `actions`
+    (`{ label, onclick, primary? }[]`: the one primary is a `Btn`, the others
+    are links), `ondismiss` (draws a close button; the caller removes the
+    notice) and the body as children. Use it instead of a bare error paragraph.
+    The reader's notices (resume, "Back to", fallback) are line notices above
+    the dock.
   - Presentational primitives: `Cover`, `Equalizer`, `ProgressRing`, `Pill`,
     `Btn`, `ChapterList`.
 
@@ -90,7 +101,9 @@ through private file paths when an export exists. Current export map:
   - `types.ts` — `NarratorDoc`, `NarratorChapter`, `WordToken`, `SentenceSpan`,
     `ChapterSpan`, `NarrationModel`, `DocKind`.
   - `model.ts` — `buildModel(doc)` tokenizes a document onto a virtual 1× word
-    timeline (ms); `fmt(ms)` and `wordIndexAt(model, pos)` are pure helpers.
+    timeline (ms); `fmt(ms)` (also exported as `fmtClock`, `m:ss` or
+    `h:mm:ss`), `wordIndexAt(model, pos)` and `sentenceAt(model, pos)` (the
+    sentence being read at a position) are pure helpers.
     `fmtLong(ms)` writes a length of time in words through messages ("3 min",
     "1 h 4 min"): use it wherever "3:40" could be read as minutes or hours.
     Unit-tested in `model.test.ts`.
@@ -98,26 +111,36 @@ through private file paths when an export exists. Current export map:
     the reader says about a document: `isSample`, `sampleGenre`, `kindLabel`,
     `formatLabel`, `byline` and `authorName(doc)`. The extractors store the
     format's name as `doc.author` when a file names no author, so show
-    `authorName(doc)`, never `doc.author`.
+    `authorName(doc)`, never `doc.author`. `byline(doc)` is the line under a
+    card's title: the author, with a sample's genre, and empty when the document
+    names no author. `lengthLine(total, progress)` says a document's length once
+    ("4 min", then "1 min left of 4 min"). `matchesQuery` and `markMatches`
+    are the library search and the marks on what matched.
 - `@repo/pdf-core/services/extract` — `src/services/extract/`: real File →
   `NarratorDoc`. `extractFile()` dispatches by kind to `pdf.ts` (pdf.js),
   `epub.ts` (JSZip + spine walk), or `txt.ts` (txt/markdown). `extractPaste()`
   handles pasted text. `normalize.ts` holds pure cleanup
-  (hyphenation join, paragraph/heading splitting) — unit-tested.
+  (hyphenation join, paragraph/heading splitting) — unit-tested. An
+  `ExtractError` carries a message written for the listener and an optional
+  `code` (`"pdf-no-text"` for a scan, `"pdf-locked"`). The progress callback's
+  second argument is `{ page, pages }` while a PDF's pages are read.
 - `@repo/pdf-core/services/tts` — `src/services/tts/`: Web Speech helpers
   (`getSynth`, `resolveVoice`, `speechAvailable`) and the Kokoro neural engine
   (`kokoro.ts`: `loadKokoro`, `synthesize`, `KOKORO_VOICES`, `mapAudioToPos`).
   For the settings page: `kokoroStatus(quality)` (`"idle"`, `"loading"` or
   `"ready"`), `kokoroDownloadMb(quality)` (the download's size for the device
-  in use) and `downloadTracker()` (turns the loader's progress events into one
-  running total). Pure parts unit-tested in `kokoro.test.ts`.
+  in use: the model file's real size, and the loader's own total once
+  `noteDownloadBytes` has recorded it, so every size on the page agrees) and
+  `downloadTracker()` (turns the loader's progress events into one running
+  total). Pure parts unit-tested in `kokoro.test.ts`.
 - `@repo/pdf-core/stores/narration` — `NarrationPlayer` (`*.svelte.ts`): the
-  dual-engine playhead. See below.
+  dual-engine playhead. See below. `seekSentence(pos)` moves to the start of
+  the sentence at a position and `replaySentence()` says the current one again.
 - `@repo/pdf-core/stores/library` — `NarratorLibrary`: the document list +
   per-doc live progress, persisted to `localStorage`.
 - `@repo/pdf-core/stores/settings` — `ReaderSettings`: persisted reader prefs
-  (`engine`, `naturalVoice`, layout, highlight, font, fontSize, lineHeight,
-  accent, accentAuto).
+  (`engine`, `naturalVoice`, layout, highlight, font (`"sans"` or `"serif"`),
+  fontSize, lineHeight, accent, accentAuto).
 - `@repo/pdf-core/stores/voices` — `VoiceCatalog` / `voiceCatalog`: reactive
   list of the system's Web Speech voices.
 
@@ -200,7 +223,11 @@ Keep these two settings together if you touch either.
 - Match the existing radii, glass surfaces, and motion (`var(--n-ease-out)`,
   the `n-*` keyframes).
 - Tokens to reach for before adding a colour: `--n-fg-2` and `--n-fg-3`
-  (secondary and quiet text; the quiet one keeps 4.5:1 up to `--n-bg-3`),
+  (secondary and quiet text; the quiet one is for 14 px or more, and labels,
+  chips and eyebrows use `--n-fg-2` at 12 px or more), `--n-fg-read` (reading
+  text already read aloud), `--n-primary-veil` (laid over the brand gradient on
+  the one primary button, `Btn`, so its white label keeps 4.5:1), `--n-warn`
+  (amber, "fell back"; red stays for "failed"),
   `--n-on-accent` (text and icons on an accent fill), `--n-accent-app` (the one
   accent for progress and playing state unless "Match each document" is on; read
   it as `var(--n-accent, var(--n-accent-app))`), `--n-bar-bg` (the reader's top

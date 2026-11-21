@@ -152,9 +152,24 @@ export function kokoroUsesGpu(quality: KokoroQuality): boolean {
   return resolveConfig(quality).device === "webgpu";
 }
 
-/** Roughly what a preset downloads on this device, in megabytes (the fp32 model or the int8 one). */
+// The two model files' sizes on the model host, in megabytes (325,532,232 and 92,361,116 bytes).
+const MODEL_MB: Record<Dtype, number> = { fp32: 326, q8: 92 };
+// What the loader said a file weighs, once it has: the page then shows that figure everywhere.
+const reportedMb: Partial<Record<Dtype, number>> = {};
+
+/** Megabytes, as every size on the page is written. */
+export const bytesToMb = (bytes: number) => Math.round(bytes / 1_000_000);
+
+/** Record the total the loader reports for a preset's download, so every size shown agrees with it. */
+export function noteDownloadBytes(quality: KokoroQuality, totalBytes: number | undefined): void {
+  if (totalBytes && totalBytes > 0)
+    reportedMb[resolveConfig(quality).dtype] = bytesToMb(totalBytes);
+}
+
+/** What a preset downloads on this device, in megabytes: the loader's own total once known. */
 export function kokoroDownloadMb(quality: KokoroQuality): number {
-  return resolveConfig(quality).dtype === "fp32" ? 330 : 90;
+  const { dtype } = resolveConfig(quality);
+  return reportedMb[dtype] ?? MODEL_MB[dtype];
 }
 
 // kokoro-js has no published types we import directly; keep the surface minimal.
@@ -195,7 +210,9 @@ export function loadKokoro(
       device,
       progress_callback: (info: KokoroProgressEvent) => {
         const p = modelPromise === promise ? track(info) : null;
-        if (p) for (const listener of progressListeners) listener(p);
+        if (!p) return;
+        noteDownloadBytes(quality, p.totalBytes);
+        for (const listener of progressListeners) listener(p);
       },
     });
     return tts as unknown as KokoroModel;

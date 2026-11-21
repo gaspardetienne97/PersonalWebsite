@@ -2,7 +2,7 @@
   export interface NoticeAction {
     label: string;
     onclick: () => void;
-    /** The one action to take first. Drawn filled; the others are outlined. */
+    /** The one action to take first. Drawn as the app's primary button; the others are links. */
     primary?: boolean;
   }
 </script>
@@ -10,24 +10,40 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
 
+  import { m } from "@repo/i18n/messages.js";
+
+  import Btn from "./Btn.svelte";
+
   // One look for every Narrator error and status: an icon, a plain sentence and what to do next.
-  // Errors interrupt a screen reader (role="alert"); info waits its turn (role="status").
+  // One colour per meaning: red for "failed", amber for "fell back", blue for information.
+  // Errors interrupt a screen reader (role="alert"); the others wait their turn (role="status").
+  // "block" is a card inside the page. "line" is one row for a status that sits on the edge of
+  // something else (above the player, at the bottom of the library).
   let {
     tone = "error",
+    variant = "block",
     title,
     actions = [],
+    ondismiss,
     class: className = "",
     children,
   }: {
-    tone?: "error" | "info";
+    tone?: "error" | "warn" | "info";
+    variant?: "block" | "line";
     title?: string;
     actions?: NoticeAction[];
+    /** Draws a close button. The caller removes the notice. */
+    ondismiss?: () => void;
     class?: string;
     children?: Snippet;
   } = $props();
+
+  // One primary at most, and it comes first.
+  const primary = $derived(actions.find((a) => a.primary));
+  const links = $derived(actions.filter((a) => a !== primary));
 </script>
 
-<div class="notice {tone} {className}" role={tone === "error" ? "alert" : "status"}>
+<div class="notice {tone} {variant} {className}" role={tone === "error" ? "alert" : "status"}>
   <!-- Inline icons: a new lucide import would need an entry in vite.config.ts's optimizeDeps. -->
   <svg
     class="icon"
@@ -41,26 +57,48 @@
     stroke-linejoin="round"
     aria-hidden="true"
   >
-    <circle cx="12" cy="12" r="10" />
-    {#if tone === "error"}
-      <path d="M12 7.5v5.5" />
-      <path d="M12 16.5h.01" />
+    {#if tone === "warn"}
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4.5" />
+      <path d="M12 17h.01" />
     {:else}
-      <path d="M12 16.5V11" />
-      <path d="M12 7.5h.01" />
+      <circle cx="12" cy="12" r="10" />
+      {#if tone === "error"}
+        <path d="M12 7.5v5.5" />
+        <path d="M12 16.5h.01" />
+      {:else}
+        <path d="M12 16.5V11" />
+        <path d="M12 7.5h.01" />
+      {/if}
     {/if}
   </svg>
   <div class="body">
-    {#if title}<strong class="title">{title}</strong>{/if}
-    {#if children}<div class="text">{@render children()}</div>{/if}
+    <div class="words">
+      {#if title}<strong class="title">{title}</strong>{/if}
+      {#if children}<div class="text">{@render children()}</div>{/if}
+    </div>
     {#if actions.length}
       <div class="actions">
-        {#each actions as a (a.label)}
-          <button type="button" class:primary={a.primary} onclick={a.onclick}>{a.label}</button>
-        {/each}
+        {#if primary}
+          <Btn variant="primary" type="button" onclick={primary.onclick}>{primary.label}</Btn>
+        {/if}
+        {#if links.length}
+          <div class="links">
+            {#each links as a (a.label)}
+              <button type="button" class="link" onclick={a.onclick}>{a.label}</button>
+            {/each}
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
+  {#if ondismiss}
+    <button type="button" class="dismiss" aria-label={m.narrator_close()} onclick={ondismiss}>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M6 6l12 12M18 6 6 18" />
+      </svg>
+    </button>
+  {/if}
 </div>
 
 <style>
@@ -77,6 +115,10 @@
     color: var(--n-fg-0);
     font-family: var(--n-font-sans);
     text-align: left;
+  }
+  .warn {
+    /* WP4 defines --n-warn in narrator.css; this amber until then. */
+    --tone: var(--n-warn, #f59e0b);
   }
   .info {
     --tone: var(--n-link);
@@ -100,53 +142,125 @@
   .text {
     font-size: 15px;
     line-height: 1.5;
+    /* Lighter than --n-fg-2: the tinted surface is brighter than the page. */
     color: var(--n-fg-1);
     overflow-wrap: anywhere;
   }
   .title + .text {
     margin-top: 2px;
   }
+  /* One filled button per notice. Every other action is a link, in a row under it. */
   .actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
     margin-top: 12px;
   }
-  button {
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 24px;
+  }
+  .link {
     min-height: 44px;
-    padding: 0 16px;
-    border-radius: 10px;
-    border: 1px solid var(--n-border-3);
-    background: transparent;
+    padding: 0;
+    border: 0;
+    background: none;
     color: var(--n-fg-0);
+    font: inherit;
     font-size: 14px;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.3;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--n-fg-0) 45%, transparent);
+    text-underline-offset: 3px;
     cursor: pointer;
-    transition:
-      background var(--n-dur-1) var(--n-ease-out),
-      border-color var(--n-dur-1) var(--n-ease-out);
   }
-  button:hover {
-    background: var(--n-bg-3);
+  .link:hover {
+    text-decoration-color: currentColor;
   }
-  button.primary {
-    background: var(--n-fg-0);
-    border-color: var(--n-fg-0);
-    color: var(--n-bg-0);
+  .dismiss {
+    width: 44px;
+    height: 44px;
+    margin: -10px -12px -10px 0;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: var(--n-fg-1);
+    cursor: pointer;
   }
-  button.primary:hover {
-    background: var(--n-fg-1);
-    border-color: var(--n-fg-1);
+  .dismiss:hover {
+    background: color-mix(in srgb, var(--n-fg-0) 10%, transparent);
+    color: var(--n-fg-0);
   }
-  button:focus-visible {
+  .link:focus-visible,
+  .dismiss:focus-visible {
     outline: 2px solid var(--n-fg-0);
     outline-offset: 2px;
   }
+
+  /* ---- one row: icon, one sentence, one action, an optional close ---- */
+  .line {
+    align-items: center;
+    min-height: 44px;
+    padding: 4px 6px 4px 14px;
+  }
+  /* With no close button the action is the last thing on the row: it keeps the left edge's inset. */
+  .line:not(:has(.dismiss)) {
+    padding-right: 14px;
+  }
+  .line .icon {
+    margin-top: 0;
+  }
+  .line .body {
+    display: flex;
+    align-items: center;
+    gap: 2px 14px;
+  }
+  .line .words {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 0;
+  }
+  .line :is(.title, .text) {
+    display: inline;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .line .actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+    margin-top: 0;
+  }
+  .line .dismiss {
+    margin: 0;
+  }
+
   @media (max-width: 560px) {
-    /* One thumb-sized column: every action is the full width of the notice. */
-    .actions button {
-      flex: 1 1 100%;
+    /* One thumb-sized column: the main action is the full width of the notice. */
+    .block .actions {
+      align-items: stretch;
+    }
+    .block .links {
+      flex-direction: column;
+      align-items: center;
+    }
+    .block .link {
+      text-align: center;
+    }
+    /* A long sentence and its action do not fit one row on a phone: the action drops under it. */
+    .line .body {
+      flex-wrap: wrap;
+    }
+    .line .words {
+      flex-basis: 12em;
     }
   }
 </style>

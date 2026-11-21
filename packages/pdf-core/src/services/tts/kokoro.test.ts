@@ -5,11 +5,13 @@ import {
   DEFAULT_KOKORO_VOICE,
   KOKORO_QUALITIES,
   KOKORO_VOICES,
+  bytesToMb,
   downloadTracker,
   kokoroDownloadMb,
   kokoroStatus,
   kokoroUsesGpu,
   mapAudioToPos,
+  noteDownloadBytes,
   webgpuAvailable,
 } from "./kokoro";
 
@@ -76,8 +78,18 @@ describe("downloadTracker", () => {
 
 describe("kokoroDownloadMb and kokoroStatus", () => {
   it("sizes each preset by the model this device would download", () => {
-    expect(kokoroDownloadMb("compact")).toBe(90);
-    expect(kokoroDownloadMb("recommended")).toBe(webgpuAvailable() ? 330 : 90);
+    expect(kokoroDownloadMb("compact")).toBe(92);
+    expect(kokoroDownloadMb("recommended")).toBe(webgpuAvailable() ? 326 : 92);
+  });
+
+  it("follows the loader once it reports the download's real total, so every size agrees", () => {
+    noteDownloadBytes("compact", undefined);
+    expect(kokoroDownloadMb("compact")).toBe(92);
+    noteDownloadBytes("compact", 95_400_000);
+    expect(kokoroDownloadMb("compact")).toBe(95);
+    expect(bytesToMb(95_400_000)).toBe(95);
+    noteDownloadBytes("compact", 92_361_116);
+    expect(kokoroDownloadMb("compact")).toBe(92);
   });
 
   it("is idle before anything was asked for", () => {
