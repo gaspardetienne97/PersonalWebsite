@@ -2,7 +2,9 @@
   The Studio's viewer: a dialog of one fixed size whatever is in it, with the
   pieces in a carousel. Images are fitted inside the frame; the piece on screen
   plays if it's a video or music (the others show their cover, so moving on stops
-  playback). Swipe, use the arrow buttons, or the arrow keys.
+  playback). Swipe, use the arrow buttons, or the arrow keys. On a phone the
+  dialog is shorter and the arrows sit under the frame, beside the count, so a
+  wide drawing gets the frame's whole width.
 -->
 <script lang="ts">
   import { untrack, type ComponentProps } from "svelte";
@@ -59,11 +61,15 @@
       api.scrollNext();
     }
   }
+
+  // Dark on the white paper in both themes: the kit's outline button is white in the light one.
+  const arrow =
+    "border-foreground bg-foreground text-background dark:border-input dark:bg-background dark:text-foreground max-sm:top-full max-sm:mt-1.5 max-sm:size-10 max-sm:translate-y-0";
 </script>
 
 <Dialog.Root bind:open>
   <Dialog.Content
-    class="flex h-[min(46rem,92dvh)] w-[min(64rem,94vw)] max-w-none flex-col gap-4"
+    class="studio-viewer flex h-[min(36rem,92dvh)] w-[min(64rem,94vw)] max-w-none flex-col gap-4 p-4 sm:h-[min(46rem,92dvh)] sm:p-6"
     {onkeydown}
   >
     <Dialog.Header class="pr-8">
@@ -108,8 +114,8 @@
           {/each}
         </Carousel.Content>
         {#if items.length > 1}
-          <Carousel.Previous class="left-3" />
-          <Carousel.Next class="right-3" />
+          <Carousel.Previous class="left-3 {arrow}" />
+          <Carousel.Next class="right-3 {arrow}" />
         {/if}
       </Carousel.Root>
     </div>
@@ -145,14 +151,39 @@
   }
   /* Pinned to the frame (a percentage max-height inside an auto grid row would
      let a tall drawing overflow and be cropped), then fitted whole inside it.
-     The side padding keeps it clear of the arrow buttons. */
+     From 640px the arrow buttons sit over the frame's sides, and the side
+     padding keeps the drawing clear of them. */
   .slide img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     object-fit: contain;
-    padding: 0.5rem 3.5rem;
+    padding: 0.5rem;
+  }
+  @media (width >= 640px) {
+    .slide img {
+      padding: 0.5rem 3.5rem;
+    }
+  }
+  /* The kit's close button is a small cross at 70% opacity, faint on the white dialog. */
+  :global(.studio-viewer [data-dialog-close]) {
+    display: grid;
+    place-items: center;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    opacity: 1;
+    color: var(--foreground);
+  }
+  :global(.studio-viewer [data-dialog-close]:hover) {
+    background: var(--accent);
+  }
+  :global(.studio-viewer [data-dialog-close] svg) {
+    width: 1.25rem;
+    height: 1.25rem;
   }
   .player {
     width: 100%;
