@@ -12,7 +12,7 @@
   const year = new Date().getFullYear();
 </script>
 
-{#if !isFullscreenApp(path)}
+{#if page.error || !isFullscreenApp(path)}
   <footer class="site-footer" data-site-chrome>
     <div class="inner">
       <div class="who">

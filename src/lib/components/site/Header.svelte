@@ -29,12 +29,13 @@
 
 <svelte:window {onkeydown} />
 
-{#if !isFullscreenApp(path)}
+<!-- An error page is drawn by the site, wherever the address pointed. -->
+{#if page.error || !isFullscreenApp(path)}
   <CircuitBackground />
   <header class="site-header" data-site-chrome>
     <div class="inner">
       <a href={resolve("/")} class="brand" aria-label={m.header_home_label({ name: shortName })}>
-        <LogoMark size={30} />
+        <LogoMark size={30} class="shrink-0" />
         <span class="brand-name">{shortName}</span>
       </a>
 
@@ -59,7 +60,9 @@
         {#if narrow.current}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger class={buttonVariants({ variant: "ghost" })}>
-              <Menu class="size-4" aria-hidden="true" /><span>{m.header_menu()}</span>
+              <Menu class="size-4" aria-hidden="true" />
+              <!-- A phone has no room for the label beside the name: the icon stands alone. -->
+              <span class="max-[480px]:sr-only">{m.header_menu()}</span>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="end" class="min-w-44" preventScroll={false}>
               {#each nav as link (link.href)}
@@ -68,8 +71,12 @@
                     <a
                       {...props}
                       href={resolve(link.href)}
-                      aria-current={isCurrent(link.href) ? "page" : undefined}>{link.label}</a
+                      aria-current={isCurrent(link.href) ? "page" : undefined}
                     >
+                      <span class={isCurrent(link.href) ? "site-menu-current" : undefined}>
+                        {link.label}
+                      </span>
+                    </a>
                   {/snippet}
                 </DropdownMenu.Item>
               {/each}
@@ -121,11 +128,18 @@
     letter-spacing: -0.01em;
     white-space: nowrap;
   }
+  /* The mark keeps its size. Below 360px the name no longer fits beside the
+     three buttons, so the mark stands alone (the link keeps its label). */
+  @media (width < 360px) {
+    .brand-name {
+      display: none;
+    }
+  }
   .actions {
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    min-width: 0;
+    flex: none;
   }
   .links {
     display: none;
@@ -161,6 +175,13 @@
     height: 2px;
     border-radius: 2px;
     background: var(--gm-brand);
+  }
+  /* The phone menu marks the current page with the same stretch of gradient. Its
+     items are portalled out of the header, hence :global. */
+  :global(.site-menu-current) {
+    padding-block: 0.3rem;
+    font-weight: 650;
+    background: var(--gm-brand) no-repeat left bottom / 100% 2px;
   }
   .brand:focus-visible {
     outline: 2px solid var(--ring);
