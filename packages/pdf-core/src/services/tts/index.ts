@@ -7,6 +7,7 @@ export {
   DEFAULT_KOKORO_QUALITY,
   kokoroSupported,
   webgpuAvailable,
+  kokoroUsesGpu,
   loadKokoro,
   kokoroLoaded,
   clearKokoro,

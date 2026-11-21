@@ -19,9 +19,9 @@
     KOKORO_VOICES,
     kokoroLoaded,
     kokoroSupported,
+    kokoroUsesGpu,
     loadKokoro,
     synthesize,
-    webgpuAvailable,
     type KokoroQuality,
   } from "@repo/pdf-core";
   import { ReaderSettings, type VoiceEngine } from "@repo/pdf-core/stores/settings";
@@ -46,7 +46,8 @@
   const locale = getLocale();
 
   const naturalAvailable = kokoroSupported();
-  const onGpu = webgpuAvailable();
+  // Follows the chosen quality: the smaller model runs on the CPU even where a GPU exists.
+  const onGpu = $derived(kokoroUsesGpu(settings.modelQuality));
 
   // ---- preview state (shared between system + neural) ----
   let previewing = $state<string | null>(null);
@@ -398,7 +399,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 6px 12px;
     margin-bottom: 4px;
   }
   .badge {
@@ -597,7 +599,8 @@
   }
   .filters {
     display: flex;
-    gap: 14px;
+    flex-wrap: wrap;
+    gap: 6px 14px;
   }
   .filters label {
     display: inline-flex;
@@ -606,6 +609,7 @@
     font-size: 12.5px;
     color: var(--n-fg-2);
     cursor: pointer;
+    white-space: nowrap;
   }
   .filters input {
     accent-color: var(--n-brand-blue);

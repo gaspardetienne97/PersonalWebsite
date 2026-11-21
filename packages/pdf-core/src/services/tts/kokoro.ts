@@ -104,6 +104,11 @@ function resolveConfig(quality: KokoroQuality): { device: Device; dtype: Dtype }
   return { device: "wasm", dtype: "q8" };
 }
 
+/** Whether a quality preset runs on the GPU on this device. "compact" never does. */
+export function kokoroUsesGpu(quality: KokoroQuality): boolean {
+  return resolveConfig(quality).device === "webgpu";
+}
+
 // kokoro-js has no published types we import directly; keep the surface minimal.
 interface RawAudioLike {
   audio: Float32Array;

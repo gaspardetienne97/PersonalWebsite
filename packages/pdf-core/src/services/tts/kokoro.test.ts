@@ -5,7 +5,9 @@ import {
   DEFAULT_KOKORO_VOICE,
   KOKORO_QUALITIES,
   KOKORO_VOICES,
+  kokoroUsesGpu,
   mapAudioToPos,
+  webgpuAvailable,
 } from "./kokoro";
 
 describe("KOKORO_VOICES", () => {
@@ -56,5 +58,12 @@ describe("mapAudioToPos", () => {
 
   it("returns the span start for a zero or unknown duration", () => {
     expect(mapAudioToPos(START, END, 1, 0)).toBe(START);
+  });
+});
+
+describe("kokoroUsesGpu", () => {
+  it("is never true for the CPU-only preset, whatever the device offers", () => {
+    expect(kokoroUsesGpu("compact")).toBe(false);
+    expect(kokoroUsesGpu("recommended")).toBe(webgpuAvailable());
   });
 });

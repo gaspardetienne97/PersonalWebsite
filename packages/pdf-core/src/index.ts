@@ -12,6 +12,7 @@ export {
   resolveVoice,
   kokoroSupported,
   webgpuAvailable,
+  kokoroUsesGpu,
   kokoroLoaded,
   clearKokoro,
   loadKokoro,
