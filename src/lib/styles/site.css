@@ -54,6 +54,13 @@
   /* The quietest text allowed: 4.5:1 on the page colour, for a line most visitors
      never need (the owner's sign-in link). */
   --gm-dim: oklch(0.554 0.046 257.417);
+  /* The sticky header's height. Anything that lands under it reads this. */
+  --gm-header-h: 4rem;
+}
+/* On site pages a heading jumped to (a section link, "On this page") lands clear of
+   the sticky header with room above it. */
+html:has([data-site-chrome]) {
+  scroll-padding-top: calc(var(--gm-header-h) + 1.5rem);
 }
 .dark {
   --gm-red: oklch(0.72 0.17 28);
@@ -138,17 +145,10 @@
     text-wrap: pretty;
   }
 
-  /* The circuit board stops short of text: a block of running text sits on the
-     page colour, with a soft edge of the same colour so traces fade out around it
-     and still show between blocks. Ledes, running text and posts get it without
-     asking; put .gm-clear on any other block of text that sits on the board. */
-  .gm-clear,
-  .gm-lede,
-  .gm-text,
-  .gm-prose {
-    background: var(--background);
-    box-shadow: 0 0 0.9rem 0.6rem var(--background);
-  }
+  /* .gm-clear marks a block of text that sits where the board used to run. The board
+     now keeps to the band under the header and the margins (CircuitBackground), so
+     the class draws nothing: no patch of page colour behind text. It stays in the
+     markup as the marker for such blocks. */
 
   /* The one text link that stands by itself (not inside a sentence): "More about
      me", "All posts". An icon inside it (an arrow) nudges forward on hover. */
@@ -232,7 +232,8 @@
   }
 
   /* A tip for a control: what a press does, shown under the control on hover and
-     keyboard focus. Inside the control it is part of its name (the theme button);
+     keyboard focus, on the theme's own raised surface. Inside the control it is
+     part of its name (the two parts of the theme control);
      beside it, tie it on with aria-describedby and show it from the parent. The
      control, or the parent, needs position: relative. `start` lines it up with the
      control's leading edge, `wide` lets a sentence wrap. */
@@ -242,9 +243,11 @@
     top: calc(100% + 0.5rem);
     right: 0;
     padding: 0.45rem 0.7rem;
+    border: 1px solid color-mix(in oklab, var(--foreground) 22%, var(--border));
     border-radius: calc(var(--radius) - 2px);
-    background: var(--foreground);
-    color: var(--background);
+    background: var(--popover);
+    color: var(--popover-foreground);
+    box-shadow: 0 0.5rem 1.25rem -0.5rem rgb(0 0 0 / 0.35);
     font-family: var(--font-gm-display);
     font-size: 0.875rem;
     font-weight: 550;
@@ -412,8 +415,8 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-  /* On a touch screen the button is a full 44px target, and looks it. */
-  @media (pointer: coarse) {
+  /* On a phone or any touch screen the button is a full 44px target, and looks it. */
+  @media (pointer: coarse), (width < 640px) {
     .gm-prose .gm-code-head {
       padding-block: 0.3rem;
     }

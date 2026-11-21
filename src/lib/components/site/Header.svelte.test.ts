@@ -37,8 +37,11 @@ describe("Header", () => {
     await light.click();
     await expect.element(light).toHaveAttribute("aria-checked", "true");
     expect(mode.current).toBe("light");
+    // The sheet also names where else to find the owner, at its foot.
+    await expect.element(page.getByRole("menuitem", { name: "GitHub", exact: true })).toBeVisible();
+    // The header's own two-part control is for wide screens; here the menu holds the theme.
     await expect
-      .element(page.getByRole("button", { name: "Switch to dark theme", exact: true }))
+      .element(page.getByRole("button", { name: "Dark", exact: true }))
       .not.toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await expect.element(trigger).toHaveFocus();
@@ -50,14 +53,18 @@ describe("Header", () => {
       .toBeVisible();
   });
 
-  // The page's ModeWatcher puts the theme on <html>, which swaps the button's icon
-  // and name. Alone, the header can only be asked what it set.
-  it("has a desktop theme button named for what a press gives", async () => {
+  // The same two choices as the phone menu, side by side, the one in use pressed.
+  it("has a desktop theme control of two named parts", async () => {
     await render(Header);
-    const button = page.getByRole("button", { name: "Switch to dark theme", exact: true });
-    await expect.element(button).toBeVisible();
-    await button.click();
+    const light = page.getByRole("button", { name: "Light", exact: true });
+    const dark = page.getByRole("button", { name: "Dark", exact: true });
+    await expect.element(light).toHaveAttribute("aria-pressed", "true");
+    await dark.click();
     expect(mode.current).toBe("dark");
+    await expect.element(dark).toHaveAttribute("aria-pressed", "true");
+    await expect.element(light).toHaveAttribute("aria-pressed", "false");
+    await light.click();
+    expect(mode.current).toBe("light");
   });
 
   it("links to the site sections, leaving the big apps to Projects", async () => {

@@ -2,7 +2,7 @@
   import { page } from "$app/state";
   import { resolve } from "$app/paths";
   import { MediaQuery } from "svelte/reactivity";
-  import { mode, setMode, toggleMode } from "mode-watcher";
+  import { mode, setMode } from "mode-watcher";
   import Check from "@lucide/svelte/icons/check";
   import Sun from "@lucide/svelte/icons/sun";
   import Moon from "@lucide/svelte/icons/moon";
@@ -12,15 +12,19 @@
   import * as DropdownMenu from "@repo/ui/dropdown-menu";
   import { Button } from "@repo/ui/button";
   import CircuitBackground from "./CircuitBackground.svelte";
+  import CircuitPaths from "./CircuitPaths.svelte";
   import LanguageMenu from "./LanguageMenu.svelte";
   import LogoMark from "./LogoMark.svelte";
-  import { replayIntro, shortcutListener } from "./intro.svelte";
-  import { isFullscreenApp, nav, shortName } from "#lib/config.ts";
+  import ThemeSwitch from "./ThemeSwitch.svelte";
+  import { replayIntro, shortcutListener, site } from "./intro.svelte";
+  import { isFullscreenApp, nav, shortName, socials } from "#lib/config.ts";
   import { projects } from "#lib/content/projects.ts";
   import { m } from "@repo/i18n/messages.js";
 
   const path = $derived(page.url?.pathname ?? "/");
-  const narrow = new MediaQuery("(width < 640px)");
+  // Under 860px the links, the language pill and the two-part theme control no
+  // longer fit beside the name in the longer languages, so the menu holds them.
+  const narrow = new MediaQuery("(width < 860px)");
   let menuOpen = $state(false);
   let menuPanel = $state<HTMLElement | null>(null);
   let menuByPointer = false;
@@ -77,8 +81,9 @@
           </ul>
         </nav>
 
-        <!-- Under 640px the header is the brand and one menu button. The menu is a
-             panel as wide as the screen, with the pages, the language and the theme. -->
+        <!-- Under 860px the header is the brand and one menu button. The menu is a
+             sheet that fills the screen under the header: the pages, the language,
+             the theme, and where else to find me at its foot. -->
         {#if narrow.current}
           <DropdownMenu.Root bind:open={menuOpen}>
             <!-- The name stays "Site menu" for a screen reader; the eye gets "Menu". -->
@@ -151,6 +156,31 @@
                     {/each}
                   </DropdownMenu.RadioGroup>
                 </DropdownMenu.Group>
+                {#if socials.length > 0}
+                  <!-- The sheet's foot: a rule with the board hanging from it, as under
+                       the header and at the top of the footer. -->
+                  <DropdownMenu.Group class="site-menu-group site-menu-foot">
+                    {#if site.board}
+                      <div class="site-menu-board" aria-hidden="true">
+                        <CircuitPaths board={site.board} />
+                      </div>
+                    {/if}
+                    <DropdownMenu.GroupHeading class="site-menu-heading">
+                      {m.footer_elsewhere()}
+                    </DropdownMenu.GroupHeading>
+                    <div class="site-menu-options">
+                      {#each socials as social (social.href)}
+                        <DropdownMenu.Item class="site-menu-option">
+                          {#snippet child({ props })}
+                            <a {...props} href={social.href} rel="me noopener">
+                              <social.icon size={18} aria-hidden="true" />{social.label}
+                            </a>
+                          {/snippet}
+                        </DropdownMenu.Item>
+                      {/each}
+                    </div>
+                  </DropdownMenu.Group>
+                {/if}
               </DropdownMenu.ContentStatic>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
@@ -158,19 +188,14 @@
 
         <div class="tools">
           <LanguageMenu />
-          <!-- The icon is the theme in use. The tip, which is also the button's name,
-               says what a press gives. It shows on hover and on keyboard focus. -->
-          <button type="button" class="gm-icon-btn theme-button" onclick={toggleMode}>
-            <Sun class="dark:hidden" aria-hidden="true" />
-            <Moon class="hidden dark:block" aria-hidden="true" />
-            <span class="gm-tip dark:hidden">{m.header_theme_to_dark()}</span>
-            <span class="gm-tip hidden dark:block">{m.header_theme_to_light()}</span>
-          </button>
+          <!-- The same two choices the phone menu gives, the one in use filled. -->
+          <ThemeSwitch />
         </div>
       </div>
     </div>
   </header>
-  <!-- Dims and blurs the page under the open phone menu. -->
+  <!-- Behind the open phone menu, which covers the screen: a plain dark surface for
+       the moment the sheet takes to arrive. -->
   {#if menuOpen && narrow.current}
     <div class="scrim" transition:fade={{ duration: 150 }}></div>
   {/if}
@@ -194,7 +219,7 @@
     gap: 1rem;
     max-width: 76rem;
     min-width: 0;
-    height: 4rem;
+    height: var(--gm-header-h, 4rem);
     margin-inline: auto;
     padding-inline: clamp(1rem, 4vw, 3rem);
   }
@@ -225,7 +250,7 @@
   .tools {
     display: none;
   }
-  @media (width >= 640px) {
+  @media (width >= 860px) {
     .links {
       display: block;
     }
@@ -241,14 +266,21 @@
     gap: 0.25rem;
     white-space: nowrap;
   }
-  /* Nav links are kit ghost buttons; the current page carries a short stretch of
-     the logo's gradient, and the others draw it in on hover. */
+  /* Nav links are kit ghost buttons; the current page carries a bar of the logo's
+     gradient under heavier type, and the others draw a thinner one in on hover. */
   .links :global(.nav-link) {
     position: relative;
     height: 2.75rem;
     font-family: var(--font-gm-display);
     font-size: 1rem;
     color: var(--muted-foreground);
+  }
+  /* The focus ring is drawn inside the link's own box, so it keeps 10px clear of
+     the header's edges. */
+  .links :global(.nav-link:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+    box-shadow: none;
   }
   .links :global(.nav-link:hover),
   .links :global(.nav-link[aria-current="page"]) {
@@ -261,7 +293,7 @@
     right: 1rem;
     bottom: 0.4rem;
     height: 2px;
-    border-radius: 2px;
+    border-radius: 3px;
     background: var(--gm-brand);
     transform: scaleX(0);
     transform-origin: left;
@@ -273,6 +305,10 @@
   }
   .links :global(.nav-link[aria-current="page"]) {
     font-weight: 650;
+  }
+  .links :global(.nav-link[aria-current="page"])::after {
+    bottom: 0.3rem;
+    height: 3px;
   }
 
   /* The phone's menu button: the shared bordered shape, an icon and the word. Under
@@ -287,34 +323,49 @@
     }
   }
 
-  /* Under the open phone menu the page is dimmed and blurred until it cannot be read. */
   .scrim {
     position: fixed;
-    inset: 4rem 0 0;
+    inset: var(--gm-header-h, 4rem) 0 0;
     z-index: 40;
-    background: color-mix(in oklab, var(--foreground) 55%, transparent);
-    backdrop-filter: blur(12px);
+    background: rgb(0 0 0 / 0.6);
   }
-  :global(.dark) .scrim {
-    background: rgb(0 0 0 / 0.82);
-  }
-  /* The phone menu: a panel as wide as the screen, right under the header. It is
-     portalled out of the header, hence :global. */
+  /* The phone menu: a sheet from the header's lower edge to the bottom of the
+     screen, so nothing of the page shows around it. Its last group sits at the
+     foot. It is portalled out of the header, hence :global. */
   :global(.site-menu-panel) {
     position: fixed;
-    top: 4rem;
-    inset-inline: 0;
+    inset: calc(var(--gm-header-h, 4rem) + 1px) 0 0;
     z-index: 50;
-    max-height: calc(100dvh - 4rem);
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
-    padding: 0.25rem clamp(0.75rem, 2vw, 2.5rem) 1rem;
+    padding: 0.25rem clamp(0.75rem, 2vw, 2.5rem) 1.25rem;
     background: var(--background);
     color: var(--foreground);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 1.5rem 2rem -1.5rem rgb(0 0 0 / 0.35);
     font-family: var(--font-gm-display);
     outline: none;
     animation: site-menu-in 0.16s ease-out;
+  }
+  :global(.site-menu-foot) {
+    position: relative;
+    margin-top: auto;
+    margin-inline: calc(-1 * clamp(0.75rem, 2vw, 2.5rem));
+    padding: 1.75rem clamp(0.75rem, 2vw, 2.5rem) 0;
+    border-top: 1px solid var(--border);
+  }
+  :global(.site-menu-board) {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2.5rem;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0.6;
+    mask-image: linear-gradient(#000, transparent);
+  }
+  :global(.site-menu-board svg.circuit) {
+    position: absolute;
+    inset: -62lvh 0 auto;
+    height: 100lvh;
   }
   @keyframes -global-site-menu-in {
     from {
@@ -332,7 +383,8 @@
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    min-height: 3.5rem;
+    flex: none;
+    min-height: 4rem;
     padding-inline: 0.5rem 0.75rem;
     border-bottom: 1px solid var(--border);
     border-radius: 0;
@@ -373,9 +425,9 @@
     background: var(--gm-brand-down);
   }
 
-  /* Language and theme: a heading over bounded options, two to a row. The one in
-     use carries a check mark, heavier type and a darker edge. LanguageMenu draws
-     its rows with the same classes. */
+  /* Language, theme and elsewhere: a heading over bounded options, two to a row,
+     each 48px tall. The one in use is filled, with a check mark and heavier type.
+     LanguageMenu draws its rows with the same classes. */
   :global(.site-menu-heading) {
     display: flex;
     align-items: center;
@@ -398,7 +450,7 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    min-height: 2.75rem;
+    min-height: 3rem;
     padding: 0.25rem 0.75rem 0.25rem 0.5rem;
     border: 1px solid color-mix(in oklab, var(--foreground) 22%, var(--border));
     border-radius: var(--radius);
@@ -414,7 +466,21 @@
   }
   :global(.site-menu-option[data-state="checked"]) {
     border-color: var(--foreground);
+    background: var(--foreground);
+    color: var(--background);
     font-weight: 700;
+  }
+  :global(.site-menu-option[data-state="checked"] .site-menu-glyph) {
+    color: inherit;
+  }
+  /* A link among the options (Elsewhere) has no check mark, so its icon leads. */
+  :global(a.site-menu-option) {
+    gap: 0.6rem;
+    padding-left: 0.85rem;
+    font-weight: 550;
+  }
+  :global(a.site-menu-option svg) {
+    flex: none;
   }
   :global(.site-menu-check) {
     display: grid;

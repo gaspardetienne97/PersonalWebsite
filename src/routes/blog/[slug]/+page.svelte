@@ -8,18 +8,24 @@
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import Clock from "@lucide/svelte/icons/clock";
   import Languages from "@lucide/svelte/icons/languages";
+  import Tag from "@lucide/svelte/icons/tag";
   import * as Card from "@repo/ui/card";
-  import { Badge } from "@repo/ui/badge";
   import { Button } from "@repo/ui/button";
   import { name } from "#lib/config.ts";
   import { categoryLabel } from "#lib/posts.ts";
-  import { formatDate } from "#lib/utils.ts";
+  import { formatDate, formatList } from "#lib/utils.ts";
 
   let { data } = $props();
   const post = $derived(data.post);
   const Content = $derived(data.Content);
   // Posts are written in English whatever language the site is shown in.
   const translated = $derived(getLocale() !== "en");
+
+  // A category's name with a capital, as the list page's chips show it.
+  const category = (id: string) => {
+    const label = categoryLabel(id);
+    return label.charAt(0).toLocaleUpperCase() + label.slice(1);
+  };
 
   let copied = $state("");
 
@@ -93,7 +99,9 @@
 
   <header class="head">
     <h1 class="title gm-clear" lang="en">{post.title}</h1>
-    <!-- The facts, in one line under the title at every width. -->
+    <!-- The summary stands right under the title, a size above the text. Then the
+         facts in one line: the categories are words, since they lead nowhere. -->
+    <p class="standfirst" lang="en">{post.description}</p>
     <ul class="facts gm-clear" aria-label={m.post_about()}>
       <li>
         <CalendarDays size={16} aria-hidden="true" />
@@ -103,10 +111,8 @@
         <Clock size={16} aria-hidden="true" />{m.reading_time({ minutes: post.readingMinutes })}
       </li>
       {#if post.categories.length > 0}
-        <li class="cats">
-          {#each post.categories as category (category)}
-            <Badge variant="secondary" class="chip capitalize">{categoryLabel(category)}</Badge>
-          {/each}
+        <li>
+          <Tag size={16} aria-hidden="true" />{formatList(post.categories.map(category))}
         </li>
       {/if}
     </ul>
@@ -115,7 +121,6 @@
         <Languages size={16} aria-hidden="true" />{m.post_in_english()}
       </p>
     {/if}
-    <p class="gm-lede" lang="en">{post.description}</p>
   </header>
 
   <!-- A post with sections lists them: beside the text on a wide screen, under
@@ -159,29 +164,32 @@
   .post {
     padding-top: clamp(1.5rem, 4vw, 2.5rem);
   }
-  /* One reading column for the title, the text and the cards at the end. From
-     1100px the facts and the page's sections sit beside it and stay in view. */
+  /* One reading column, in the middle of the page: the way back, the title, the
+     text and the cards at the end share its two edges. From 1100px a post with
+     sections lists them in the margin at its right, where they stay in view. */
   .post > * {
     max-width: 46rem;
+    margin-inline: auto;
   }
   @media (width >= 1100px) {
     .post {
       display: grid;
-      grid-template-columns: minmax(0, 46rem) minmax(0, 15rem);
-      justify-content: space-between;
-      column-gap: 3rem;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 46rem) minmax(0, 1fr);
+      column-gap: 2rem;
     }
     .post > * {
-      grid-column: 1;
+      grid-column: 2;
+      width: 100%;
     }
     .post > .side {
-      grid-column: 2;
+      grid-column: 3;
       grid-row: 2 / span 4;
       align-self: start;
       position: sticky;
-      top: 6rem;
-      margin-top: 1.75rem;
-      padding-left: 1.5rem;
+      top: calc(var(--gm-header-h, 4rem) + 2rem);
+      max-width: 15rem;
+      margin: 1.75rem 0 0;
+      padding-left: 1.25rem;
       border-left: 1px solid var(--border);
     }
   }
@@ -199,8 +207,13 @@
     letter-spacing: -0.03em;
     text-wrap: balance;
   }
-  .head .gm-lede {
-    max-width: 44ch;
+  /* A size above the text it introduces (1.2rem), in the same serif. */
+  .standfirst {
+    font-family: var(--font-gm-serif);
+    font-size: clamp(1.3rem, 2.4vw, 1.5rem);
+    line-height: 1.4;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
   }
   .note {
     display: flex;
@@ -232,9 +245,6 @@
   .facts :global(svg) {
     flex: none;
     color: var(--muted-foreground);
-  }
-  :global(.post .chip) {
-    font-size: 0.8125rem;
   }
   .toc {
     padding-top: 1.25rem;
@@ -300,10 +310,6 @@
   }
   .body :global(> :first-child) {
     margin-top: 0;
-  }
-  /* A heading jumped to from "On this page" lands clear of the sticky header. */
-  .body :global(:is(h2, h3)) {
-    scroll-margin-top: 6rem;
   }
 
   .end {

@@ -14,13 +14,12 @@
   "header_theme": "Tèm",
   "header_theme_light": "Klè",
   "header_theme_dark": "Fonse",
-  "header_theme_to_dark": "Pase nan tèm fonse",
-  "header_theme_to_light": "Pase nan tèm klè",
   "language_label": "Lang",
 
   "footer_note": "Enjenyè lojisyèl nan Boston. Sit sa a mache sou yon sèvè nan homelab mwen.",
   "footer_replay": "Rejwe entwo a",
-  "footer_replay_hint": "Li rejwe animasyon logo a. Sou klavye: kenbe Ctrl ak Shift, epi tape G, M, E.",
+  "footer_replay_hint": "Li rejwe animasyon logo a.",
+  "footer_replay_shift": "Shift",
   "footer_nav_label": "Pye paj",
   "footer_site": "Sit",
   "footer_projects": "Pwojè",
@@ -34,7 +33,7 @@
   "intro_role_line2": "ki renmen konstwi bagay ki anfòm!",
   "intro_explore": "Eksplore sit la",
   "intro_skip": "Sote entwo a",
-  "intro_press": "Peze logo a",
+  "intro_play": "Jwe entwo a",
   "logo_label": "Logo Gaspard Etienne",
 
   "home_lede": "Enjenyè lojisyèl full-stack ki baze nan Boston.",
@@ -42,7 +41,9 @@
   "home_more_about": "Plis sou mwen",
   "home_newest": "Pi resan",
   "home_reel_slide": "{position} sou {total}: {title}",
-  "home_reel_show": "Montre {title}",
+  "home_reel_show": "Montre {title} ({kind})",
+  "home_reel_in_studio": "{kind}: {count} nan Estidyo a.",
+  "home_post": "Atik",
   "home_reel_previous": "Pyès anvan an",
   "home_reel_next": "Pyès pwochen an",
   "home_post_dated": "Atik, {date}",
@@ -78,7 +79,8 @@
 
   "studio_meta": "Grifonaj, desen, mizik, penti, foto, pwojè ak videyo pa Gaspard Michel Etienne.",
   "studio_title": "Estidyo mwen",
-  "studio_lede": "Tout sa m fè. Kòd, mizik, desen, penti, foto ak plis ankò, tout pandye sou menm mi an isit la nan Estidyo mwen.",
+  "studio_lede_lead": "Tout sa m fè.",
+  "studio_lede_rest": "Kòd, mizik, desen, penti, foto ak plis ankò, tout pandye sou menm mi an isit la nan Estidyo mwen.",
   "studio_show": "Montre",
   "studio_all": "Tout",
   "studio_everything": "Tout bagay",
@@ -99,9 +101,37 @@
   "viewer_zoom_hint": "Trennen pou w gade tout imaj la",
   "viewer_previous": "Pyès anvan an",
   "viewer_next": "Pyès apre a",
-  "viewer_to_last": "Ale nan dènye pyès la",
-  "viewer_to_first": "Tounen nan premye pyès la",
+  "viewer_to_last": [
+    {
+      "declarations": ["input kind"],
+      "selectors": ["kind"],
+      "match": {
+        "kind=doodles": "Dènye grifonaj",
+        "kind=drawings": "Dènye desen",
+        "kind=paintings": "Dènye penti",
+        "kind=photos": "Dènye foto",
+        "kind=videos": "Dènye videyo",
+        "kind=*": "Dènye pyès"
+      }
+    }
+  ],
+  "viewer_to_first": [
+    {
+      "declarations": ["input kind"],
+      "selectors": ["kind"],
+      "match": {
+        "kind=doodles": "Premye grifonaj",
+        "kind=drawings": "Premye desen",
+        "kind=paintings": "Premye penti",
+        "kind=photos": "Premye foto",
+        "kind=videos": "Premye videyo",
+        "kind=*": "Premye pyès"
+      }
+    }
+  ],
   "studio_open": "Louvri",
+  "studio_view": "Gade",
+  "viewer_zoom_level": "{level}×",
 
   "drawing_trace_maze": "Labirent tras",
   "drawing_trace_maze_alt": "Liy paralèl byen sere an wouj, ble, vèt, vyolèt ak jòn k ap tòde nan yon rektang wo tankou tras yon sikui.",
@@ -186,7 +216,10 @@
   "about_colophon": "Kijan li bati, tipografi ak koulè",
   "about_hello_body": "Ekri m sou travay, mizik, oswa nenpòt bagay ou wè sou sit sa a. Men pi bon kote pou jwenn mwen.",
   "about_hello_body_social": "Jwenn mwen sou {places} pou n pale sou travay, mizik, oswa nenpòt bagay ou wè sou sit sa a.",
-  "about_open": "Louvri",
+  "about_open_project": "Louvri {name}",
+  "about_jump_work": "Travay",
+  "about_jump_outside": "Andeyò travay",
+  "about_jump_site": "Sit sa a",
   "about_see_all_studio": "Gade tout nan Estidyo a",
 
   "blog_meta": "Nòt Gaspard Michel Etienne sou sa l ap bati ak sa l ap aprann.",
@@ -215,11 +248,13 @@
   "error_not_found_title": "Nou pa jwenn paj la",
   "error_not_found_body": "Pa gen anyen nan adrès sa a. Lyen an gendwa ansyen, oswa adrès la gen yon erè.",
   "error_did_you_mean": "Èske ou te vle di {link}?",
+  "error_go_to": "Ale nan {path}",
   "error_other_title": "Gen yon bagay ki pa mache",
   "error_other_body": "Paj sa a pa t ka parèt. Eseye ankò talè, oswa ale yon lòt kote sou sit la.",
   "error_all_posts": "Tout atik yo",
   "error_recent_posts": "Atik ki pi resan yo",
-  "error_look": "Oswa gade sa a",
+  "error_look": "Nan Estidyo a",
+  "error_see_all": "Gade tout travay yo",
 
   "listplay_signed_out_title": "Konekte pou wè lis mizik ou yo",
   "listplay_signed_out_body": "Listplay li lis mizik Spotify ou yo, epi li ka fè youn ak chante ou pi koute yo.",
@@ -237,10 +272,13 @@
   "listplay_playlist_missing": "Lis mizik sa a pa t ka chaje. Verifye adrès la, oswa chwazi youn nan lis mizik ou yo.",
 
   "login_title": "Konekte",
-  "login_body": "Pati sa a nan sit la se pou mèt li. Tout rès la ouvè pou tout moun.",
   "login_continue": "Konekte",
-  "login_helper": "Authentik se sèvis koneksyon sit sa a. Apre sa, ou tounen isit la.",
+  "login_helper_private": "Ou konekte sou yon lòt paj (Authentik), epi ou tounen nan espas prive a.",
+  "login_helper_page": "Ou konekte sou yon lòt paj (Authentik), epi ou tounen nan {page}.",
+  "login_from_private": "Espas prive a mande ou konekte anvan.",
+  "login_from_page": "{page} mande ou konekte anvan.",
   "login_unavailable": "Koneksyon pa disponib kounye a.",
+  "login_unavailable_next": "Rès sit la ouvè. Eseye ankò pita.",
   "login_cancelled": "Koneksyon an te anile.",
   "login_cancelled_next": "Anyen pa chanje. Eseye ankò, oswa tounen sou sit la.",
   "login_lead_private": "Konekte pou ouvri espas prive a. Se pou mèt sit la. Tout rès la ouvè pou tout moun.",

@@ -4,8 +4,10 @@
   page in that language; addresses stay the same.
 
   In the header it is a pill (the icon, the language's name from 1024px and its
-  code under that, and a chevron) that opens a menu. With `rows` it is only the
-  choices, as bounded options for the phone menu's panel (Header styles them).
+  code under that, and a chevron) that opens a menu. With `named` the pill shows
+  the name at every width (the footer on a phone has the room). With `rows` it is
+  only the choices, as bounded options for the phone menu's sheet (Header styles
+  them).
 -->
 <script lang="ts">
   import Check from "@lucide/svelte/icons/check";
@@ -15,7 +17,7 @@
   import { m } from "@repo/i18n/messages.js";
   import { getLocale, locales, setLocale, type Locale } from "@repo/i18n/runtime.js";
 
-  let { rows = false }: { rows?: boolean } = $props();
+  let { rows = false, named = false }: { rows?: boolean; named?: boolean } = $props();
 
   const names: Record<Locale, string> = {
     en: "English",
@@ -56,7 +58,7 @@
 {:else}
   <DropdownMenu.Root>
     <DropdownMenu.Trigger
-      class="gm-icon-btn language-button"
+      class="gm-icon-btn language-button {named ? 'named' : ''}"
       aria-label="{m.language_label()}: {names[current]}"
       title={m.language_label()}
     >
@@ -78,6 +80,12 @@
     border-radius: 999px;
     padding-inline: 0.85rem 0.7rem;
   }
+  /* Beside the theme control it keeps that control's height. */
+  @media (pointer: coarse), (width < 860px) {
+    :global(.language-button) {
+      height: 3rem;
+    }
+  }
   .language-name {
     display: none;
   }
@@ -94,6 +102,12 @@
     .language-code {
       display: none;
     }
+  }
+  :global(.language-button.named) .language-name {
+    display: inline;
+  }
+  :global(.language-button.named) .language-code {
+    display: none;
   }
   :global(.language-button .language-chevron) {
     width: 1rem;
@@ -122,9 +136,11 @@
     user-select: none;
     outline: none;
   }
+  /* Under the pointer or the keyboard a row is tinted and edged, plainly. */
   :global(.language-choice[data-highlighted]) {
-    background: var(--accent);
-    color: var(--accent-foreground);
+    background: color-mix(in oklab, var(--foreground) 12%, transparent);
+    color: var(--foreground);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 28%, transparent);
   }
   :global(.language-choice[data-state="checked"]) {
     font-weight: 650;

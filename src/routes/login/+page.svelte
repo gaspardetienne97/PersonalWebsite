@@ -1,16 +1,19 @@
 <!--
-  Sign-in, one state at a time: the invitation with its button, a notice when
+  Sign-in, one state at a time: the invitation with its button, a warning when
   sign-in is unavailable, a calm note after a cancelled sign-in, or an alert after
-  one that failed. Every state has something to press, and visitors who are not the
-  owner get a way back out.
+  one that failed. A notice takes the place of the opening paragraph, so it sits
+  right over the thing to press. Every state has one way back out, "Back to home",
+  at every width: the header carries the rest of the site.
 -->
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
   import { resolve } from "$app/paths";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
+  import CornerDownRight from "@lucide/svelte/icons/corner-down-right";
   import Info from "@lucide/svelte/icons/info";
   import Lock from "@lucide/svelte/icons/lock";
+  import TriangleAlert from "@lucide/svelte/icons/triangle-alert";
   import * as Card from "@repo/ui/card";
   import { Button } from "@repo/ui/button";
   import CircuitPaths from "#lib/components/site/CircuitPaths.svelte";
@@ -26,20 +29,33 @@
     form?.message ?? (data.error && !cancelled ? m.login_failed() : null),
   );
 
-  // What signing in opens, by the name a visitor knows it by.
-  const lead = $derived(
+  // Where signing in leads, by the name a visitor knows it by: the private area
+  // unless another page sent the visitor here.
+  const destination = $derived(
     !data.returnTo || data.returnTo === "/private"
-      ? m.login_lead_private()
-      : m.login_lead_page({
-          page:
-            data.returnTo === "/music" || data.returnTo.startsWith("/music/")
-              ? "Woodshed"
-              : data.returnTo,
-        }),
+      ? null
+      : data.returnTo === "/music" || data.returnTo.startsWith("/music/")
+        ? "Woodshed"
+        : data.returnTo,
   );
+  const lead = $derived(
+    destination ? m.login_lead_page({ page: destination }) : m.login_lead_private(),
+  );
+  // Said only when a page sent the visitor here, never on a plain visit to this page.
+  const from = $derived(
+    !data.returnTo
+      ? null
+      : destination
+        ? m.login_from_page({ page: destination })
+        : m.login_from_private(),
+  );
+  const helper = $derived(
+    destination ? m.login_helper_page({ page: destination }) : m.login_helper_private(),
+  );
+  const noticed = $derived(cancelled || !!failure || !data.available);
 
-  // The two traces that run from the board, through the card's edges, to the
-  // button. They light when the button is under the pointer or the keyboard.
+  // The two traces that leave the button through the card's edges, like a part's
+  // leads. They light while the button is under the pointer, the keyboard or a press.
   const pin = (color: string, points: [number, number][]): Board => ({
     width: 104,
     height: 40,
@@ -75,61 +91,61 @@
           <CircleAlert aria-hidden="true" /><span>{failure}</span>
         </p>
       {:else if !data.available}
-        <p class="notice" role="status">
-          <Info aria-hidden="true" /><strong>{m.login_unavailable()}</strong>
-        </p>
+        <div class="notice warning" role="status">
+          <TriangleAlert aria-hidden="true" />
+          <p><strong>{m.login_unavailable()}</strong> {m.login_unavailable_next()}</p>
+        </div>
       {/if}
-      <Card.Description class="lead text-base text-foreground">
-        {data.available ? lead : m.login_body()}
-      </Card.Description>
+      {#if !noticed}
+        <Card.Description class="lead text-base text-foreground">{lead}</Card.Description>
+      {/if}
     </Card.Header>
     <Card.Content class="flex flex-col gap-4 text-base">
       {#if data.available}
         <form method="post" class="go">
-          {#each pins as { side, board } (side)}
-            <span class="pin {side}" aria-hidden="true"><CircuitPaths {board} /></span>
-          {/each}
-          <!-- The button keeps its full colour under the pointer: the traces are the answer. -->
-          <Button type="submit" class="h-12 w-full px-4 text-base hover:bg-primary">
-            {cancelled || failure ? m.login_try_again() : m.login_continue()}
-          </Button>
-          <p class="helper">{m.login_helper()}</p>
+          {#if from && !noticed}
+            <p class="from"><CornerDownRight aria-hidden="true" />{from}</p>
+          {/if}
+          <div class="wired">
+            {#each pins as { side, board } (side)}
+              <span class="pin {side}" aria-hidden="true"><CircuitPaths {board} /></span>
+            {/each}
+            <!-- The button keeps its full colour under the pointer: the traces are the answer. -->
+            <Button type="submit" class="h-12 w-full px-4 text-base hover:bg-primary">
+              {cancelled || failure ? m.login_try_again() : m.login_continue()}
+            </Button>
+          </div>
+          <p class="helper">{helper}</p>
         </form>
       {/if}
-      <!-- The way out. A phone has the rest of the site behind its menu button, so
-           the card names two open parts there too. -->
-      <ul class="elsewhere">
-        <li>
-          {#if data.available}
-            <a class="gm-link" href={resolve("/")}><ArrowLeft aria-hidden="true" />{m.login_home()}</a>
-          {:else}
-            <Button href={resolve("/")} class="h-11 text-base">
-              <ArrowLeft aria-hidden="true" />{m.login_home()}
-            </Button>
-          {/if}
-        </li>
-        <li class="phone"><a class="gm-link" href={resolve("/studio")}>{m.nav_studio()}</a></li>
-        <li class="phone"><a class="gm-link" href={resolve("/blog")}>{m.nav_writing()}</a></li>
-      </ul>
+      <!-- The one way out: the main button when there is nothing else to press. -->
+      <p>
+        <Button
+          href={resolve("/")}
+          variant={data.available ? "outline" : "default"}
+          class="h-11 px-4 text-base"
+        >
+          <ArrowLeft aria-hidden="true" />{m.login_home()}
+        </Button>
+      </p>
     </Card.Content>
   </Card.Root>
 </div>
 
 <style>
-  /* The card has the first screen to itself: the footer starts below the fold. On a
-     phone it sits in the upper part of the screen, where the thumb finds the button. */
+  /* The card has the first screen to itself: the footer starts below the fold. It
+     sits a little above the middle at every width, two parts of the spare room over
+     it and three under, so a phone has neither a card pinned to the top over an
+     empty half nor a button pushed low. */
   .signin {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    place-items: start center;
-    min-height: calc(100svh - 4rem);
-    padding-block: clamp(1.5rem, 7svh, 4rem) 2rem;
+    grid-template-rows: minmax(1.5rem, 2fr) auto minmax(2rem, 3fr);
+    justify-items: center;
+    min-height: calc(100svh - var(--gm-header-h, 4rem));
   }
-  @media (width >= 640px) {
-    .signin {
-      place-items: center;
-      padding-block: 2rem;
-    }
+  :global(.signin > .signin-card) {
+    grid-row: 2;
   }
   .lock {
     display: grid;
@@ -169,8 +185,16 @@
   .notice strong {
     font-weight: 650;
   }
-  .notice.info strong {
+  .notice:is(.info, .warning) strong {
     display: block;
+  }
+  /* The warning: an amber edge and tint, and its own icon. */
+  .notice.warning {
+    border-color: color-mix(in oklab, var(--gm-yellow) 75%, var(--foreground));
+    background: color-mix(in oklab, var(--gm-yellow) 14%, var(--card));
+  }
+  .notice.warning :global(svg) {
+    color: color-mix(in oklab, var(--gm-yellow) 62%, var(--foreground));
   }
   .notice.info {
     border-color: color-mix(in oklab, var(--gm-blue) 55%, transparent);
@@ -188,10 +212,29 @@
     color: var(--destructive);
   }
 
-  /* The button, wired to the board: a trace comes in through each edge of the card
-     and stops at the button. Quiet at rest, lit while the button is under the
-     pointer or the keyboard. */
-  .go {
+  /* Why the visitor is here, when a page sent them: one line over the button. */
+  .from {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-wrap: pretty;
+  }
+  .from :global(svg) {
+    flex: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: 0.1rem;
+    color: var(--muted-foreground);
+  }
+  /* The button and its two leads: a trace leaves each side of the button, crosses
+     the card's edge and ends in a pad beside it. On a phone there is no room beside
+     the card, so each runs to the edge of the screen. Quiet at rest, lit while the
+     button is under the pointer, the keyboard or a press. */
+  .wired {
     position: relative;
   }
   .helper {
@@ -201,22 +244,19 @@
     color: var(--muted-foreground);
     text-wrap: pretty;
   }
-  /* A phone has no room beside the card, and no pointer to answer. */
   .pin {
-    display: none;
+    --pin: color-mix(in oklab, var(--foreground) 30%, var(--background));
+    position: absolute;
+    top: 0.25rem;
+    /* The card's padding plus the page's gutter: from the button to the screen's edge. */
+    width: calc(1.5rem + clamp(1rem, 4vw, 3rem));
+    height: 2.5rem;
+    pointer-events: none;
   }
   @media (width >= 640px) {
     .pin {
-      display: block;
+      width: 6.5rem;
     }
-  }
-  .pin {
-    --pin: color-mix(in oklab, var(--foreground) 22%, var(--background));
-    position: absolute;
-    top: 0.25rem;
-    width: 6.5rem;
-    height: 2.5rem;
-    pointer-events: none;
   }
   .pin.left {
     right: 100%;
@@ -230,16 +270,16 @@
       stroke 0.2s,
       fill 0.2s;
   }
-  .go:has(:global(button:hover), :global(button:focus-visible)) .pin {
-    filter: drop-shadow(0 0 5px var(--pin));
+  .wired:has(:global(button:is(:hover, :focus-visible, :active))) .pin {
+    filter: drop-shadow(0 0 3px var(--pin));
   }
-  .go:has(:global(button:hover), :global(button:focus-visible)) .pin.left {
+  .wired:has(:global(button:is(:hover, :focus-visible, :active))) .pin.left {
     --pin: var(--gm-red);
   }
-  .go:has(:global(button:hover), :global(button:focus-visible)) .pin.right {
+  .wired:has(:global(button:is(:hover, :focus-visible, :active))) .pin.right {
     --pin: var(--gm-blue);
   }
-  .go:has(:global(button:hover), :global(button:focus-visible)) .pin :global(.via) {
+  .wired:has(:global(button:is(:hover, :focus-visible, :active))) .pin :global(.via) {
     fill: var(--pin);
   }
   @media (prefers-reduced-motion: reduce) {
@@ -247,20 +287,8 @@
     .pin :global(circle) {
       transition: none;
     }
-  }
-
-  .elsewhere {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0 1.5rem;
-  }
-  .elsewhere .gm-link {
-    min-height: 2.75rem;
-  }
-  @media (width >= 640px) {
-    .elsewhere .phone {
-      display: none;
+    .wired:has(:global(button:is(:hover, :focus-visible, :active))) .pin {
+      filter: none;
     }
   }
 </style>

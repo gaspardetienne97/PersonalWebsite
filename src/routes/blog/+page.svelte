@@ -88,7 +88,10 @@
         {#if featured.cover}
           <img src={featured.cover} alt="" />
         {:else}
-          <CircuitArt seed={featured.slug} colors={coverColors} width={416} height={224} />
+          <!-- Drawn twice, each to its own shape: a short strip on a phone, a taller
+               panel beside the text where there is room. Only one is shown. -->
+          <CircuitArt seed={featured.slug} colors={coverColors} width={416} height={160} class="strip" />
+          <CircuitArt seed={featured.slug} colors={coverColors} width={384} height={224} class="panel" />
         {/if}
       </div>
       <div class="lead">
@@ -128,18 +131,23 @@
           {#each group.posts as post (post.slug)}
             <li>
               <a href={resolve("/blog/[slug]", { slug: post.slug })} class="row">
-                <time datetime={post.date} class="date">{formatDate(post.date)}</time>
+                <!-- The facts together: the date, and how long it takes to read. -->
+                <span class="facts">
+                  <time datetime={post.date}>{formatDate(post.date)}</time>
+                  <span>{m.reading_time({ minutes: post.readingMinutes })}</span>
+                </span>
                 <span class="text">
                   <span class="title">{post.title}</span>
                   <span class="summary">{post.description}</span>
-                  <span class="chips">
-                    {#each tags(post) as name (name)}
-                      <Badge variant="secondary" class="chip capitalize">
-                        {categoryLabel(name)}
-                      </Badge>
-                    {/each}
-                    <span class="minutes">{m.reading_time({ minutes: post.readingMinutes })}</span>
-                  </span>
+                  {#if tags(post).length > 0}
+                    <span class="chips">
+                      {#each tags(post) as name (name)}
+                        <Badge variant="secondary" class="chip capitalize">
+                          {categoryLabel(name)}
+                        </Badge>
+                      {/each}
+                    </span>
+                  {/if}
                 </span>
                 <span class="go" aria-hidden="true"><ArrowRight size={20} /></span>
               </a>
@@ -154,6 +162,13 @@
 <style>
   .blog {
     padding-top: clamp(3rem, 8vw, 6rem);
+  }
+  /* One measure for the page, centred like an article's column: the title, the
+     featured post and the list share both edges, and a row's arrow stays near
+     its text. */
+  .blog > :global(*) {
+    max-width: 56rem;
+    margin-inline: auto;
   }
 
   /* The topic filter: a filled pill marks the choice, and each one is a full
@@ -177,7 +192,8 @@
     }
   }
 
-  /* The newest post: a short cover beside its title, summary and facts. */
+  /* The newest post: a cover with its facts, title, summary and the way in, all
+     close together. On a phone the cover is a strip of 140px at most. */
   :global(.blog .featured) {
     display: grid;
     margin-top: 2.5rem;
@@ -191,8 +207,11 @@
     display: block;
     width: 100%;
     height: 100%;
-    max-height: 14rem;
+    max-height: 8.75rem;
     object-fit: cover;
+  }
+  .cover :global(.panel) {
+    display: none;
   }
   .lead {
     display: flex;
@@ -202,14 +221,24 @@
   }
   @media (width >= 760px) {
     :global(.blog .featured) {
-      grid-template-columns: 26rem minmax(0, 1fr);
+      grid-template-columns: 24rem minmax(0, 1fr);
     }
     .cover {
       border-bottom: 0;
       border-right: 1px solid var(--border);
     }
+    .cover img {
+      max-height: 14rem;
+    }
+    .cover :global(.strip) {
+      display: none;
+    }
+    .cover :global(.panel) {
+      display: block;
+    }
     .lead {
-      padding: 1.5rem 1.75rem 1.25rem;
+      justify-content: center;
+      padding: 1.5rem 1.75rem;
     }
   }
   .when {
@@ -247,14 +276,13 @@
   .lead .summary {
     max-width: 52ch;
   }
+  /* The way in sits right under the summary, not in a far corner. */
   .foot {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
     gap: 0.5rem 1rem;
-    margin-top: auto;
-    padding-top: 0.75rem;
+    padding-top: 0.35rem;
   }
   .chips {
     display: flex;
@@ -271,9 +299,7 @@
 
   /* Older posts. Each row is one link: the whole row tints and its arrow steps
      forward under the pointer or the keyboard. */
-  /* The rows keep to a reading measure, so each arrow sits by its text. */
   .year {
-    max-width: 46rem;
     margin-top: clamp(3rem, 7vw, 4.5rem);
   }
   .year h2 {
@@ -296,10 +322,24 @@
     border-radius: var(--radius);
     transition: background-color 0.15s;
   }
-  .date {
+  /* Date and reading time: one line over the title on a phone, a column of two
+     lines beside it where there is room. */
+  .facts {
     grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.25rem;
     font-size: 0.9375rem;
     color: var(--muted-foreground);
+  }
+  .facts > * {
+    position: relative;
+    white-space: nowrap;
+  }
+  .facts > * + *::before {
+    content: "·";
+    position: absolute;
+    left: -0.8rem;
   }
   .text {
     display: flex;
@@ -312,9 +352,14 @@
       grid-template-columns: 9rem minmax(0, 1fr) auto;
       align-items: start;
     }
-    .date {
+    .facts {
       grid-column: auto;
+      flex-direction: column;
+      gap: 0.2rem;
       padding-top: 0.3rem;
+    }
+    .facts > * + *::before {
+      content: none;
     }
     .go {
       align-self: center;
@@ -328,10 +373,6 @@
   }
   .row .chips {
     margin-top: 0.3rem;
-  }
-  .minutes {
-    font-size: 0.8125rem;
-    color: var(--muted-foreground);
   }
   .go {
     display: grid;

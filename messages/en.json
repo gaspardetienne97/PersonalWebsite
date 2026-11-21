@@ -14,13 +14,12 @@
   "header_theme": "Theme",
   "header_theme_light": "Light",
   "header_theme_dark": "Dark",
-  "header_theme_to_dark": "Switch to dark theme",
-  "header_theme_to_light": "Switch to light theme",
   "language_label": "Language",
 
   "footer_note": "Software engineer in Boston. This site runs on a server in my homelab.",
   "footer_replay": "Replay the intro",
-  "footer_replay_hint": "Plays the logo animation again. On a keyboard: hold Ctrl and Shift, then type G, M, E.",
+  "footer_replay_hint": "Plays the logo animation again.",
+  "footer_replay_shift": "Shift",
   "footer_nav_label": "Footer",
   "footer_site": "Site",
   "footer_projects": "Projects",
@@ -34,7 +33,7 @@
   "intro_role_line2": "who loves building cool stuff!",
   "intro_explore": "Explore the site",
   "intro_skip": "Skip intro",
-  "intro_press": "Press the logo",
+  "intro_play": "Play the intro",
   "logo_label": "Gaspard Etienne logo",
 
   "home_lede": "Full-stack software engineer based in Boston.",
@@ -42,7 +41,9 @@
   "home_more_about": "More about me",
   "home_newest": "Newest",
   "home_reel_slide": "{position} of {total}: {title}",
-  "home_reel_show": "Show {title}",
+  "home_reel_show": "Show {title} ({kind})",
+  "home_reel_in_studio": "{kind}: {count} in the Studio.",
+  "home_post": "Post",
   "home_reel_previous": "Previous piece",
   "home_reel_next": "Next piece",
   "home_post_dated": "Post, {date}",
@@ -78,7 +79,8 @@
 
   "studio_meta": "Doodles, drawings, music, paintings, photos, projects and videos by Gaspard Michel Etienne.",
   "studio_title": "My Studio",
-  "studio_lede": "Everything I make. Code, music, drawings, paintings, photos and more all hang on the same wall here in my Studio.",
+  "studio_lede_lead": "Everything I make.",
+  "studio_lede_rest": "Code, music, drawings, paintings, photos and more all hang on the same wall here in my Studio.",
   "studio_show": "Show",
   "studio_all": "All",
   "studio_everything": "Everything",
@@ -99,9 +101,37 @@
   "viewer_zoom_hint": "Drag to look around",
   "viewer_previous": "Previous piece",
   "viewer_next": "Next piece",
-  "viewer_to_last": "Go to the last piece",
-  "viewer_to_first": "Back to the first piece",
+  "viewer_to_last": [
+    {
+      "declarations": ["input kind"],
+      "selectors": ["kind"],
+      "match": {
+        "kind=doodles": "Last doodle",
+        "kind=drawings": "Last drawing",
+        "kind=paintings": "Last painting",
+        "kind=photos": "Last photo",
+        "kind=videos": "Last video",
+        "kind=*": "Last piece"
+      }
+    }
+  ],
+  "viewer_to_first": [
+    {
+      "declarations": ["input kind"],
+      "selectors": ["kind"],
+      "match": {
+        "kind=doodles": "First doodle",
+        "kind=drawings": "First drawing",
+        "kind=paintings": "First painting",
+        "kind=photos": "First photo",
+        "kind=videos": "First video",
+        "kind=*": "First piece"
+      }
+    }
+  ],
   "studio_open": "Open",
+  "studio_view": "View",
+  "viewer_zoom_level": "{level}×",
 
   "drawing_trace_maze": "Trace maze",
   "drawing_trace_maze_alt": "Dense parallel lines in red, blue, green, violet and yellow winding through a tall rectangle like circuit traces.",
@@ -186,7 +216,10 @@
   "about_colophon": "How it's built, type and colour",
   "about_hello_body": "Write to me about work, music, or anything you saw on this site. These are the best places to reach me.",
   "about_hello_body_social": "Find me on {places} to talk about work, music, or anything you saw on this site.",
-  "about_open": "Open",
+  "about_open_project": "Open {name}",
+  "about_jump_work": "Work",
+  "about_jump_outside": "Outside work",
+  "about_jump_site": "This website",
   "about_see_all_studio": "See all in the Studio",
 
   "blog_meta": "Notes from Gaspard Michel Etienne on what he's building and learning.",
@@ -215,11 +248,13 @@
   "error_not_found_title": "Page not found",
   "error_not_found_body": "Nothing lives at this address. The link may be out of date, or the address may have a typo.",
   "error_did_you_mean": "Did you mean {link}?",
+  "error_go_to": "Go to {path}",
   "error_other_title": "Something went wrong",
   "error_other_body": "This page couldn't be shown. Try again in a moment, or head somewhere else.",
   "error_all_posts": "All posts",
   "error_recent_posts": "Newest posts",
-  "error_look": "Or look at this",
+  "error_look": "From the Studio",
+  "error_see_all": "See all work",
 
   "listplay_signed_out_title": "Sign in to see your playlists",
   "listplay_signed_out_body": "Listplay reads your playlists from Spotify and can build one from the songs you played most.",
@@ -237,10 +272,13 @@
   "listplay_playlist_missing": "This playlist couldn't be loaded. Check the address, or pick one from your playlists.",
 
   "login_title": "Sign in",
-  "login_body": "This part of the site is for its owner. Everything else is open to everyone.",
   "login_continue": "Sign in",
-  "login_helper": "Authentik is this site's sign-in service. You come back here afterwards.",
+  "login_helper_private": "You sign in on a separate page (Authentik), then return to the private area.",
+  "login_helper_page": "You sign in on a separate page (Authentik), then return to {page}.",
+  "login_from_private": "The private area asked you to sign in first.",
+  "login_from_page": "{page} asked you to sign in first.",
   "login_unavailable": "Sign-in is unavailable right now.",
+  "login_unavailable_next": "The rest of the site is open. Try again later.",
   "login_cancelled": "Sign-in was cancelled.",
   "login_cancelled_next": "Nothing was changed. Try again, or go back to the site.",
   "login_lead_private": "Sign in to open the private area. It is for this site's owner. Everything else is open to everyone.",
