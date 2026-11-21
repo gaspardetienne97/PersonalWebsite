@@ -14,6 +14,22 @@
   const kindLabel = $derived(
     ({ epub: "EPUB", pdf: "PDF", txt: "TXT", paste: m.narrator_cover_text() })[doc.kind] ?? "DOC",
   );
+
+  // The title is set as large as its widest word allows, so no word is cut at the cover's edge.
+  // ponytail: a word's width is estimated from four letter classes of the bold serif (in em,
+  // taken at about 22px, since Fraunces sets wider at small sizes), not measured. A word too
+  // wide even at the smallest size wraps (overflow-wrap) instead of being clipped. Measure in
+  // the page if covers ever take another typeface.
+  const emWidth = (word: string) =>
+    [...word].reduce(
+      (sum, c) =>
+        sum + (/[mwMW—]/.test(c) ? 1.08 : /[A-Z0-9]/.test(c) ? 0.8 : /[fijlt.,:;'’!-]/.test(c) ? 0.4 : 0.62),
+      0,
+    );
+  const titleSize = $derived.by(() => {
+    const widest = Math.max(...doc.title.split(/\s+|(?<=-)/).map(emWidth), 1);
+    return Math.max(size * 0.11, Math.min(size * 0.2, (size * 0.74) / widest));
+  });
 </script>
 
 <!-- Generated cover art — no external images. -->
@@ -29,7 +45,7 @@
       {kindLabel}
     </div>
     <div>
-      <div class="title" style:font-size="{size * 0.2}px">{doc.title}</div>
+      <div class="title" style:font-size="{titleSize}px">{doc.title}</div>
       <div class="author" style:margin-top="{size * 0.05}px" style:font-size="{Math.max(8, size * 0.075)}px">
         {doc.author}
       </div>
@@ -73,10 +89,11 @@
     color: var(--n-fg-0);
     letter-spacing: -0.02em;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    overflow-wrap: break-word;
   }
   .author {
     color: var(--n-fg-2);
