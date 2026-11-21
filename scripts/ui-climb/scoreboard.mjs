@@ -1,27 +1,23 @@
 #!/usr/bin/env node
-// Score history for the UI hill climb. Reads every .ui-climb/rounds/<n>/<panel>/merged.json,
-// writes .ui-climb/scoreboard.md and .ui-climb/scoreboard.json, and per-round flaw digests in
-// .ui-climb/rounds/<n>/flaws/<panel>.md for the implementers.
+// Score history for the UI hill climb. Reads every <work>/rounds/<n>/<panel>/merged.json,
+// writes <work>/scoreboard.md and <work>/scoreboard.json, and per-round flaw digests in
+// <work>/rounds/<n>/flaws/<panel>.md for the implementers.
 //   node scripts/ui-climb/scoreboard.mjs [--bar-round 0]
+//   node scripts/ui-climb/scoreboard.mjs --project site     (writes scoreboard-site.md and .json)
+// --project woodshed|site|narrator (or UI_CLIMB_PROJECT); with none it is Woodshed in .ui-climb.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { FLOWS } from "./flows.mjs";
+import { join } from "node:path";
+import { flowsOf, projectFrom } from "./projects.mjs";
 
-const ROOT = resolve(import.meta.dirname, "../..");
-const WORK = join(ROOT, ".ui-climb");
 const args = process.argv.slice(2);
+const project = projectFrom(args);
+const WORK = project.dir;
+const FLOWS = await flowsOf(project);
+const NAME = project.name;
+const OWN = project.candidate;
 const barRound = args.includes("--bar-round") ? args[args.indexOf("--bar-round") + 1] : "0";
 const JUDGES = ["astra", "opus", "fable"];
-const DIMS = [
-  "visual",
-  "clarity",
-  "engagement",
-  "teaching",
-  "flow",
-  "phone",
-  "accessibility",
-  "consistency",
-];
+const DIMS = project.dims;
 
 const roundsDir = join(WORK, "rounds");
 const rounds = existsSync(roundsDir)
@@ -62,7 +58,7 @@ function wood(r, panel) {
   if (!m) return null;
   const per = {};
   for (const j of JUDGES) {
-    const c = m.judges[j]?.woodshed;
+    const c = m.judges[j]?.[OWN];
     if (!c) continue;
     const dims = Object.entries(c.scores).filter(([, v]) => v != null);
     per[j] = {
@@ -80,18 +76,17 @@ const json = { barRound, rounds, panels: {} };
 const lines = [
   "# UI hill climb scoreboard",
   "",
-  `Judges: astra (GPT-6-Astra via Codex), opus (Claude Opus 5.5), fable (Claude Fable 5.1). Bar: best competitor by mean overall in round ${barRound}, re-scored blind beside Woodshed.`,
+  `Judges: astra (GPT-6-Astra via Codex), opus (Claude Opus 5.5), fable (${project.fableLabel}). Bar: best competitor by mean overall in round ${barRound}, re-scored blind beside ${NAME}.`,
   "",
-  "Done means every judge gives Woodshed at least 9 overall on every flow, and Woodshed's mean is at least the bar.",
+  `Done means every judge gives ${NAME} at least 9 overall on every flow, and ${NAME}'s mean is at least the bar.`,
   "",
-  "Harness notes: from round 1, panels that mix two drills caption each screen with its drill name (round 0 did not), so part of a round 1 gain on those panels may come from the caption, not the app. From round 2, drill panels take their two drills or instruments in turn with balanced widths and themes, and the captures add fretboard Note finder, chord Changes and the Create beat playing (features that existed but were never shown), so part of a round 2 gain on those flows may come from the panel, not the app. From round 4, captures close the session before switching to Check (round 3's chords, Note finder and voicings 'check' shots were really Practice), show Note finder on both fretted instruments, and give played notes a few ms of seeded jitter and timed answers a seeded think time, so round 4 movement on those flows is partly the harness. From round 5, the songs panel no longer includes the Create reference page, settings gets a phone shot, flashcards a phone running shot, phone ear feedback is shot without scrolling, and the good strum run plays the pattern's strokes instead of beats 1 and 3. GPT (astra) is limited by the account's Codex quota and runs at medium effort from round 1; it is missing where shown as '-'.",
-  "",
+  ...(project.notes ? [project.notes, ""] : []),
 ];
 
 const last = rounds.at(-1);
 lines.push(`## Round ${last ?? "-"} (latest)`, "");
 lines.push(
-  "| Flow | astra | opus | fable | Woodshed mean | lowest dimension | Bar (app) | Gap | Done |",
+  `| Flow | astra | opus | fable | ${NAME} mean | lowest dimension | Bar (${project.each}) | Gap | Done |`,
   "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
 );
 let done = 0;
@@ -112,7 +107,7 @@ for (const f of FLOWS) {
 }
 lines.push("", `${done} of ${FLOWS.length} flows done.`, "");
 
-lines.push("## History (Woodshed mean overall per round; min judge in brackets)", "");
+lines.push(`## History (${NAME} mean overall per round; min judge in brackets)`, "");
 lines.push(
   `| Flow | ${rounds.map((r) => `R${r}`).join(" | ")} |`,
   `| --- | ${rounds.map(() => "---").join(" | ")} |`,
@@ -144,8 +139,8 @@ for (const r of rounds) {
   }
   lines.push(`- R${r}: ${rows.join("; ")}`);
 }
-writeFileSync(join(WORK, "scoreboard.md"), lines.join("\n") + "\n");
-writeFileSync(join(WORK, "scoreboard.json"), JSON.stringify(json, null, 2));
+writeFileSync(join(WORK, `scoreboard${project.suffix}.md`), lines.join("\n") + "\n");
+writeFileSync(join(WORK, `scoreboard${project.suffix}.json`), JSON.stringify(json, null, 2));
 
 // Flaw digests for the latest round.
 if (last) {
@@ -157,11 +152,11 @@ if (last) {
     if (!w || !m) continue;
     const panelFile = join(roundsDir, last, "panels", `${f.id}.json`);
     const panel = existsSync(panelFile) ? JSON.parse(readFileSync(panelFile, "utf8")) : null;
-    const imgs = panel?.candidates.find((c) => c.key === "woodshed")?.images ?? [];
+    const imgs = panel?.candidates.find((c) => c.key === OWN)?.images ?? [];
     const out = [
       `# ${f.id}: ${f.flow}`,
       "",
-      "Woodshed screens shown (numbered as the judges saw them):",
+      `${NAME} screens shown (numbered as the judges saw them):`,
       "",
     ];
     imgs.forEach((im, i) => out.push(`${i + 1}. ${im.path} (${im.caption})`));

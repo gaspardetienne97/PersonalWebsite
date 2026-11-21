@@ -1,19 +1,26 @@
 #!/usr/bin/env node
-// Final report for the UI hill climb: .ui-climb/report.html, a before and after gallery per
+// Final report for the UI hill climb: <work>/report.html, a before and after gallery per
 // flow at both widths, the competitor screens judged beside it, and the score history.
 // Reads the panels and merged verdicts on disk, so it can be re-run after any round.
 //   node scripts/ui-climb/report.mjs
+//   node scripts/ui-climb/report.mjs --project site     (writes report-site.html)
+// --project woodshed|site|narrator (or UI_CLIMB_PROJECT); with none it is Woodshed in .ui-climb.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { FLOWS } from "./flows.mjs";
+import { join } from "node:path";
+import { flowsOf, projectFrom } from "./projects.mjs";
 
-const ROOT = resolve(import.meta.dirname, "../..");
-const WORK = join(ROOT, ".ui-climb");
+const project = projectFrom(process.argv.slice(2));
+const WORK = project.dir;
+const FLOWS = await flowsOf(project);
+const NAME = project.name;
+const OWN = project.candidate;
 const JUDGES = ["astra", "opus", "fable"];
 const rounds = readdirSync(join(WORK, "rounds"))
   .filter((r) => /^\d+$/.test(r))
   .sort((a, b) => a - b)
-  .filter((r) => existsSync(join(WORK, "rounds", r, "panels")));
+  .filter((r) => existsSync(join(WORK, "rounds", r, "panels")))
+  // Site and Narrator share a work dir: keep the rounds that have this project's panels.
+  .filter((r) => FLOWS.some((f) => existsSync(join(WORK, "rounds", r, "panels", `${f.id}.json`))));
 const first = rounds[0];
 const last = rounds.at(-1);
 
@@ -27,15 +34,16 @@ const esc = (s) =>
     /[&<>"]/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
   );
-// Image paths in panels are repo-relative; the report sits in .ui-climb/.
-const src = (p) => (p.startsWith(".ui-climb/") ? p.slice(".ui-climb/".length) : `../${p}`);
+// Image paths in panels are repo-relative; the report sits in the work dir.
+const src = (p) =>
+  p.startsWith(`${project.work}/`) ? p.slice(project.work.length + 1) : `../${p}`;
 
 /** Woodshed's overall per judge in a round (Claude judges for the trend, every judge listed). */
 function scores(r, id) {
   const m = merged(r, id);
   if (!m) return null;
   const per = Object.fromEntries(
-    JUDGES.filter((j) => m.judges[j]?.woodshed).map((j) => [j, m.judges[j].woodshed.overall]),
+    JUDGES.filter((j) => m.judges[j]?.[OWN]).map((j) => [j, m.judges[j][OWN].overall]),
   );
   const claude = ["opus", "fable"].map((j) => per[j]).filter((x) => x != null);
   return { per, claude: mean(claude) };
@@ -55,7 +63,7 @@ function bar(id) {
 
 /** One laptop and one phone screen from a round's Woodshed candidate, the same states when possible. */
 function pick(r, id, prefer) {
-  const imgs = panel(r, id)?.candidates.find((c) => c.key === "woodshed")?.images ?? [];
+  const imgs = panel(r, id)?.candidates.find((c) => c.key === OWN)?.images ?? [];
   const isPhone = (i) => i.path.includes("--phone-");
   const state = (i) => i.path.split("/").pop().split("--")[0];
   const out = [];
@@ -103,7 +111,7 @@ const sections = FLOWS.map((f) => {
 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Woodshed UI climb</title>
+<title>${esc(NAME)} UI climb</title>
 <style>
 :root { --bg: #f6f5f2; --surface: #ffffff; --ink: #1d1b19; --soft: #5f5a54; --line: #dcd8d2; --accent: #9a5b12; }
 @media (prefers-color-scheme: dark) { :root { --bg: #151413; --surface: #1f1d1b; --ink: #f1eee9; --soft: #b5aea5; --line: #3a3632; --accent: #e3a35a; } }
@@ -123,7 +131,7 @@ figcaption { font-size: 13px; color: var(--soft); margin-top: 4px; }
 .totals td, .totals th { padding: 4px 12px; }
 @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } table { display: block; overflow-x: auto; } }
 </style></head><body><main>
-<h1>Woodshed UI climb</h1>
+<h1>${esc(NAME)} UI climb</h1>
 <p>Rounds ${first} to ${last}. Each flow shows the scores per judge and round, one laptop and one phone screen before and after, and competitor screens the judges saw beside it. Judges saw screenshots only, unlabelled and shuffled. See summary.md for what changed per round, what was reverted and why scores stopped short of 9.</p>
 <table class="totals"><thead><tr><th>Round</th>${totals.map((t) => `<th>R${t.r}</th>`).join("")}</tr></thead>
 <tbody><tr><th>Mean over flows (Claude judges)</th>${totals.map((t) => `<td>${fmt(t.mean)}</td>`).join("")}</tr></tbody></table>
@@ -131,5 +139,5 @@ figcaption { font-size: 13px; color: var(--soft); margin-top: 4px; }
 ${sections.join("\n")}
 </main></body></html>`;
 
-writeFileSync(join(WORK, "report.html"), html);
+writeFileSync(join(WORK, `report${project.suffix}.html`), html);
 console.log(`report: ${FLOWS.length} flows, rounds ${first} to ${last}`);

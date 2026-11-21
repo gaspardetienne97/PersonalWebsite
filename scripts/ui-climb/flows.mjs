@@ -428,3 +428,30 @@ export function pickShots(available, flow, max = 8) {
   need((a) => a.theme === "light");
   return sel;
 }
+
+/**
+ * Site and Narrator images for a panel: the flow's `panel` list, in order. Each entry is
+ * [state, width, theme] or [state, width, theme, "full"] for the whole-page shot. "a|b" as the
+ * state takes the first of the two that was shot. A state with no shot in that theme takes the
+ * other one (a screen with one theme); a state with no shot at all is skipped with a warning.
+ */
+export function pickPanel(available, flow, max = 8) {
+  const pool = available.filter((a) => flow.shots.includes(a.shotFlow));
+  const picks = [];
+  for (const [state, width, theme, full] of flow.panel) {
+    let here = [];
+    for (const name of state.split("|")) {
+      here = pool.filter(
+        (a) => a.state === name && a.width === width && a.full === (full === "full"),
+      );
+      if (here.length) break;
+    }
+    const hit = here.find((a) => a.theme === theme) ?? here[0];
+    if (!hit) {
+      console.warn(`${flow.id}: no shot for ${state} at ${width}${full ? " (full page)" : ""}`);
+      continue;
+    }
+    if (!picks.includes(hit)) picks.push(hit);
+  }
+  return picks.slice(0, max);
+}

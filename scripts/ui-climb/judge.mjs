@@ -4,6 +4,10 @@
 // Judges see screenshots only. Raw judge JSON and the merged result land in the round dir.
 //
 //   node scripts/ui-climb/judge.mjs --round 3 panels/*.json [--only opus,astra] [--jobs 6]
+//   node scripts/ui-climb/judge.mjs --project site --round 0 .ui-climb-site/rounds/0/panels/home.json
+//
+// --project woodshed|site|narrator (or UI_CLIMB_PROJECT) picks the work dir, the rubric and the
+// scored dimensions (see projects.mjs); with none it is Woodshed.
 //
 // Panel file: { "id": "today", "flow": "Today / home screen", "job": "what the screens are for",
 //   "candidates": [{ "key": "woodshed", "images": [{ "path": "...png", "caption": "desktop, light" }] }, ...] }
@@ -12,9 +16,8 @@ import { spawn } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
+import { PROJECTS, ROOT, projectFrom } from "./projects.mjs";
 
-const ROOT = resolve(import.meta.dirname, "../..");
-const WORK = join(ROOT, ".ui-climb");
 const PATH_ENV = `/opt/homebrew/bin:${process.env.HOME}/.local/bin:${process.env.PATH}`;
 
 export const JUDGES = {
@@ -23,18 +26,8 @@ export const JUDGES = {
   fable: { kind: "claude", model: "claude-fable-5-2" },
 };
 
-const DIMS = [
-  "visual",
-  "clarity",
-  "engagement",
-  "teaching",
-  "flow",
-  "phone",
-  "accessibility",
-  "consistency",
-];
-
-export const SCHEMA = {
+/** The verdict schema for a project's dimensions. */
+export const schemaFor = (dims) => ({
   type: "object",
   additionalProperties: false,
   required: ["candidates"],
@@ -50,9 +43,9 @@ export const SCHEMA = {
           scores: {
             type: "object",
             additionalProperties: false,
-            required: DIMS,
+            required: dims,
             properties: Object.fromEntries(
-              DIMS.map((d) => [
+              dims.map((d) => [
                 d,
                 d === "phone" ? { type: ["number", "null"] } : { type: "number" },
               ]),
@@ -76,7 +69,10 @@ export const SCHEMA = {
       },
     },
   },
-};
+});
+
+/** Woodshed's schema, as the first climb used it. */
+export const SCHEMA = schemaFor(PROJECTS.woodshed.dims);
 
 function shuffle(a, seed) {
   // Deterministic per panel and round so reruns reproduce the order.
@@ -108,7 +104,7 @@ function prepare(panel, round) {
   return { dir, cands };
 }
 
-function prompt(panel, cands, rubric, forClaude) {
+function prompt(panel, cands, rubric, forClaude, each = "app") {
   const lines = [
     rubric,
     "",
@@ -119,7 +115,7 @@ function prompt(panel, cands, rubric, forClaude) {
     `Flow: **${panel.flow}**.`,
     panel.job ? `What these screens are for: ${panel.job}` : "",
     "",
-    `There are ${cands.length} candidates, each from a different app. Score every candidate.`,
+    `There are ${cands.length} candidates, each from a different ${each}. Score every candidate.`,
     "",
   ];
   for (const c of cands) {
@@ -159,9 +155,10 @@ function run(cmd, args, { input, cwd, timeout = 900_000 }) {
   });
 }
 
-async function callJudge(name, panel, prep, rubric) {
+async function callJudge(name, panel, prep, rubric, project) {
   const j = JUDGES[name];
-  const text = prompt(panel, prep.cands, rubric, j.kind === "claude");
+  const schema = schemaFor(project.dims);
+  const text = prompt(panel, prep.cands, rubric, j.kind === "claude", project.each);
   if (j.kind === "claude") {
     const r = await run(
       "claude",
@@ -183,7 +180,7 @@ async function callJudge(name, panel, prep, rubric) {
         "--output-format",
         "json",
         "--json-schema",
-        JSON.stringify(SCHEMA),
+        JSON.stringify(schema),
       ],
       { input: text, cwd: prep.dir },
     );
@@ -193,7 +190,7 @@ async function callJudge(name, panel, prep, rubric) {
   }
   const schemaPath = join(prep.dir, "schema.json");
   const outPath = join(prep.dir, `out-${name}.json`);
-  writeFileSync(schemaPath, JSON.stringify(SCHEMA));
+  writeFileSync(schemaPath, JSON.stringify(schema));
   const imgs = prep.cands.flatMap((c) => c.images.flatMap((i) => ["-i", i.path]));
   const r = await run(
     "codex",
@@ -222,8 +219,8 @@ async function callJudge(name, panel, prep, rubric) {
   return { result: JSON.parse(readFileSync(outPath, "utf8")), cost: null };
 }
 
-export async function judgePanel(panel, round, judges, rubric) {
-  const outDir = join(WORK, "rounds", String(round), panel.id);
+export async function judgePanel(panel, round, judges, rubric, project = projectFrom()) {
+  const outDir = join(project.dir, "rounds", String(round), panel.id);
   mkdirSync(outDir, { recursive: true });
   const prep = prepare(panel, round);
   const merged = { id: panel.id, flow: panel.flow, round, judges: {}, candidates: {} };
@@ -234,7 +231,7 @@ export async function judgePanel(panel, round, judges, rubric) {
       const file = join(outDir, `${name}.json`);
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          const { result, cost } = await callJudge(name, panel, prep, rubric);
+          const { result, cost } = await callJudge(name, panel, prep, rubric, project);
           const byKey = {};
           for (const c of prep.cands) {
             const hit = result.candidates.find((x) => x.label.trim().toUpperCase() === c.label);
@@ -282,6 +279,8 @@ async function pool(items, n, fn) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
+  const project = projectFrom(args);
+  const WORK = project.dir;
   const opt = (k, d) => {
     const i = args.indexOf(`--${k}`);
     if (i < 0) return d;
@@ -294,7 +293,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const jobs = Number(opt("jobs", "4"));
   const skipDone = args.includes("--skip-done");
   const files = args.filter((a) => !a.startsWith("--"));
-  const rubric = readFileSync(join(WORK, "rubric.md"), "utf8");
+  const rubric = readFileSync(join(WORK, project.rubric), "utf8");
   const judges = only.split(",");
   const panels = files.map((f) => JSON.parse(readFileSync(f, "utf8")));
   await pool(panels, jobs, async (p) => {
@@ -304,7 +303,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       if (judges.every((j) => m.judges[j])) return;
     }
     const t = Date.now();
-    const m = await judgePanel(p, round, judges, rubric);
+    const m = await judgePanel(p, round, judges, rubric, project);
     const line = Object.entries(m.judges)
       .map(
         ([j, by]) =>
