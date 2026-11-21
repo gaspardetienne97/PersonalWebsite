@@ -4,8 +4,10 @@ import { WIDTHS, settle, snap } from "../capture-common.ts";
 import { returning, visit } from "./site.ts";
 
 const FLOW = "nav";
-// The header's controls in order: on a phone the site menu comes first, then language, then theme.
-const controls = ".site-header .actions > button";
+// From 640px the header has its links and two tools, language then theme. On a phone it is the
+// brand and one menu button, and the menu's panel holds the pages, the languages and the theme.
+const tools = ".site-header .tools button";
+const menuButton = ".site-header .actions > button";
 
 for (const width of WIDTHS) {
   test(`nav ${width}`, async ({ page }) => {
@@ -18,7 +20,7 @@ for (const width of WIDTHS) {
       width,
       width === "desktop"
         ? "the header on the About page: logo and name, the four links with the current page marked, language and theme buttons"
-        : "the header on the About page at phone width: logo and name, a Menu button, language and theme buttons",
+        : "the header on the About page at phone width: logo and name, and one menu button that holds the pages, the language and the theme",
     );
 
     await page.evaluate(() => window.scrollTo({ top: 520, behavior: "instant" }));
@@ -32,22 +34,8 @@ for (const width of WIDTHS) {
     );
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
 
-    const language = page.locator(controls).nth(width === "phone" ? 1 : 0);
-    await language.click();
-    await expect(page.getByRole("menu")).toBeVisible();
-    await settle(page, 300);
-    await snap(
-      page,
-      FLOW,
-      "language-menu",
-      width,
-      "the language menu open: four languages, each named in itself, the current one ticked",
-    );
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("menu")).toHaveCount(0);
-
     if (width === "phone") {
-      await page.locator(controls).first().click();
+      await page.locator(menuButton).click();
       await expect(page.getByRole("menu")).toBeVisible();
       await settle(page, 300);
       await snap(
@@ -55,11 +43,35 @@ for (const width of WIDTHS) {
         FLOW,
         "phone-menu",
         width,
-        "the site menu open at phone width, the current page marked",
+        "the site menu open at phone width: a panel as wide as the screen with the pages (the current one marked), the languages and the theme switch, the page dimmed behind it",
+      );
+      // There is no separate language menu on a phone: the languages are rows of this panel.
+      await page.getByRole("menuitemradio").first().focus();
+      await settle(page, 200);
+      await snap(
+        page,
+        FLOW,
+        "language-menu",
+        width,
+        "the languages inside the phone menu: four languages, each named in itself, the current one with a check mark (keyboard focus on it)",
+        { keepMouse: true },
       );
       await page.keyboard.press("Escape");
       await expect(page.getByRole("menu")).toHaveCount(0);
     } else {
+      await page.locator(tools).nth(0).click();
+      await expect(page.getByRole("menu")).toBeVisible();
+      await settle(page, 300);
+      await snap(
+        page,
+        FLOW,
+        "language-menu",
+        width,
+        "the language menu open: four languages, each named in itself, the current one with a check mark",
+      );
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("menu")).toHaveCount(0);
+
       // Keyboard: Tab to the second nav link so the focus ring shows.
       await page.locator(".site-header .brand").focus();
       await page.keyboard.press("Tab");
@@ -86,7 +98,7 @@ for (const width of WIDTHS) {
       FLOW,
       "footer",
       width,
-      "the footer: name and note, replay the intro, site links, projects, elsewhere, the private link",
+      "the footer: name and note, replay the intro, site links, projects, elsewhere, the owner sign-in link",
     );
   });
 }
@@ -94,18 +106,27 @@ for (const width of WIDTHS) {
 test("nav in French phone", async ({ page }) => {
   await returning(page, "phone", { locale: "fr" });
   await visit(page, "/studio");
-  await page.locator(controls).first().click();
+  await page.locator(menuButton).click();
   await expect(page.getByRole("menu")).toBeVisible();
   await settle(page, 300);
-  await snap(page, FLOW, "phone-menu", "phone", "the site menu open at phone width", { fr: true });
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("menu")).toHaveCount(0);
-  await page.locator(controls).nth(1).click();
-  await expect(page.getByRole("menu")).toBeVisible();
-  await settle(page, 300);
-  await snap(page, FLOW, "language-menu", "phone", "the language menu open, French ticked", {
-    fr: true,
-  });
+  await snap(
+    page,
+    FLOW,
+    "phone-menu",
+    "phone",
+    "the site menu open at phone width: pages, languages with a check mark on French, and the theme switch",
+    { fr: true },
+  );
+  await page.locator('[role="menuitemradio"][aria-checked="true"]').focus();
+  await settle(page, 200);
+  await snap(
+    page,
+    FLOW,
+    "language-menu",
+    "phone",
+    "the languages inside the phone menu, French with the check mark (keyboard focus on it)",
+    { fr: true, keepMouse: true },
+  );
   await page.keyboard.press("Escape");
   await expect(page.getByRole("menu")).toHaveCount(0);
   await page.evaluate(() =>

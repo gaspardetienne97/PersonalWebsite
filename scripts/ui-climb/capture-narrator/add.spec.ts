@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { WIDTHS, settle } from "../capture-common.ts";
 import { FILES, chooseFile, narrator, nsnap, openAdd, openLibrary, pickTab } from "./narrator.ts";
 
-const error = ".overlay .error[role=alert]";
+const error = ".overlay .notice[role=alert]";
 
 for (const width of WIDTHS) {
   test(`add document modal ${width}`, async ({ page }) => {
@@ -18,16 +18,32 @@ for (const width of WIDTHS) {
       width,
       "the add-document modal on its PDF tab: tabs for PDF, EPUB, text file and paste, a drop area, and the narrator voice to use",
     );
-    await page.locator(".overlay .drop").dispatchEvent("dragover");
-    await settle(page, 200);
-    await nsnap(
-      page,
-      "add-document",
-      "drag-over",
-      width,
-      "the add modal while a file is dragged over the drop area",
-    );
-    await page.locator(".overlay .drop").dispatchEvent("dragleave");
+    // Nobody drags a file on a phone: there the modal is a sheet and the area is a button.
+    if (width === "desktop") {
+      await page.locator(".overlay .drop").dispatchEvent("dragover");
+      await settle(page, 200);
+      await nsnap(
+        page,
+        "add-document",
+        "drag-over",
+        width,
+        "the add modal while a file is dragged over the drop area",
+      );
+      await page.locator(".overlay .drop").dispatchEvent("dragleave");
+    }
+    const change = page.locator(".overlay .change");
+    if (await change.count()) {
+      await change.click();
+      await settle(page, 250);
+      await nsnap(
+        page,
+        "add-document",
+        "voice-change",
+        width,
+        "the add modal with the narrator voice being changed: the device's voices as choices (stand-in voice list)",
+      );
+      await change.click();
+    }
     await pickTab(page, "epub");
     await nsnap(page, "add-document", "modal-epub", width, "the add modal on its EPUB tab");
     await pickTab(page, "paste");
@@ -70,7 +86,7 @@ for (const width of WIDTHS) {
       "add-document",
       "parsing",
       width,
-      "a PDF being read after it was picked: the steps from reading the file to building the narration (the first step held for the capture)",
+      "a PDF being read after it was picked: the steps from reading the file to building the narration, and Cancel (the first step held for the capture)",
     );
     await expect(page.locator(".root .top")).toBeVisible({ timeout: 30_000 });
     await settle(page, 500);
@@ -95,7 +111,7 @@ for (const width of WIDTHS) {
       "narrator-error",
       "unsupported",
       width,
-      "the add modal after picking a word-processor file, a kind it cannot read",
+      "the add modal after picking a word-processor file, a kind it cannot read: a notice says which kinds it reads",
     );
     await chooseFile(page, "pdf", FILES.brokenPdf);
     await expect(page.locator(".overlay .pipe")).toHaveCount(0, { timeout: 30_000 });
@@ -106,7 +122,7 @@ for (const width of WIDTHS) {
       "narrator-error",
       "parse-failed",
       width,
-      "the add modal after picking a file named .pdf that is not a PDF: reading it failed",
+      "the add modal after picking a file named .pdf that is not a PDF: a notice says reading it failed and what to do next",
     );
     await chooseFile(page, "pdf", FILES.scannedPdf);
     await expect(page.locator(".overlay .pipe")).toHaveCount(0, { timeout: 30_000 });
@@ -117,7 +133,7 @@ for (const width of WIDTHS) {
       "narrator-error",
       "scanned-pdf",
       width,
-      "the add modal after picking a scanned PDF with no text in it",
+      "the add modal after picking a scanned PDF with no text in it: a notice says why and what to do next",
     );
     await chooseFile(page, "epub", FILES.brokenEpub);
     await expect(page.locator(".overlay .pipe")).toHaveCount(0, { timeout: 30_000 });

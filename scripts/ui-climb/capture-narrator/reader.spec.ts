@@ -106,7 +106,7 @@ for (const width of WIDTHS) {
       "listening",
       "speed-menu",
       width,
-      `the speed menu open while playing, from 0.75x to 2x (${SPEECH_NOTE})`,
+      `the speed menu open while playing, from 0.75x to 3x (${SPEECH_NOTE})`,
     );
     await page.locator(".pop .pop-item").nth(3).click();
     await expect(page.locator(".pop")).toHaveCount(0);
@@ -176,6 +176,22 @@ for (const width of WIDTHS) {
     );
   });
 }
+
+test("chapters with a long title desktop", async ({ page }) => {
+  await narrator(page, "desktop");
+  await openLibrary(page);
+  await openDoc(page, "Designing Data-Intensive");
+  await reader.chapters(page).click();
+  await expect(page.locator(".chapters-pop")).toBeVisible();
+  await settle(page, 300);
+  await nsnap(
+    page,
+    "chapters",
+    "list-long-title",
+    "desktop",
+    "the chapter list on a sample whose chapter has a long title (Reliable, Scalable, Maintainable): the title in full beside its length",
+  );
+});
 
 test("reader, listening and chapters in French phone", async ({ page }) => {
   await narrator(page, "phone", { locale: "fr" });

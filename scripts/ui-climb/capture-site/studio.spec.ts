@@ -1,7 +1,15 @@
 // The Studio: the wall, a kind's wall, the kinds view, an empty kind, and the viewer.
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { WIDTHS, settle, snap } from "../capture-common.ts";
 import { returning, visit } from "./site.ts";
+
+/** The viewer's current piece, once its large picture has loaded whole. */
+async function pieceShown(page: Page) {
+  await expect(page.getByRole("dialog").locator("[data-current] img.large.whole")).toBeVisible({
+    timeout: 30_000,
+  });
+  await settle(page, 600);
+}
 
 for (const width of WIDTHS) {
   test(`studio ${width}`, async ({ page }) => {
@@ -16,11 +24,17 @@ for (const width of WIDTHS) {
       { full: true },
     );
     if (width === "desktop") {
-      await page.locator(".wall .tile").nth(4).hover();
+      // The second tile is a project, so its cover and the hover state both show.
+      await page.locator(".wall .tile").nth(1).hover();
       await settle(page, 350);
-      await snap(page, "studio", "tile-hover", width, "Studio wall, pointer over a tile", {
-        keepMouse: true,
-      });
+      await snap(
+        page,
+        "studio",
+        "tile-hover",
+        width,
+        "Studio wall, pointer over a project tile with its cover",
+        { keepMouse: true },
+      );
     }
     await visit(page, "/studio?type=drawings");
     await snap(page, "studio", "wall-drawings", width, "Studio wall showing one kind, Drawings");
@@ -47,7 +61,7 @@ for (const width of WIDTHS) {
       "studio",
       "empty-kind",
       width,
-      "Studio wall for a kind with nothing in it yet (Music): the empty state",
+      "Studio wall for a kind with nothing in it yet (Music): the empty state and the way back to all the work",
     );
   });
 
@@ -57,26 +71,30 @@ for (const width of WIDTHS) {
     await page.locator(".wall button.tile").first().click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
-    await expect(dialog.locator("img").first()).toBeVisible();
-    await dialog
-      .locator("img")
-      .first()
-      .evaluate((img: HTMLImageElement) => img.decode().catch(() => {}));
-    await settle(page, 600);
+    await pieceShown(page);
     await snap(
       page,
       "studio-viewer",
       "open",
       width,
-      "the viewer opened on the first drawing (a tall one): title, kind, the piece, previous and next arrows, position",
+      width === "desktop"
+        ? 'the viewer opened on the first drawing (a tall one): title, the piece whole on its mat, previous and next arrows, Zoom in, a counter that reads "Drawings, 1 of 9" and a strip of thumbnails'
+        : 'the viewer opened on the first drawing (a tall one): title, the piece whole on its mat, Zoom in and a counter that reads "Drawings, 1 of 9"',
     );
+    await dialog.getByRole("button", { name: "Zoom in" }).click();
+    await expect(dialog.locator(".zoombox")).toBeVisible();
+    await settle(page, 600);
+    await snap(
+      page,
+      "studio-viewer",
+      "zoomed",
+      width,
+      "the viewer after Zoom in: the same drawing large, in a box that scrolls, with Zoom out to go back",
+    );
+    await dialog.getByRole("button", { name: "Zoom out" }).click();
+    await expect(dialog.locator(".zoombox")).toHaveCount(0);
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowRight");
-    await settle(page, 900);
-    await dialog
-      .locator("img")
-      .nth(2)
-      .evaluate((img: HTMLImageElement) => img.decode().catch(() => {}));
-    await settle(page, 300);
+    await pieceShown(page);
     await snap(
       page,
       "studio-viewer",
@@ -90,7 +108,7 @@ for (const width of WIDTHS) {
     await visit(page, "/studio");
     await page.locator(".wall button.tile").nth(3).click();
     await expect(dialog).toBeVisible();
-    await settle(page, 900);
+    await pieceShown(page);
     await snap(
       page,
       "studio-viewer",
@@ -112,7 +130,7 @@ test("studio in French phone", async ({ page }) => {
   await visit(page, "/studio?type=drawings");
   await page.locator(".wall button.tile").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await settle(page, 900);
+  await pieceShown(page);
   await snap(page, "studio-viewer", "open", "phone", "the viewer opened on the first drawing", {
     fr: true,
   });

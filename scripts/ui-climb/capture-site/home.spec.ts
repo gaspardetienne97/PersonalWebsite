@@ -17,6 +17,19 @@ async function pressLogo(page: Page) {
   }).toPass({ timeout: 20_000 });
 }
 
+/** Walk down the page and back, so images that load lazily are in before a full-page shot. */
+async function loadWholePage(page: Page) {
+  await page.evaluate(async () => {
+    for (let y = 0; y < document.body.scrollHeight; y += innerHeight) {
+      window.scrollTo({ top: y, behavior: "instant" });
+      await new Promise((r) => setTimeout(r, 120));
+    }
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
+  await page.waitForFunction(() => [...document.images].every((img) => img.complete));
+  await settle(page);
+}
+
 for (const width of WIDTHS) {
   // The theme switch (mode-watcher) cuts running transitions short, so the two moments shot
   // mid-animation get one run per theme instead of a switch in place.
@@ -35,7 +48,7 @@ for (const width of WIDTHS) {
         FLOW,
         "intro-waiting",
         width,
-        "first visit, the logo intro covers the page and waits to be pressed, a ring ripples out from the logo",
+        'first visit, the logo intro covers the page and waits to be pressed: a ring ripples out from the logo, a caption under it says "Press the logo", and "Skip intro" goes straight to the site',
         { frozen: true, themes: [theme] },
       );
       await thaw(page);
@@ -83,6 +96,7 @@ for (const width of WIDTHS) {
   test(`home returning visit ${width}`, async ({ page }) => {
     await returning(page, width);
     await visit(page, "/");
+    await loadWholePage(page);
     await snap(
       page,
       FLOW,
@@ -118,6 +132,7 @@ for (const width of WIDTHS) {
 test("home returning visit in French phone", async ({ page }) => {
   await returning(page, "phone", { locale: "fr" });
   await visit(page, "/");
+  await loadWholePage(page);
   await snap(page, FLOW, "home", "phone", "home page for a returning visitor", {
     full: true,
     fr: true,

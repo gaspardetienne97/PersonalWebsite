@@ -12,7 +12,8 @@ test("a missing address gets the site's error page, in any section", async ({ pa
       ["Home", "/"],
       ["About", "/about"],
       ["Studio", "/studio"],
-      ["Blog", "/blog"],
+      // A missing post leads with the list of posts, in place of the nav's own link to it.
+      [path.startsWith("/blog/") ? "All posts" : "Writing", "/blog"],
     ])
       await expect(page.getByRole("main").getByRole("link", { name, exact: true })).toHaveAttribute(
         "href",

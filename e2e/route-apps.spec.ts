@@ -9,7 +9,7 @@ test("narrow site menu supports keyboard and pointer navigation", async ({ page 
     ["Home", "/"],
     ["About", "/about"],
     ["Studio", "/studio"],
-    ["Blog", "/blog"],
+    ["Writing", "/blog"],
   ]) {
     await expect(page.getByRole("menuitem", { name, exact: true })).toHaveAttribute("href", href);
   }
@@ -22,7 +22,7 @@ test("narrow site menu supports keyboard and pointer navigation", async ({ page 
   await expect(page.getByRole("menu")).toHaveCount(0);
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: "Home", exact: true })).toBeFocused();
-  for (const name of ["About", "Studio", "Blog"]) {
+  for (const name of ["About", "Studio", "Writing"]) {
     await page.keyboard.press("ArrowDown");
     await expect(page.getByRole("menuitem", { name, exact: true })).toBeFocused();
   }
@@ -39,8 +39,13 @@ test("narrow site menu supports keyboard and pointer navigation", async ({ page 
   for (const width of [375, 320]) {
     await page.setViewportSize({ width, height: 812 });
     if (width === 320) {
-      await page.getByRole("button", { name: "Toggle theme", exact: true }).click();
+      // On a phone the theme switch is a row of the site menu, and choosing it keeps the menu open.
+      await trigger.click();
+      await page.getByRole("menuitem", { name: "Toggle theme", exact: true }).click();
       await expect(page.locator("html")).toHaveClass(/dark/);
+      await expect(page.getByRole("menu")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("menu")).toHaveCount(0);
     }
     await trigger.click();
     expect(
@@ -53,7 +58,7 @@ test("narrow site menu supports keyboard and pointer navigation", async ({ page 
       path: testInfo.outputPath(`site-menu-${width}.png`),
       animations: "disabled",
     });
-    for (const name of ["Home", "About", "Studio", "Blog"]) {
+    for (const name of ["Home", "About", "Studio", "Writing"]) {
       await expect
         .poll(() =>
           page.getByRole("menuitem", { name, exact: true }).evaluate((node) => {

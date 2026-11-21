@@ -29,7 +29,7 @@ test.describe("Narrator", () => {
 
   test("library app bar opens the voice settings page", async ({ page }) => {
     await page.getByRole("link", { name: "Voice settings" }).click();
-    await expect(page.getByRole("heading", { name: "Voice settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
   });
 
   test("search filters the library", async ({ page }) => {
@@ -178,7 +178,7 @@ test.describe("Narrator", () => {
       .getByRole("link", { name: /Voice settings/ })
       .click();
 
-    await expect(page.getByRole("heading", { name: "Voice settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Reading voice" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "System voices" })).toBeVisible();
   });
@@ -190,9 +190,9 @@ test.describe("Narrator", () => {
     const panel = page.getByRole("group", { name: "Reader settings panel" });
     await expect(panel.getByRole("button", { name: "System", exact: true })).toBeVisible();
     await expect(panel.getByRole("button", { name: "Natural", exact: true })).toBeVisible();
-    // Switching to Natural surfaces the in-browser neural-voice explainer.
+    // Switching to Natural shows what the natural voice is.
     await panel.getByRole("button", { name: "Natural", exact: true }).click();
-    await expect(panel.getByText(/in-browser neural voice/i)).toBeVisible();
+    await expect(panel.getByText(/closer to a person/i)).toBeVisible();
   });
 
   test("a document can be removed from the library", async ({ page }) => {
