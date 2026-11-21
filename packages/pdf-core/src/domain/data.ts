@@ -201,12 +201,55 @@ export function markMatches(text: string, query: string): { text: string; hit: b
 /**
  * How long a document is, said once: the whole length before it is started ("4 min"), what is
  * left of it after ("1 min left of 4 min"). Just started, both round to the same minutes, and
- * the whole length alone says it.
+ * "4 min left" says which of the two it is. The spaces inside each length do not break, and
+ * the message keeps its one break before "of 4 min", so a narrow card splits the line there.
  */
 export function lengthLine(total: number, progress: number): string {
   const whole = fmtLong(total);
+  if (progress <= 0) return whole;
   const left = fmtLong(total * (1 - progress));
-  return progress > 0 && left !== whole
-    ? m.narrator_library_left_of({ left, total: whole })
-    : whole;
+  const unbroken = whole.replaceAll(" ", "\u00a0");
+  return left === whole
+    ? leftLine(total, progress)
+    : m.narrator_library_left_of({ left: left.replaceAll(" ", "\u00a0"), total: unbroken });
+}
+
+/** What is left of a started document, for the continue card: "2 min left". */
+export function leftLine(total: number, progress: number): string {
+  return m.narrator_library_left({ left: fmtLong(total * (1 - progress)) });
+}
+
+/**
+ * A listening time for a short text. Under a minute it is said in seconds, to the nearest five
+ * ("15 s"), where `fmtLong` would round 12 seconds up to a minute.
+ */
+export function listenTime(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0 || ms >= 57_500) return fmtLong(ms);
+  return m.narrator_duration_s({ seconds: Math.max(5, Math.round(ms / 5000) * 5) });
+}
+
+/** How many quiet hues the generated covers take. Cover.svelte holds the colours. */
+export const COVER_HUES = 6;
+
+/** Which hue a document's cover takes, from its title, so the shelf is not one colour. */
+export function coverHue(title: string): number {
+  // The extractor's accent hash, over the trimmed, lower-cased title: the same title always
+  // gets the same cover.
+  let hash = 0;
+  for (const ch of title.trim().toLowerCase())
+    hash = (Math.imul(hash, 31) + ch.codePointAt(0)!) >>> 0;
+  return hash % COVER_HUES;
+}
+
+/**
+ * The title pasted text gets when none is typed: its first sentence, and no more than its
+ * first six words, cut on a word with an ellipsis. Empty for empty text.
+ */
+export function suggestTitle(text: string): string {
+  const words = (text.trim().split(/[.!?](?:\s|$)|\n/)[0] ?? "").split(/\s+/).filter(Boolean);
+  const head = words
+    .slice(0, 6)
+    .join(" ")
+    .replace(/[,:;]+$/, "");
+  return words.length > 6 ? head + "…" : head;
 }

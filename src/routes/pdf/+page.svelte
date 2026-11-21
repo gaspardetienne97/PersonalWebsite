@@ -14,6 +14,8 @@
 
   let docId = $state<string | null>(null);
   let adding = $state(false);
+  /** A file dropped on the library, for the add sheet to read as soon as it opens. */
+  let dropped = $state<File | undefined>();
 
   const doc = $derived(docId ? library.find(docId) : undefined);
 
@@ -42,10 +44,17 @@
       <ReaderView {doc} {settings} onclose={() => (docId = null)} />
     {/key}
   {:else}
-    <LibraryView {library} onopen={openDoc} onadd={() => (adding = true)} />
+    <LibraryView
+      {library}
+      onopen={openDoc}
+      onadd={(file) => {
+        dropped = file;
+        adding = true;
+      }}
+    />
   {/if}
 
   {#if adding}
-    <AddDocumentModal onclose={() => (adding = false)} oncreate={createDoc} />
+    <AddDocumentModal file={dropped} onclose={() => (adding = false)} oncreate={createDoc} />
   {/if}
 </div>

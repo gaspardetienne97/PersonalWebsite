@@ -5,10 +5,15 @@ import {
   byline,
   formatLabel,
   isSample,
+  COVER_HUES,
+  coverHue,
+  leftLine,
   lengthLine,
+  listenTime,
   markMatches,
   matchesQuery,
   SAMPLE_DOCS,
+  suggestTitle,
 } from "./data";
 import type { NarratorDoc } from "./types";
 
@@ -90,10 +95,53 @@ describe("how long a card says a document is", () => {
   });
 
   it("gives what is left of the whole once it was started", () => {
-    expect(lengthLine(4 * MIN, 0.71)).toBe("1 min left of 4 min");
+    // One place to break, before "of": the other spaces are no-break spaces.
+    expect(lengthLine(4 * MIN, 0.71)).toBe("1\u00a0min\u00a0left of\u00a04\u00a0min");
   });
 
-  it("never says the same length twice", () => {
-    expect(lengthLine(3 * MIN, 0.05)).toBe("3 min");
+  it("says a just started document's length is what is left, never the same length twice", () => {
+    expect(lengthLine(3 * MIN, 0.05)).toBe("3 min left");
+  });
+
+  it("says what is left on the continue card", () => {
+    expect(leftLine(2 * MIN, 0.05)).toBe("2 min left");
+    expect(leftLine(4 * MIN, 0.71)).toBe("1 min left");
+  });
+
+  it("gives a short text its listening time in seconds", () => {
+    expect(listenTime(12_400)).toBe("10 s");
+    expect(listenTime(2_000)).toBe("5 s");
+    expect(listenTime(44_000)).toBe("45 s");
+    expect(listenTime(59_000)).toBe("1 min");
+    expect(listenTime(3 * MIN)).toBe("3 min");
+    expect(listenTime(0)).toBe("0 min");
+  });
+});
+
+describe("a generated cover", () => {
+  it("takes one of six hues, the same one for the same title", () => {
+    const hues = SAMPLE_DOCS.map((d) => coverHue(d.title));
+
+    expect(hues.every((h) => Number.isInteger(h) && h >= 0 && h < COVER_HUES)).toBe(true);
+    expect(coverHue("  walden ")).toBe(coverHue("Walden"));
+    // The samples are not all one colour.
+    expect(new Set(hues).size).toBeGreaterThan(2);
+  });
+});
+
+describe("the title suggested for pasted text", () => {
+  it("is the first sentence when it is short", () => {
+    expect(suggestTitle("Hello world. This is a pasted narration test.")).toBe("Hello world");
+  });
+
+  it("is the first six words, cut on a word, when the sentence is long", () => {
+    expect(suggestTitle("The sea was calm that morning, and the harbour was quiet.")).toBe(
+      "The sea was calm that morning…",
+    );
+  });
+
+  it("stops at the first line and is empty for empty text", () => {
+    expect(suggestTitle("Shopping list\nmilk and eggs")).toBe("Shopping list");
+    expect(suggestTitle("   ")).toBe("");
   });
 });

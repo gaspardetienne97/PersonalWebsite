@@ -33,6 +33,9 @@ export class NarratorLibrary {
 
   #models = new Map<string, NarrationModel>();
 
+  /** Counts changes to saved playheads made here, so what reads them is worked out again. */
+  #positions = $state(0);
+
   constructor(initial: NarratorDoc[] = SAMPLE_DOCS) {
     this.docs = loadDocs(initial);
   }
@@ -48,6 +51,7 @@ export class NarratorLibrary {
 
   /** Live progress fraction, from the saved playhead: nothing is in progress until it was played. */
   progressOf(doc: NarratorDoc): number {
+    void this.#positions;
     const model = this.modelFor(doc);
     const saved = savedPosition(doc.id);
     if (!model.total || saved === null) return 0;
@@ -108,6 +112,12 @@ export class NarratorLibrary {
   forgetRemoved(): void {
     if (this.removed) clearSavedPosition(this.removed.doc.id);
     this.removed = null;
+  }
+
+  /** Forgets where listening stopped, so the document starts from its first word again. */
+  startOver(id: string): void {
+    clearSavedPosition(id);
+    this.#positions++;
   }
 
   /** Whether any sample document is gone from the library. */

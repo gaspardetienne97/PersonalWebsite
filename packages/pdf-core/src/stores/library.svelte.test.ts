@@ -24,6 +24,18 @@ describe("NarratorLibrary", () => {
     expect(library.inProgress?.id).toBe(second.id);
   });
 
+  it("starts a document over: its progress goes and it is no longer offered to continue", () => {
+    const library = new NarratorLibrary();
+    const doc = library.docs[0];
+    localStorage.setItem("narrate.pos." + doc.id, String(library.modelFor(doc).total * 0.4));
+    expect(library.inProgress?.id).toBe(doc.id);
+
+    library.startOver(doc.id);
+
+    expect(library.progressOf(doc)).toBe(0);
+    expect(library.inProgress).toBeUndefined();
+  });
+
   it("says which sentence listening stopped in", () => {
     const library = new NarratorLibrary();
     const doc = library.docs[0];

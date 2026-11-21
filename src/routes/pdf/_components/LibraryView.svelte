@@ -1,5 +1,4 @@
 <script lang="ts">
-  import BookOpen from "@lucide/svelte/icons/book-open";
   import Mic from "@lucide/svelte/icons/mic";
   import Play from "@lucide/svelte/icons/play";
   import Plus from "@lucide/svelte/icons/plus";
@@ -16,7 +15,7 @@
     authorName,
     fmtLong,
     isSample,
-    lengthLine,
+    leftLine,
     matchesQuery,
     type NarratorDoc,
   } from "@repo/pdf-core/domain";
@@ -27,7 +26,6 @@
   import Cover from "./Cover.svelte";
   import DocCard from "./DocCard.svelte";
   import Equalizer from "./Equalizer.svelte";
-  import Notice from "./Notice.svelte";
   import Pill from "./Pill.svelte";
 
   let {
@@ -37,14 +35,16 @@
   }: {
     library: NarratorLibrary;
     onopen: (id: string) => void;
-    onadd: () => void;
+    /** Opens the add sheet, on a file when one was dropped on the page. */
+    onadd: (file?: File) => void;
   } = $props();
 
   // One switch for the phone layout: documents become rows and the continue card goes compact.
   const phone = new MediaQuery("(max-width: 560px)");
-  // The invitation has a right half to fill from here up.
-  const wide = new MediaQuery("(min-width: 900px)");
   const still = new MediaQuery("(prefers-reduced-motion: reduce)");
+
+  /** How many words of the sample line a phone shows. */
+  const PHONE_DEMO_WORDS = 12;
 
   /** How long the Undo notice stays after a removal. */
   const UNDO_MS = 8000;
@@ -60,8 +60,11 @@
   const onlySamples = $derived(!empty && library.docs.every(isSample));
   // The invitation is for a listener who has added nothing yet and played nothing.
   const invite = $derived(!inProgress && onlySamples);
-  // Where the page itself holds the main "Add document", the one in the bar steps back.
-  const pageAdds = $derived(!q && (invite || empty));
+  // Until the listener has a document of their own, the bar's "Add document" is the quiet one:
+  // the page holds the main button (the invitation, the empty card, or Resume).
+  const quietAdd = $derived(empty || onlySamples);
+  // A file held over the empty library's card.
+  let dropping = $state(false);
 
   function heroChapter(doc: NarratorDoc) {
     const model = library.modelFor(doc);
@@ -78,12 +81,16 @@
     if (!firstSample) return [];
     const { sentences, tokens } = library.modelFor(firstSample);
     const first = sentences[0];
-    return first ? tokens.slice(first.wordStart, first.wordEnd + 1).map((t) => t.word) : [];
+    const words = first ? tokens.slice(first.wordStart, first.wordEnd + 1).map((t) => t.word) : [];
+    // A phone shows the start of the sentence, two lines of it, so the card stays short.
+    return phone.current && words.length > PHONE_DEMO_WORDS
+      ? [...words.slice(0, PHONE_DEMO_WORDS - 1), words[PHONE_DEMO_WORDS - 1].replace(/[,;:]$/, "") + "…"]
+      : words;
   });
   let demoAt = $state(4);
   $effect(() => {
     const count = demoWords.length;
-    if (!invite || !wide.current || still.current || count === 0) return;
+    if (!invite || still.current || count === 0) return;
     // A short rest after the last word, then from the top.
     const timer = setInterval(() => (demoAt = (demoAt + 1) % (count + 3)), 380);
     return () => clearInterval(timer);
@@ -100,6 +107,10 @@
   function remove(id: string) {
     library.remove(id);
     startUndo();
+  }
+  function startOver(id: string) {
+    library.startOver(id);
+    onopen(id);
   }
   function undo() {
     clearTimeout(undoTimer);
@@ -123,7 +134,8 @@
         <span>{m.narrator_library_tagline()}</span>
       </div>
     </div>
-    <div class="search-wrap">
+    <!-- Nothing to search in an empty library. -->
+    <div class="search-wrap" hidden={empty && !q}>
       <Search size={16} strokeWidth={1.75} style="color: var(--n-fg-2); flex-shrink: 0" />
       <input
         bind:this={searchInput}
@@ -147,9 +159,10 @@
     </div>
     <a class="icon-btn" href="/pdf/settings" title={m.narrator_voice_settings()} aria-label={m.narrator_voice_settings()}>
       <SlidersHorizontal size={18} strokeWidth={1.75} />
+      <span class="icon-label">{m.narrator_voice_settings()}</span>
     </a>
     <Btn
-      variant={pageAdds ? "secondary" : "primary"}
+      variant={quietAdd ? "secondary" : "primary"}
       class="bar-add"
       aria-label={m.narrator_add_document()}
       onclick={() => onadd()}
@@ -175,15 +188,20 @@
             <div class="hero-text">
               <div class="eyebrow">{m.narrator_library_continue()}</div>
               <h2>{doc.title}</h2>
-              <p class="hero-sub">{author}{author && ch ? " · " : ""}{ch ? ch.title : ""}</p>
+              <p class="hero-sub">
+                {#if author}<span class="hero-author">{author}</span>{/if}
+                {#if ch}<span class="hero-chapter">{ch.title}</span>{/if}
+              </p>
               {#if stopped}
                 <p class="hero-stopped">{m.narrator_library_stopped_at({ sentence: stopped })}</p>
               {/if}
             </div>
             <div class="hero-progress">
               <div class="track"><div style:width="{progress * 100}%"></div></div>
-              <span class="hero-percent">{percent(progress)}</span>
-              <span>{lengthLine(model.total, progress)}</span>
+              <span class="hero-left">
+                <span class="hero-percent">{percent(progress)}</span>
+                <span>{leftLine(model.total, progress)}</span>
+              </span>
             </div>
           </div>
           <div class="hero-side">
@@ -203,8 +221,9 @@
             <div class="hero-body">
               <div class="eyebrow invite-eyebrow">{m.narrator_library_get_started()}</div>
               <h2 id="n-invite-title">{m.narrator_library_add_first()}</h2>
+              <!-- A phone has the short form: what it takes. The live line under it shows the rest. -->
               <p class="add-hero-sub">
-                {m.narrator_library_add_first_sub()}
+                {phone.current ? m.narrator_library_add_card_sub() : m.narrator_library_add_first_sub()}
               </p>
               <div class="hero-actions">
                 <Btn variant="primary" class="hero-main" onclick={() => onadd()}>
@@ -219,7 +238,7 @@
                 {/if}
               </div>
             </div>
-            {#if wide.current && firstSample && demoWords.length}
+            {#if firstSample && demoWords.length}
               {@const sample = firstSample}
               <!-- What the app does, shown: a sample's first sentence with the word mark on it.
                    A press on it opens that sample, a convenience: the button beside it is the
@@ -232,8 +251,8 @@
               >
                 <figcaption>
                   <Equalizer size={14} active={!still.current} />
-                  <span class="demo-title">{firstSample.title}</span>
-                  <span class="demo-by">{authorName(firstSample)}</span>
+                  <span class="demo-title">{sample.title}</span>
+                  <span class="demo-by">{authorName(sample)}</span>
                 </figcaption>
                 <p>
                   {#each demoWords as word, i (i)}
@@ -248,18 +267,44 @@
     {/if}
 
     {#if empty && !q}
-      <!-- One state for a library with nothing in it: one message, the way to add, the samples back. -->
-      <section class="empty" aria-labelledby="n-empty-title">
-        <div class="empty-icon"><BookOpen size={26} strokeWidth={1.5} /></div>
-        <h2 class="empty-title" id="n-empty-title">{m.narrator_library_empty_title()}</h2>
-        <p class="empty-sub">{m.narrator_library_empty_sub()}</p>
-        <div class="empty-actions">
-          <Btn variant="primary" onclick={() => onadd()}>
-            <Plus size={18} strokeWidth={2} /> {m.narrator_add_document()}
-          </Btn>
-          <Btn onclick={() => library.restoreSamples()}>{m.narrator_library_restore_samples()}</Btn>
-        </div>
-      </section>
+      <!-- One state for a library with nothing in it, in the invitation's frame: one message,
+           the way to add (a file dropped on the card too), the samples back. -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="add-hero-border empty"
+        class:dropping
+        ondragover={(e) => {
+          e.preventDefault();
+          dropping = true;
+        }}
+        ondragleave={() => (dropping = false)}
+        ondrop={(e) => {
+          e.preventDefault();
+          dropping = false;
+          const file = e.dataTransfer?.files?.[0];
+          if (file) onadd(file);
+        }}
+      >
+        <section class="add-hero" aria-labelledby="n-empty-title">
+          <div class="add-hero-glow"></div>
+          <div class="add-hero-icon"><Upload size={26} strokeWidth={1.75} /></div>
+          <div class="hero-body">
+            <h2 id="n-empty-title">{m.narrator_library_empty_title()}</h2>
+            <p class="add-hero-sub">{m.narrator_library_empty_sub()}</p>
+            <div class="hero-actions">
+              <Btn variant="primary" class="hero-main" onclick={() => onadd()}>
+                <Plus size={18} strokeWidth={2} /> {m.narrator_add_document()}
+              </Btn>
+              <Btn class="hero-main" onclick={() => library.restoreSamples()}>
+                {m.narrator_library_restore_samples()}
+              </Btn>
+              <span class="drop-hint" class:live={dropping}>
+                {dropping ? m.narrator_add_release() : m.narrator_library_empty_drop()}
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
     {:else}
       <div class="lib-head" aria-live="polite">
         {#if q && filtered.length}
@@ -278,12 +323,13 @@
       </div>
 
       {#if filtered.length === 0}
-        <div class="empty" role="status">
-          <div class="empty-icon"><Search size={26} strokeWidth={1.5} /></div>
-          <div class="empty-title">{m.narrator_library_no_match_title({ query: q })}</div>
-          <div class="empty-sub">{m.narrator_library_no_match_sub()}</div>
-          <div class="empty-actions">
-            <Btn onclick={() => (query = "")}>{m.narrator_library_clear_search()}</Btn>
+        <div class="none" role="status">
+          <div class="none-icon"><Search size={26} strokeWidth={1.5} /></div>
+          <div class="none-title">{m.narrator_library_no_match_title({ query: q })}</div>
+          <div class="none-sub">{m.narrator_library_no_match_sub()}</div>
+          <div class="none-actions">
+            <!-- Its own name: the cross in the search field is the one called "Clear search". -->
+            <Btn onclick={() => (query = "")}>{m.narrator_library_show_all()}</Btn>
           </div>
         </div>
       {:else}
@@ -297,6 +343,7 @@
               listening={doc.id === inProgress?.id}
               query={q}
               {onopen}
+              onstartover={startOver}
               onremove={remove}
             />
           {/each}
@@ -316,24 +363,24 @@
   </main>
 
   {#if library.removed}
-    <!-- Sticks to the bottom edge and takes its own room at the end of the page, so the last
-         cards scroll clear of it. -->
-    <div class="toast">
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div
-        class="toast-line"
-        onpointerenter={holdUndo}
-        onpointerleave={startUndo}
-        onfocusin={holdUndo}
-        onfocusout={startUndo}
-      >
-        <Notice
-          tone="info"
-          variant="line"
-          actions={[{ label: m.narrator_library_undo(), onclick: undo, primary: true }]}
-        >
-          {m.narrator_library_removed({ title: library.removed.doc.title })}
-        </Notice>
+    {@const gone = m.narrator_library_removed({ title: library.removed.doc.title })}
+    <!-- A bar on the bottom edge, with a surface of its own: the rows end at its top border.
+         It holds its own room at the end of the page, so the last cards scroll clear of it.
+         One row at every width: the sentence cuts with an ellipsis and keeps its full text. -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="toast"
+      onpointerenter={holdUndo}
+      onpointerleave={startUndo}
+      onfocusin={holdUndo}
+      onfocusout={startUndo}
+    >
+      <div class="toast-line" role="status">
+        <svg class="toast-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M6 6l1 14h10l1-14" />
+        </svg>
+        <span class="toast-text" title={gone}>{gone}</span>
+        <Btn class="toast-undo" onclick={undo}>{m.narrator_library_undo()}</Btn>
       </div>
     </div>
   {/if}
@@ -341,7 +388,10 @@
 
 <style>
   .page {
-    min-height: 100%;
+    /* The screen's height at least, so the "Removed, Undo" bar sits on the bottom edge even
+       under a short list. */
+    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
   }
@@ -390,7 +440,7 @@
     font-family: var(--n-font-sans);
     font-size: 12px;
     font-weight: 600;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
     margin-top: 4px;
     white-space: nowrap;
   }
@@ -405,6 +455,12 @@
     border: 1px solid var(--n-border-2);
     border-radius: 999px;
     width: min(300px, 30vw);
+  }
+  .search-wrap[hidden] {
+    display: none;
+  }
+  .search-wrap[hidden] + .icon-btn {
+    margin-left: auto;
   }
   .search-wrap input {
     flex: 1;
@@ -446,16 +502,34 @@
     color: var(--n-fg-0);
   }
   .icon-btn {
-    width: 44px;
+    min-width: 44px;
     height: 44px;
     flex-shrink: 0;
     border-radius: 10px;
-    display: grid;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     background: var(--n-bg-2);
     border: 1px solid var(--n-border-2);
     color: var(--n-fg-0);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
     transition: all 160ms var(--n-ease-out);
+  }
+  /* The button's name, written out where the bar has room for it. */
+  .icon-label {
+    display: none;
+  }
+  @media (min-width: 1100px) {
+    .icon-btn {
+      padding: 0 14px;
+    }
+    .icon-label {
+      display: inline;
+    }
   }
   .icon-btn:hover {
     border-color: var(--n-border-3);
@@ -478,7 +552,7 @@
     font-size: 13px;
     font-weight: 700;
     line-height: 1.3;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
   }
   .invite-eyebrow {
     color: var(--n-link);
@@ -519,13 +593,16 @@
     color: var(--n-fg-1);
     font-size: 15px;
   }
+  .hero-author:has(+ .hero-chapter)::after {
+    content: " · ";
+  }
   .hero-stopped {
     margin: 4px 0 0;
     max-width: 640px;
     font-family: var(--n-font-serif);
     font-size: 15px;
     font-style: italic;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -553,6 +630,11 @@
     height: 100%;
     border-radius: 999px;
     background: var(--n-accent-app, var(--n-brand-blue));
+  }
+  .hero-left {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
   }
   .hero-percent {
     font-weight: 700;
@@ -652,8 +734,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
-    color: var(--n-fg-2);
+    font-size: 14px;
+    color: var(--n-fg-1);
     min-width: 0;
   }
   .demo-title {
@@ -690,7 +772,7 @@
   }
   .lib-head span {
     font-size: 14px;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
   }
   .samples-note {
     flex-basis: 100%;
@@ -719,7 +801,7 @@
     border: 1.5px dashed var(--n-border-3);
     background: transparent;
     cursor: pointer;
-    min-height: 240px;
+    min-height: 200px;
     transition: all 200ms var(--n-ease-out);
     font-family: inherit;
   }
@@ -743,8 +825,8 @@
     color: var(--n-fg-0);
   }
   .add-card-sub {
-    font-size: 13.5px;
-    color: var(--n-fg-2);
+    font-size: 14px;
+    color: var(--n-fg-1);
     text-align: center;
     max-width: 180px;
   }
@@ -765,7 +847,37 @@
     text-align: left;
     max-width: none;
   }
+  /* The empty library: the invitation's frame, in the upper middle of the page. */
   .empty {
+    width: min(820px, 100%);
+    margin: clamp(8px, 9vh, 96px) auto auto;
+  }
+  .empty.dropping {
+    box-shadow:
+      var(--n-shadow-lg),
+      0 0 0 3px color-mix(in srgb, var(--n-brand-blue) 70%, transparent),
+      var(--n-brand-glow);
+  }
+  .empty.dropping .add-hero {
+    background: color-mix(in srgb, var(--n-brand-blue) 16%, var(--n-bg-1));
+  }
+  /* Said only where a file can be dragged: a pointer and room for a window beside this one. */
+  .drop-hint {
+    display: none;
+    font-size: 14px;
+    color: var(--n-fg-1);
+  }
+  .drop-hint.live {
+    font-weight: 700;
+    color: var(--n-fg-0);
+  }
+  @media (min-width: 561px) and (hover: hover) and (pointer: fine) {
+    .drop-hint {
+      display: inline;
+    }
+  }
+  /* A search that matched nothing. */
+  .none {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -776,7 +888,7 @@
     border-radius: 16px;
     background: var(--n-bg-1);
   }
-  .empty-icon {
+  .none-icon {
     width: 60px;
     height: 60px;
     border-radius: 999px;
@@ -786,7 +898,7 @@
     color: var(--n-fg-1);
     margin-bottom: 4px;
   }
-  .empty-title {
+  .none-title {
     margin: 0;
     font-size: 20px;
     font-weight: 700;
@@ -794,37 +906,59 @@
     text-align: center;
     overflow-wrap: anywhere;
   }
-  .empty-sub {
+  .none-sub {
     margin: 0;
     font-size: 15px;
     color: var(--n-fg-1);
     max-width: 420px;
     text-align: center;
   }
-  .empty-actions {
+  .none-actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 12px;
     margin-top: 12px;
   }
-  /* The "removed, Undo" line: stuck to the bottom edge, and holding its own room at the end
-     of the page so the last cards scroll clear of it. */
+  /* "Removed, Undo": a bar across the bottom edge with a solid surface, so rows end at its
+     top border. It keeps its own room at the end of the page. */
   .toast {
     position: sticky;
     bottom: 0;
     z-index: 40;
-    display: flex;
-    justify-content: center;
-    padding: 12px 16px max(14px, env(safe-area-inset-bottom));
-    background: linear-gradient(to top, var(--n-bg-0) 55%, transparent);
-    pointer-events: none;
+    padding: 8px clamp(16px, 4vw, 48px) max(8px, env(safe-area-inset-bottom));
+    background: var(--n-bg-2);
+    border-top: 1px solid var(--n-border-3);
+    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.4);
   }
   .toast-line {
-    width: min(520px, 100%);
-    border-radius: 12px;
-    box-shadow: var(--n-shadow-lg);
-    pointer-events: auto;
+    max-width: 1104px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+  }
+  .toast-icon {
+    flex-shrink: 0;
+    color: var(--n-fg-1);
+  }
+  .toast-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    color: var(--n-fg-0);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .toast :global(.toast-undo) {
+    flex-shrink: 0;
+    background: transparent;
+    border-color: var(--n-border-3);
+  }
+  .toast :global(.toast-undo:hover) {
+    background: var(--n-bg-3);
   }
   /* Below this the bar's contents do not fit one row (the French needs about 730px):
      the search field takes a row of its own. */
@@ -847,6 +981,20 @@
     .hero-side :global(.hero-voice) {
       display: none;
     }
+    /* No right half here: the live line goes under the invitation, across the card. */
+    .add-hero {
+      flex-wrap: wrap;
+    }
+    .demo {
+      width: 100%;
+      flex: 1 1 100%;
+      padding: 12px 14px 14px;
+      gap: 6px;
+    }
+    .demo p {
+      font-size: 17px;
+      line-height: 1.5;
+    }
   }
   @media (max-width: 560px) {
     /* A phone has room for a short word beside the plus. Under 360 px, the plus alone. */
@@ -866,20 +1014,24 @@
       gap: 18px;
       padding-top: 14px;
     }
-    /* The continue card: a small cover beside the title, then the bar and Resume full width. */
+    /* The continue card, compact: a small cover beside the title, the chapter and the line
+       where listening stopped, then the bar, what is left and Resume in one row. */
     .hero {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
-      gap: 12px 14px;
-      padding: 16px;
+      gap: 10px 12px;
+      padding: 14px;
       border-radius: 16px;
     }
     .hero .hero-body {
       display: contents;
     }
+    .hero-text {
+      grid-column: 2 / -1;
+    }
     .hero h2 {
-      margin: 2px 0;
+      margin: 1px 0;
       font-size: 19px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -887,29 +1039,45 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
+    /* The chapter gets the line to itself. The author is on the document's row just below. */
     .hero-sub {
       font-size: 14px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      line-height: 1.35;
     }
-    .hero-stopped {
+    .hero-author {
       display: none;
     }
-    .hero-progress,
-    .hero-side {
-      grid-column: 1 / -1;
-      margin-top: 0;
+    .hero-stopped {
+      margin-top: 2px;
+      font-size: 14px;
     }
     .hero-progress {
-      gap: 10px;
+      grid-column: 1 / 3;
+      margin-top: 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      min-width: 0;
+    }
+    .hero-progress .track {
+      flex: none;
+      max-width: none;
+    }
+    .hero-left {
+      gap: 8px;
     }
     .hero-side {
-      align-items: stretch;
+      grid-column: 3;
+    }
+    .hero-side :global(.hero-main) {
+      min-width: 0;
+      min-height: 44px;
+      padding-inline: 16px;
     }
     /* The invitation: the words and the two actions. */
     .add-hero {
-      padding: 18px 16px;
+      padding: 16px;
+      gap: 14px;
     }
     .add-hero-icon {
       display: none;
@@ -928,12 +1096,15 @@
     .add-hero :global(.hero-main) {
       flex: 1 1 auto;
     }
-    .empty {
+    .none {
       padding: 32px 16px;
     }
-    .empty-actions {
+    .none-actions {
       flex-direction: column;
       align-self: stretch;
+    }
+    .toast-text {
+      font-size: 14px;
     }
     .lib-head {
       margin-top: 0;

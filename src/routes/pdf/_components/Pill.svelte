@@ -8,7 +8,7 @@
   }: { accent?: string; class?: string; children: Snippet } = $props();
 </script>
 
-<span class="pill {className}" style:color={accent ?? "var(--n-fg-2)"}>
+<span class="pill {className}" style:color={accent ?? "var(--n-fg-1)"}>
   {@render children()}
 </span>
 

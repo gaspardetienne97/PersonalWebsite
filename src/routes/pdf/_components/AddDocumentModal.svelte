@@ -12,7 +12,7 @@
 
   import { formatNumber } from "@repo/i18n/format";
   import { m } from "@repo/i18n/messages.js";
-  import { fmtLong, MS_PER_WORD, type NarratorDoc } from "@repo/pdf-core/domain";
+  import { listenTime, MS_PER_WORD, suggestTitle, type NarratorDoc } from "@repo/pdf-core/domain";
   import {
     ACCEPT_BY_KIND,
     extractFile,
@@ -28,9 +28,12 @@
   import Notice from "./Notice.svelte";
 
   let {
+    file: given,
     onclose,
     oncreate,
   }: {
+    /** A file dropped on the library: read as soon as the sheet opens. */
+    file?: File;
     onclose: () => void;
     oncreate: (doc: NarratorDoc) => void;
   } = $props();
@@ -41,7 +44,7 @@
     { id: "paste", label: m.narrator_add_tab_paste(), icon: Quote },
   ] as const;
 
-  // What each kind of file gives, behind "What works".
+  // What each kind of file gives, behind "Which files work?".
   const NOTES = [
     { kind: "PDF", note: m.narrator_add_hint_pdf() },
     { kind: "EPUB", note: m.narrator_add_hint_epub() },
@@ -64,6 +67,8 @@
   let previewing = $state(false);
   let text = $state("");
   let title = $state("");
+  /** Whether the listener wrote the title. Until then the field holds the suggested one. */
+  let titled = $state(false);
   let pasteBlocked = $state(false);
   let drag = $state(false);
   let busy = $state(false);
@@ -95,10 +100,9 @@
   );
 
   const pastedWords = $derived(text.trim() ? text.trim().split(/\s+/).length : 0);
-  // The title pasted text gets when none is typed: the first sentence, cut short.
-  // ponytail: follows extractPaste's rule by hand. Export that rule from the extractor if the
-  // two ever drift.
-  const firstWords = $derived(text.trim().split(/[.!?\n]/)[0].slice(0, 48).trim());
+  // The title pasted text gets when none is typed: its first words, cut on a word.
+  const suggested = $derived(suggestTitle(text));
+  const percent = $derived(formatNumber(done, { style: "percent", maximumFractionDigits: 0 }));
 
   const canReadClipboard = typeof navigator !== "undefined" && !!navigator.clipboard?.readText;
 
@@ -166,7 +170,8 @@
   function startPaste() {
     const doc = extractPaste(text, selectedVoice ?? "");
     if (!doc) return;
-    if (title.trim()) doc.title = title.trim();
+    const named = (titled ? title.trim() : "") || suggested;
+    if (named) doc.title = named;
     oncreate(doc);
   }
 
@@ -204,7 +209,10 @@
     synth.speak(u);
   }
 
-  onMount(() => overlay?.focus());
+  onMount(() => {
+    overlay?.focus();
+    if (given) void handleFile(given);
+  });
 
   onDestroy(() => {
     run++;
@@ -232,7 +240,6 @@
     <div class="head">
       <div class="head-text">
         <h2>{m.narrator_add_dialog()}</h2>
-        <p>{m.narrator_add_subtitle()}</p>
       </div>
       {#if !busy}
         <button class="icon-btn close" onclick={onclose} aria-label={m.narrator_close()}><X size={18} strokeWidth={2} /></button>
@@ -260,15 +267,19 @@
         </div>
         <h3>{m.narrator_add_building()}</h3>
         <p class="pipe-sub">{fileName}</p>
-        <div
-          class="pipe-bar"
-          role="progressbar"
-          aria-label={m.narrator_add_building()}
-          aria-valuemin="0"
-          aria-valuemax={STAGES.length}
-          aria-valuenow={step}
-        >
-          <div style:width="{done * 100}%"></div>
+        <div class="pipe-meter">
+          <div
+            class="pipe-bar"
+            role="progressbar"
+            aria-label={m.narrator_add_building()}
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow={Math.round(done * 100)}
+            aria-valuetext={percent}
+          >
+            <div style:width="{done * 100}%"></div>
+          </div>
+          <span class="pipe-percent" aria-hidden="true">{percent}</span>
         </div>
         <p class="pipe-count" role="status">
           <span>{m.narrator_add_step({ step, total: STAGES.length })}</span>
@@ -344,7 +355,7 @@
               {:else if pastedWords}
                 {m.narrator_add_paste_count({
                   words: m.narrator_library_words({ count: pastedWords, shown: formatNumber(pastedWords) }),
-                  time: fmtLong(pastedWords * MS_PER_WORD),
+                  time: listenTime(pastedWords * MS_PER_WORD),
                 })}
               {:else}
                 {m.narrator_add_paste_count_empty()}
@@ -358,9 +369,15 @@
               id="n-paste-title"
               class="title-input"
               type="text"
-              bind:value={title}
+              value={titled ? title : suggested}
               maxlength="120"
-              placeholder={firstWords || m.narrator_add_paste_title_hint()}
+              placeholder={m.narrator_add_paste_title_hint()}
+              oninput={(e) => {
+                title = e.currentTarget.value;
+                // Emptied, the field goes back to the suggested title.
+                titled = title.trim() !== "";
+              }}
+              onfocus={(e) => e.currentTarget.select()}
             />
           </div>
         {:else}
@@ -382,26 +399,22 @@
             }}
           >
             {#if failure && !drag}
-              <Notice
-                tone="error"
-                class="add-error"
-                title={m.narrator_add_error_title({ name: failure.name })}
-                actions={[
-                  { label: m.narrator_add_choose_another(), onclick: pick, primary: true },
-                  ...(failure.paste
-                    ? [
-                        {
-                          label: m.narrator_add_paste_instead(),
-                          onclick: () => {
-                            tab = "paste";
-                            failure = null;
-                          },
-                        },
-                      ]
-                    : []),
-                ]}
-              >
+              <!-- Both ways on are buttons of one height, drawn here in the notice's body. -->
+              <Notice tone="error" class="add-error" title={m.narrator_add_error_title({ name: failure.name })}>
                 {failure.message}
+                <div class="error-actions">
+                  <Btn variant="primary" onclick={pick}>{m.narrator_add_choose_another()}</Btn>
+                  {#if failure.paste}
+                    <Btn
+                      onclick={() => {
+                        tab = "paste";
+                        failure = null;
+                      }}
+                    >
+                      {m.narrator_add_paste_instead()}
+                    </Btn>
+                  {/if}
+                </div>
               </Notice>
             {:else}
               <!-- The whole area opens the picker, a convenience; the button inside is the
@@ -422,7 +435,11 @@
                 >
                   <FileText size={18} strokeWidth={1.75} /> {m.narrator_add_choose()}
                 </Btn>
-                <div class="drop-kinds">{m.narrator_add_kinds()}</div>
+                <div class="drop-kinds">
+                  {m.narrator_add_kinds()}
+                  <!-- The one limit worth knowing before choosing a file. -->
+                  <span class="drop-limit">{m.narrator_add_scan_limit()}</span>
+                </div>
               </div>
             {/if}
           </div>
@@ -446,55 +463,53 @@
           {/if}
         {/if}
 
-        {#if !failure}
-          <div class="voice">
-            <div class="voice-row">
-              <Mic size={18} strokeWidth={1.75} style="color: var(--n-fg-1); flex-shrink: 0" />
-              <div class="voice-text">
-                <span class="voice-label">{m.narrator_narrator_voice()}</span>
-                <span class="voice-name">{selectedVoice ?? m.narrator_add_system_default()}</span>
-              </div>
-              {#if speechAvailable()}
-                <button class="quiet-btn" aria-pressed={previewing} onclick={preview}>
-                  {#if previewing}
-                    <Pause size={16} strokeWidth={1.75} /> {m.narrator_add_preview_stop()}
-                  {:else}
-                    <Play size={16} strokeWidth={1.75} /> {m.narrator_add_preview()}
-                  {/if}
-                </button>
-              {/if}
-              {#if voiceChoices.length > 1}
-                <button class="quiet-btn" aria-expanded={choosingVoice} onclick={() => (choosingVoice = !choosingVoice)}>
-                  {m.narrator_add_voice_change()}
-                </button>
-              {/if}
-            </div>
-            {#if choosingVoice}
-              <div class="voice-chips" role="radiogroup" aria-label={m.narrator_narrator_voice()}>
-                {#each voiceChoices as v (v.voiceURI)}
-                  <button
-                    class="voice-chip"
-                    class:active={selectedVoice === v.name}
-                    role="radio"
-                    aria-checked={selectedVoice === v.name}
-                    onclick={() => {
-                      if (previewing) stopPreview();
-                      voice = v.name;
-                    }}
-                  >
-                    {#if selectedVoice === v.name}
-                      <Check size={14} strokeWidth={2.5} />
-                    {/if}
-                    {v.name}
-                  </button>
-                {/each}
-              </div>
+        <!-- One quiet line, and it stays under an error, so the sheet keeps its height. -->
+        <div class="voice">
+          <div class="voice-row">
+            <Mic size={16} strokeWidth={1.75} style="color: var(--n-fg-1); flex-shrink: 0" />
+            <span class="voice-name">
+              {m.narrator_add_voice_line({ name: selectedVoice ?? m.narrator_add_system_default() })}
+            </span>
+            {#if speechAvailable()}
+              <button class="quiet-btn" aria-pressed={previewing} onclick={preview}>
+                {#if previewing}
+                  <Pause size={16} strokeWidth={1.75} /> {m.narrator_add_preview_stop()}
+                {:else}
+                  <Play size={16} strokeWidth={1.75} /> {m.narrator_add_preview()}
+                {/if}
+              </button>
             {/if}
-            {#if devicePremium}
-              <p class="voice-note">{m.narrator_add_premium_note()}</p>
+            {#if voiceChoices.length > 1}
+              <button class="quiet-btn" aria-expanded={choosingVoice} onclick={() => (choosingVoice = !choosingVoice)}>
+                {m.narrator_add_voice_change()}
+              </button>
             {/if}
           </div>
-        {/if}
+          {#if choosingVoice}
+            <div class="voice-chips" role="radiogroup" aria-label={m.narrator_narrator_voice()}>
+              {#each voiceChoices as v (v.voiceURI)}
+                <button
+                  class="voice-chip"
+                  class:active={selectedVoice === v.name}
+                  role="radio"
+                  aria-checked={selectedVoice === v.name}
+                  onclick={() => {
+                    if (previewing) stopPreview();
+                    voice = v.name;
+                  }}
+                >
+                  {#if selectedVoice === v.name}
+                    <Check size={14} strokeWidth={2.5} />
+                  {/if}
+                  {v.name}
+                </button>
+              {/each}
+            </div>
+          {/if}
+          {#if devicePremium}
+            <p class="voice-note">{m.narrator_add_premium_note()}</p>
+          {/if}
+        </div>
       </div>
       {#if tab === "paste"}
         <div class="foot">
@@ -553,9 +568,9 @@
     display: flex;
     align-items: flex-start;
     gap: 14px;
-    padding: 24px 28px 20px;
+    padding: 22px 28px 16px;
     /* The close button's height, so the head keeps its size while a file is read. */
-    min-height: 88px;
+    min-height: 82px;
   }
   .head-text {
     min-width: 0;
@@ -567,11 +582,6 @@
     font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--n-fg-0);
-  }
-  .head p {
-    margin: 2px 0 0;
-    color: var(--n-fg-1);
-    font-size: 14px;
   }
   .icon-btn {
     width: 44px;
@@ -657,10 +667,11 @@
   .tab:hover {
     color: var(--n-fg-0);
   }
+  /* The chosen tab is a fill. A ring means keyboard focus, and only that. */
   .tab.active {
-    background: rgba(18, 145, 250, 0.18);
+    background: var(--n-bg-3);
     color: var(--n-fg-0);
-    box-shadow: inset 0 0 0 1.5px rgba(18, 145, 250, 0.7);
+    font-weight: 700;
   }
   .file-input {
     display: none;
@@ -703,16 +714,16 @@
     flex-shrink: 0;
     display: grid;
     place-items: center;
-    background: var(--n-brand-gradient);
-    color: var(--n-on-accent, #fff);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    /* A flat tint: the gradient is for the button under it, the one thing to press. */
+    background: var(--n-bg-3);
+    color: var(--n-fg-0);
+    border: 1px solid var(--n-border-2);
     transition: transform 200ms var(--n-ease-out);
   }
   .drop.drag .drop-icon {
     transform: scale(1.18) translateY(-2px);
-    box-shadow:
-      var(--n-brand-glow),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    border-color: var(--n-brand-blue);
+    box-shadow: var(--n-brand-glow);
   }
   .drop-title {
     font-weight: 700;
@@ -736,6 +747,20 @@
     line-height: 1.45;
     color: var(--n-fg-1);
     max-width: 400px;
+  }
+  .drop-limit {
+    display: block;
+    color: var(--n-fg-2);
+  }
+  .drop.drag .drop-limit {
+    visibility: hidden;
+  }
+  /* The two ways on from a failed file: buttons of one height, side by side. */
+  .error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
   }
   /* What each kind of file gives, for whoever wants it. */
   .works {
@@ -801,13 +826,13 @@
     color: var(--n-fg-0);
   }
   .field-opt {
-    font-size: 13.5px;
+    font-size: 14px;
     color: var(--n-fg-2);
   }
   .field-note {
     margin: 6px 0 4px;
     min-height: 20px;
-    font-size: 13.5px;
+    font-size: 14px;
     line-height: 1.45;
     color: var(--n-fg-1);
     font-variant-numeric: tabular-nums;
@@ -883,33 +908,20 @@
     gap: 12px;
     flex-shrink: 0;
   }
+  /* One quiet line: which voice, then the two things to do about it. */
   .voice-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 8px 8px 14px;
-    border-radius: 12px;
-    background: var(--n-bg-0);
-    border: 1px solid var(--n-border-2);
-  }
-  /* One line: what it is, then which. */
-  .voice-text {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: baseline;
     gap: 8px;
-    line-height: 1.3;
-  }
-  .voice-label {
-    color: var(--n-fg-2);
-    font-size: 14px;
-    white-space: nowrap;
+    min-height: 44px;
   }
   .voice-name {
+    flex: 1;
+    min-width: 0;
     color: var(--n-fg-0);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
+    line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -942,7 +954,7 @@
   }
   .voice-note {
     margin: 0;
-    font-size: 13.5px;
+    font-size: 14px;
     line-height: 1.5;
     color: var(--n-fg-2);
   }
@@ -965,9 +977,24 @@
     font-size: 14px;
     overflow-wrap: anywhere;
   }
-  .pipe-bar {
+  .pipe-meter {
     width: 100%;
     max-width: 380px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .pipe-percent {
+    min-width: 3.2ch;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--n-fg-0);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .pipe-bar {
+    flex: 1;
+    min-width: 0;
     height: 8px;
     border-radius: 999px;
     background: var(--n-bg-3);
@@ -1052,13 +1079,15 @@
     background: var(--n-brand-blue);
     animation: n-pulse 1s ease-in-out infinite;
   }
+  /* The step under way at full strength, the ones done a step back, the ones to come quiet. */
   .step-label {
     font-size: 15px;
     font-weight: 500;
-    color: var(--n-fg-0);
+    color: var(--n-fg-1);
   }
   .step.active .step-label {
     font-weight: 700;
+    color: var(--n-fg-0);
   }
   /* Still to come: quieter than the rest, and still easy to read. */
   .step.pending .step-label {
@@ -1090,12 +1119,22 @@
       width: 100%;
       min-height: 52px;
     }
+    /* Nothing is dropped here, so no drop icon: the button sits at the top of its card. */
+    .drop:not(.drag) .drop-icon {
+      display: none;
+    }
+    /* A finger cannot use the corner handle, and the sheet already gives the box its room. */
+    textarea {
+      resize: none;
+    }
   }
   /* A phone: a sheet from the bottom edge, with the main action pinned under the thumb. */
   @media (max-width: 560px) {
+    /* Dark enough that the page behind is a shade, not half-legible words. */
     .overlay {
       place-items: end stretch;
       padding: 0;
+      background: rgba(2, 6, 24, 0.9);
     }
     .sheet {
       width: 100%;
@@ -1117,8 +1156,8 @@
       flex-shrink: 0;
     }
     .head {
-      padding: 12px 16px 14px;
-      min-height: 70px;
+      padding: 12px 16px 12px;
+      min-height: 68px;
     }
     .head h2 {
       font-size: 20px;
@@ -1136,20 +1175,8 @@
     .body:not(:last-child) {
       padding-bottom: 14px;
     }
-    /* The words over the name, and the two buttons keep their size. */
-    .voice-row {
-      padding-left: 12px;
-    }
-    .voice-row > :global(svg) {
-      display: none;
-    }
-    .voice-text {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0;
-    }
-    .voice-label {
-      font-size: 13px;
+    .error-actions :global(.btn) {
+      flex: 1 1 auto;
     }
   }
   @media (prefers-reduced-motion: reduce) {
