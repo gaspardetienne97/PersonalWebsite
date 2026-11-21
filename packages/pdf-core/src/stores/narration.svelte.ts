@@ -83,6 +83,8 @@ export class NarrationPlayer {
   percent = $derived.by(() => (this.model.total ? this.pos / this.model.total : 0));
   done = $derived.by(() => this.pos >= this.model.total);
 
+  /** The engine last asked for through setEngine; `engineMode` leaves it on a fallback. */
+  #requested: EngineMode = "system";
   #raf = 0;
   #last = 0;
   #lastPersist = 0;
@@ -163,7 +165,10 @@ export class NarrationPlayer {
   }
 
   setEngine(mode: EngineMode): void {
-    if (mode === this.engineMode) return;
+    // Compared with what was last asked for, not with `engineMode`: after a fallback the
+    // two differ, and the reader asking for "natural" again must not restart the failed load.
+    if (mode === this.#requested) return;
+    this.#requested = mode;
     this.engineMode = mode;
     this.usingFallback = false;
     this.#dropPrefetch();
