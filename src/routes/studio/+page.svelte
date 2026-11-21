@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import LayoutGrid from "@lucide/svelte/icons/layout-grid";
   import Shapes from "@lucide/svelte/icons/shapes";
   import * as ToggleGroup from "@repo/ui/toggle-group";
@@ -54,7 +55,25 @@
     const left = active.offsetLeft - tabs.clientWidth / 2 + active.offsetWidth / 2;
     tabs.scrollTo({ left: Math.max(0, left) });
   });
+
+  // Whether kinds are hidden past the row's edges. On the right an arrow says so
+  // and scrolls to them; on the left the row fades out.
+  let back = $state(false);
+  let more = $state(false);
+  function measure() {
+    if (!tabs) return;
+    back = tabs.scrollLeft > 1;
+    more = tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 1;
+  }
+  $effect(() => {
+    if (!tabs) return;
+    measure();
+    tabs.addEventListener("scroll", measure, { passive: true });
+    return () => tabs?.removeEventListener("scroll", measure);
+  });
 </script>
+
+<svelte:window onresize={measure} />
 
 <svelte:head>
   <title>{m.nav_studio()} | Gaspard Michel Etienne</title>
@@ -73,25 +92,39 @@
   <!-- One toolbar along the top edge of the wall: the kinds read like the site's
        nav, the layout switch sits flush with the wall's right edge. -->
   <div class="toolbar">
-    <ToggleGroup.Root
-      type="single"
-      bind:value={() => (view === "kinds" ? "" : type), chooseType}
-      bind:ref={tabs}
-      class="tabs"
-      aria-label={m.studio_show()}
-    >
-      <ToggleGroup.Item value="all" class="tab">
-        {m.studio_all()} <span class="count">{all.length}</span>
-      </ToggleGroup.Item>
-      {#each STUDIO_KINDS as info (info.kind)}
-        {@const count = STUDIO[info.kind].length}
-        <ToggleGroup.Item value={info.kind} class="tab">
-          <i class="dot" style:background={info.dot} aria-hidden="true"></i>
-          {info.label}
-          <span class="count" class:none={count === 0}>{count}</span>
+    <div class="kinds">
+      <ToggleGroup.Root
+        type="single"
+        bind:value={() => (view === "kinds" ? "" : type), chooseType}
+        bind:ref={tabs}
+        class="tabs {back ? 'back' : ''} {more ? 'more' : ''}"
+        aria-label={m.studio_show()}
+      >
+        <ToggleGroup.Item value="all" class="tab">
+          {m.studio_all()} <span class="count">{all.length}</span>
         </ToggleGroup.Item>
-      {/each}
-    </ToggleGroup.Root>
+        {#each STUDIO_KINDS as info (info.kind)}
+          {@const count = STUDIO[info.kind].length}
+          <ToggleGroup.Item value={info.kind} class="tab">
+            <i class="dot" style:background={info.dot} aria-hidden="true"></i>
+            {info.label}
+            <span class="count" class:none={count === 0}>{count}</span>
+          </ToggleGroup.Item>
+        {/each}
+      </ToggleGroup.Root>
+      {#if more}
+        <!-- A pointer shortcut only: the keyboard and screen readers reach every kind in the group. -->
+        <button
+          type="button"
+          class="more-kinds"
+          tabindex="-1"
+          aria-hidden="true"
+          onclick={() => tabs?.scrollBy({ left: tabs.clientWidth * 0.7, behavior: "smooth" })}
+        >
+          <ChevronRight />
+        </button>
+      {/if}
+    </div>
 
     <ToggleGroup.Root
       type="single"
@@ -150,6 +183,12 @@
     margin-top: clamp(2.5rem, 6vw, 3.5rem);
     border-bottom: 1px solid var(--border);
   }
+  .kinds {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-width: 0;
+  }
   .toolbar :global(.tabs) {
     flex: 1;
     min-width: 0;
@@ -159,18 +198,41 @@
     overflow-x: auto;
     scrollbar-width: none;
   }
-  /* When the kinds don't fit, the row scrolls; its right edge fades out to say so. */
-  @media (width < 900px) {
-    .toolbar :global(.tabs) {
-      /* The left fade fits inside the first tab's padding, so "All" is never dimmed. */
-      mask-image: linear-gradient(
-        90deg,
-        transparent,
-        #000 0.75rem,
-        #000 calc(100% - 2.5rem),
-        transparent
-      );
-    }
+  /* Where kinds are hidden past an edge, the row fades out there: on the right
+     under an arrow that scrolls to them. At rest the left fade fits inside the
+     first tab's padding, so "All" is never dimmed. */
+  .toolbar :global(.tabs) {
+    --left: 0.75rem;
+    --right-from: 100%;
+    --right-to: 100%;
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 var(--left),
+      #000 var(--right-from),
+      transparent var(--right-to)
+    );
+  }
+  .toolbar :global(.tabs.back) {
+    --left: 2.5rem;
+  }
+  .toolbar :global(.tabs.more) {
+    --right-from: calc(100% - 4.5rem);
+    --right-to: calc(100% - 2rem);
+  }
+  .more-kinds {
+    position: absolute;
+    right: 0;
+    top: 0;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2.75rem;
+    color: var(--foreground);
+  }
+  .more-kinds :global(svg) {
+    width: 1.25rem;
+    height: 1.25rem;
   }
   .toolbar :global(.tab) {
     position: relative;
