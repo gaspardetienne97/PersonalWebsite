@@ -26,8 +26,9 @@ export type Project = {
   /** Trace colours for the cover art. */
   colors: string[];
   /**
-   * A square screenshot of the project (about 720px, in src/lib/images/projects/).
-   * Without one the cover is generated circuit art.
+   * A square picture of the project (about 720px, in src/lib/images/projects/):
+   * a tight crop of one interaction that still reads at tile size, not a whole
+   * screen. Without one the cover is generated circuit art.
    */
   cover?: string;
   /** The year it started (its first commit), used to find what's newest. */

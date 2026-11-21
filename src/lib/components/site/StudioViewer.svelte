@@ -4,14 +4,20 @@
   is reserved from the picture's known size and the small copy from the wall
   shows until the large one has loaded, so a half-painted picture is never on
   screen. "Zoom in" (or a click on the picture) shows it large in a box you can
-  pan; Escape, the button or another click goes back. The piece on screen plays
-  if it's a video or music (the others show their cover, so moving on stops
-  playback). Swipe, use the arrow buttons, the arrow keys, or from 640px the
-  strip of small pictures under the stage. On a phone the arrows sit under the
-  stage, beside the count.
+  drag, scroll or pan with the arrow keys, with a small locator showing which
+  part is in view; Escape, the button or another click goes back. The piece on
+  screen plays if it's a video or music (the others show their cover, so moving
+  on stops playback). Swipe, use the arrow buttons, the arrow keys, or the strip
+  of small pictures under the stage. On a phone the stage is as tall as the
+  picture and the arrows sit under the strip, beside the count.
 -->
 <script lang="ts">
   import { untrack, type ComponentProps } from "svelte";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import ArrowLeftToLine from "@lucide/svelte/icons/arrow-left-to-line";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import ArrowRightToLine from "@lucide/svelte/icons/arrow-right-to-line";
+  import Hand from "@lucide/svelte/icons/hand";
   import ZoomIn from "@lucide/svelte/icons/zoom-in";
   import ZoomOut from "@lucide/svelte/icons/zoom-out";
   import { m } from "@repo/i18n/messages.js";
@@ -32,17 +38,21 @@
 
   // Read once per opening: changing Embla's options re-initialises it, which
   // would happen on every slide if this followed `index`.
+  // Slides start at the stage's left edge: centred (Embla's default) they sit
+  // half a slide gap to the right, which cut a full-width mat at the edge.
   const opts = $derived({
+    align: "start" as const,
     loop: items.length > 1,
     startIndex: untrack(() => index),
   });
 
   const item = $derived(items[index]);
-  const details = $derived.by(() => {
-    if (!item) return "";
-    const { year, note } = item.media;
-    return [kindInfo(item.kind).singular, year, note].filter(Boolean).join(", ");
-  });
+  const image = $derived(item?.media.type === "image" ? item.media : undefined);
+  // The line under the title: the kind, then the year and the medium when the
+  // piece has them. A note follows as its own sentence.
+  const facts = $derived(
+    item ? [kindInfo(item.kind).singular, item.media.year, item.media.medium].filter(Boolean).join(", ") : "",
+  );
 
   // What is being stepped through: one kind when every piece here is of that
   // kind (projects are links, so a wall of drawings and projects steps through
@@ -80,6 +90,19 @@
   let zoomed = $state(false);
   let zoomWidth = $state(0);
   let box = $state<HTMLElement>();
+  // The part of the zoomed picture in view, as fractions of the whole (for the locator).
+  let view = $state({ x: 0, y: 0, w: 1, h: 1 });
+  // The "drag to look around" line shows until the visitor first moves the picture.
+  let moved = $state(false);
+  function locate() {
+    if (!box) return;
+    view = {
+      x: box.scrollLeft / box.scrollWidth,
+      y: box.scrollTop / box.scrollHeight,
+      w: box.clientWidth / box.scrollWidth,
+      h: box.clientHeight / box.scrollHeight,
+    };
+  }
   function zoom(on = !zoomed) {
     if (on) {
       const img = stage?.querySelector<HTMLImageElement>("[data-current] img.large");
@@ -97,7 +120,32 @@
   $effect(() => {
     if (!zoomed || !box) return;
     box.scrollTo((box.scrollWidth - box.clientWidth) / 2, (box.scrollHeight - box.clientHeight) / 2);
+    locate();
   });
+
+  // A mouse drags the zoomed picture (touch and the wheel scroll the box as
+  // usual). A press that doesn't move is a click, which leaves the zoom.
+  let drag: { x: number; y: number; far: boolean } | undefined;
+  let grabbing = $state(false);
+  function grab(event: PointerEvent) {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    drag = { x: event.clientX, y: event.clientY, far: false };
+    box?.setPointerCapture(event.pointerId);
+  }
+  function pull(event: PointerEvent) {
+    if (!drag) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    if (!drag.far && Math.hypot(dx, dy) < 4) return;
+    drag = { x: event.clientX, y: event.clientY, far: true };
+    grabbing = moved = true;
+    box?.scrollBy(-dx, -dy);
+  }
+  function release() {
+    grabbing = false;
+    // Read by the click that follows, then cleared.
+    setTimeout(() => (drag = undefined));
+  }
 
   function onkeydown(event: KeyboardEvent) {
     // Leave the arrow keys to a focused player, which uses them to seek.
@@ -113,6 +161,7 @@
       const by = step[event.key];
       if (by) {
         event.preventDefault();
+        moved = true;
         box?.scrollBy(by[0], by[1]);
       }
       return;
@@ -138,15 +187,40 @@
     });
   });
 
-  // Dark on the paper in both themes (the kit's outline button is white in the
-  // light one), 44px, and on a phone under the stage beside the count.
-  const arrow =
-    "size-11 border-foreground bg-foreground text-background dark:border-input dark:bg-background dark:text-foreground max-sm:top-full max-sm:mt-3 max-sm:translate-y-0";
 </script>
+
+<!-- Previous and next: one filled disc in both themes. The carousel loops, so on
+     the first and last piece the arrow that wraps shows where it goes instead. -->
+{#snippet arrow(dir: "prev" | "next")}
+  {@const prev = dir === "prev"}
+  {@const wraps = prev ? index === 0 : index === items.length - 1}
+  {@const label = prev
+    ? wraps
+      ? m.viewer_to_last()
+      : m.viewer_previous()
+    : wraps
+      ? m.viewer_to_first()
+      : m.viewer_next()}
+  <button
+    type="button"
+    class="arrow {dir}"
+    aria-label={label}
+    title={label}
+    onclick={() => (prev ? api?.scrollPrev() : api?.scrollNext())}
+  >
+    {#if prev}
+      {#if wraps}<ArrowRightToLine aria-hidden="true" />{:else}<ArrowLeft aria-hidden="true" />{/if}
+    {:else if wraps}
+      <ArrowLeftToLine aria-hidden="true" />
+    {:else}
+      <ArrowRight aria-hidden="true" />
+    {/if}
+  </button>
+{/snippet}
 
 <Dialog.Root bind:open>
   <Dialog.Content
-    class="studio-viewer flex h-[min(42rem,94dvh)] w-[96vw] max-w-none flex-col gap-3 rounded-lg p-4 sm:h-[94dvh] sm:p-5"
+    class="studio-viewer flex max-h-[94dvh] w-[96vw] max-w-none flex-col gap-3 rounded-lg p-4 sm:h-[94dvh] sm:p-5"
     {onkeydown}
     onEscapeKeydown={(event) => {
       // Escape leaves the zoom first, then the viewer.
@@ -156,8 +230,10 @@
     }}
   >
     <Dialog.Header class="min-h-11 justify-center space-y-0.5 pr-40 text-left">
-      <Dialog.Title>{item?.media.title ?? ""}</Dialog.Title>
-      <Dialog.Description class="text-foreground/80">{details}</Dialog.Description>
+      <Dialog.Title class="viewer-title">{item?.media.title ?? ""}</Dialog.Title>
+      <Dialog.Description class="text-foreground/80">
+        {#if item}<i class="dot" style:background={kindInfo(item.kind).dot} aria-hidden="true"></i>{/if}{facts}{#if item?.media.note}<span class="note">{item.media.note}</span>{/if}
+      </Dialog.Description>
     </Dialog.Header>
 
     {#if item?.media.type === "image"}
@@ -175,7 +251,13 @@
       </Button>
     {/if}
 
-    <div class="stage" bind:this={stage}>
+    <div
+      class="stage"
+      class:zoomed
+      bind:this={stage}
+      style:--w={image?.width ?? 1}
+      style:--h={image?.height ?? 1}
+    >
       <Carousel.Root {opts} {setApi} class="h-full">
         <Carousel.Content class="h-full">
           {#each items as piece, i (piece.kind + piece.media.id)}
@@ -234,43 +316,74 @@
             </Carousel.Item>
           {/each}
         </Carousel.Content>
-        {#if items.length > 1}
-          <Carousel.Previous class="left-0 {arrow}" />
-          <Carousel.Next class="right-0 {arrow}" />
-        {/if}
       </Carousel.Root>
 
-      {#if zoomed && item?.media.type === "image"}
-        <div class="zoombox" bind:this={box}>
-          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+      {#if zoomed && image}
+        <!-- A click leaves the zoom, for the pointer; Zoom out and Escape are the keyboard's way. -->
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <div
+          class="zoombox"
+          class:grabbing
+          bind:this={box}
+          onscroll={locate}
+          onwheel={() => (moved = true)}
+          ontouchmove={() => (moved = true)}
+          onpointerdown={grab}
+          onpointermove={pull}
+          onpointerup={release}
+          onpointercancel={release}
+          onclick={() => !drag?.far && zoom(false)}
+        >
           <img
-            src={item.media.large}
-            alt={item.media.alt}
+            src={image.large}
+            alt={image.alt}
+            draggable="false"
             style:width="{zoomWidth}px"
-            style:aspect-ratio="{item.media.width} / {item.media.height}"
-            onclick={() => zoom(false)}
+            style:aspect-ratio="{image.width} / {image.height}"
           />
         </div>
+        <!-- Where the box is looking: the whole picture small, the part in view outlined. -->
+        <div class="locator" aria-hidden="true">
+          <img src={image.small} alt="" />
+          <i
+            style:left="{view.x * 100}%"
+            style:top="{view.y * 100}%"
+            style:width="{view.w * 100}%"
+            style:height="{view.h * 100}%"
+          ></i>
+        </div>
+        {#if !moved}
+          <p class="hint"><Hand size={16} aria-hidden="true" />{m.viewer_zoom_hint()}</p>
+        {/if}
+      {/if}
+
+      {#if items.length > 1}
+        <div class="side">{@render arrow("prev")}{@render arrow("next")}</div>
       {/if}
     </div>
 
     {#if items.length > 1}
       <div class="foot">
-        <p class="count" aria-hidden="true">
-          {m.viewer_position({ set, position: index + 1, total: items.length })}
-        </p>
         <div class="strip" bind:this={strip} role="group" aria-label={m.viewer_pieces()}>
           {#each items as piece, i (piece.kind + piece.media.id)}
             <button
               type="button"
               class="thumb"
               aria-label={piece.media.title}
+              title={piece.media.title}
               aria-current={i === index ? "true" : undefined}
               onclick={() => api?.scrollTo(i)}
             >
-              <StudioCover item={piece} size={96} eager />
+              <StudioCover item={piece} size={112} eager />
             </button>
           {/each}
+        </div>
+        <div class="bar">
+          {@render arrow("prev")}
+          <p class="count" aria-hidden="true">
+            {m.viewer_position({ set, position: index + 1, total: items.length })}
+          </p>
+          {@render arrow("next")}
         </div>
       </div>
     {/if}
@@ -278,11 +391,63 @@
 </Dialog.Root>
 
 <style>
-  /* The stage keeps one size; whatever is in it fits inside. */
+  /* The dialog's own width is what the phone stage is sized from. */
+  :global(.studio-viewer) {
+    container-type: inline-size;
+  }
+  /* A darker scrim than the kit's, so the page behind doesn't show round the edges. */
+  :global([data-dialog-overlay]:has(+ .studio-viewer)) {
+    background: rgb(0 0 0 / 0.92);
+    backdrop-filter: blur(6px);
+  }
+  :global(.studio-viewer .viewer-title) {
+    font-family: var(--font-gm-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-right: 0.4rem;
+    border-radius: 50%;
+  }
+  .note::before {
+    content: ". ";
+  }
+
+  /* From 640px the stage takes all the room between the header and the foot,
+     with a gutter each side for the arrows. On a phone it is as tall as the
+     current picture's mat (and no taller than the room there is), so a wide
+     drawing has no empty bands; zoomed, it takes all the height it can. */
   .stage {
+    --pad: 0.625rem;
+    /* A sliver each side on a phone, so the mat's edge is never at the clip. */
+    --gutter: 0.25rem;
+    --box-gutter: 0rem;
+    /* Room under the mat for its shadow, so its bottom edge is always seen. */
+    --room: 0.75rem;
     position: relative;
-    flex: 1;
+    flex: 0 1 auto;
     min-height: 0;
+    height: calc(
+      (100cqw - 2 * var(--gutter) - 2 * var(--pad) - 2px) * var(--h) / var(--w) + 2 * var(--pad) +
+        2px + var(--room)
+    );
+    transition: height 0.2s ease;
+  }
+  .stage.zoomed {
+    height: 100dvh;
+  }
+  @media (width >= 640px) {
+    .stage {
+      --pad: 1rem;
+      --gutter: 3.75rem;
+      --box-gutter: 3.75rem;
+      flex: 1;
+      height: auto;
+    }
   }
   .stage :global([data-embla-container]),
   .stage :global([aria-roledescription="carousel"] > .overflow-hidden) {
@@ -300,37 +465,27 @@
     background: var(--muted);
   }
 
-  /* The mat: paper cut to the picture with an even margin, the same in both
-     themes. The picture's box is the largest of its shape that fits the slide
-     (less the arrows' gutters from 640px), so nothing moves when the large
-     image arrives. */
+  /* The mat: one warm paper cut to the picture with an even margin, the same in
+     both themes. The picture's box is the largest of its shape that fits the
+     slide in both directions (less the arrows' gutters from 640px), so the whole
+     mat is always on screen and nothing moves when the large image arrives. */
   .mat {
-    --pad: 0.625rem;
-    --gutter: 0rem;
-    --max-w: calc(100cqw - 2 * var(--gutter) - 2 * var(--pad));
-    --max-h: calc(100cqh - 2 * var(--pad));
-    width: calc(min(var(--max-w), var(--max-h) * var(--w) / var(--h)) + 2 * var(--pad));
+    --max-w: calc(100cqw - 2 * var(--gutter) - 2 * var(--pad) - 2px);
+    --max-h: calc(100cqh - 2 * var(--pad) - 2px - var(--room));
+    box-sizing: content-box;
+    width: min(var(--max-w), var(--max-h) * var(--w) / var(--h));
     padding: var(--pad);
-    border: 1px solid var(--border);
+    border: 1px solid var(--gm-paper-edge, rgb(0 0 0 / 0.08));
     border-radius: calc(var(--radius) - 2px);
-    background: #fff;
+    background: var(--gm-paper, #f5f2ea);
     box-shadow: 0 2px 14px -6px rgb(0 0 0 / 0.3);
     cursor: zoom-in;
   }
-  @media (width >= 640px) {
-    .mat {
-      --pad: 1rem;
-      --gutter: 3.75rem;
-    }
-  }
-  /* Dimmed a little on the dark page, like the drawings on the wall. */
-  :global(.dark) .mat,
-  :global(.dark) .zoombox {
-    filter: brightness(0.9);
-  }
+  /* The picture's white ground takes the paper's tone, as on the wall. */
   .pic {
     position: relative;
     aspect-ratio: var(--w) / var(--h);
+    mix-blend-mode: multiply;
   }
   .pic img {
     position: absolute;
@@ -348,19 +503,121 @@
 
   .zoombox {
     position: absolute;
-    inset: 0;
+    /* From 640px the box stops short of the arrows, which stay on the dialog's own colour. */
+    inset: 0 var(--box-gutter);
     z-index: 2;
     display: grid;
     overflow: auto;
     overscroll-behavior: contain;
-    border: 1px solid var(--border);
+    border: 1px solid var(--gm-paper-edge, rgb(0 0 0 / 0.08));
     border-radius: calc(var(--radius) - 2px);
-    background: #fff;
+    background: var(--gm-paper, #f5f2ea);
+    cursor: grab;
+  }
+
+  .zoombox.grabbing {
+    cursor: grabbing;
   }
   .zoombox img {
     max-width: none;
     margin: auto;
-    cursor: zoom-out;
+    mix-blend-mode: multiply;
+    user-select: none;
+  }
+  .locator {
+    position: absolute;
+    right: calc(var(--box-gutter) + 0.5rem);
+    bottom: 0.5rem;
+    z-index: 3;
+    width: calc(4.5rem * min(1, var(--w) / var(--h)));
+    aspect-ratio: var(--w) / var(--h);
+    overflow: hidden;
+    border: 1px solid oklch(0.2 0.03 265);
+    border-radius: 0.25rem;
+    background: var(--gm-paper, #f5f2ea);
+    box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.4);
+    pointer-events: none;
+  }
+  .locator img {
+    width: 100%;
+    height: 100%;
+    mix-blend-mode: multiply;
+    opacity: 0.55;
+  }
+  .locator i {
+    position: absolute;
+    border: 2px solid var(--gm-blue);
+    border-radius: 2px;
+    background: color-mix(in oklab, var(--gm-blue) 16%, transparent);
+  }
+  .hint {
+    position: absolute;
+    left: 50%;
+    top: 0.75rem;
+    z-index: 3;
+    translate: -50% 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--background);
+    background: var(--foreground);
+    box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.4);
+    pointer-events: none;
+  }
+
+  /* The arrows: filled discs in the text colour with the page colour's glyph,
+     the same in both themes. From 640px they sit in the stage's gutters, over
+     the zoom box too; on a phone they flank the count under the strip. */
+  .arrow {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    color: var(--background);
+    background: var(--foreground);
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    transition: scale 0.15s ease;
+  }
+  .arrow :global(svg) {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .arrow:hover {
+    scale: 1.08;
+  }
+  .arrow:focus-visible {
+    outline-color: var(--ring);
+  }
+  .side {
+    display: none;
+  }
+  @media (width >= 640px) {
+    .side {
+      display: contents;
+    }
+    .side .arrow {
+      position: absolute;
+      top: 50%;
+      z-index: 3;
+      translate: 0 -50%;
+    }
+    .side .prev {
+      left: 0;
+    }
+    .side .next {
+      right: 0;
+    }
+    .bar .arrow {
+      display: none;
+    }
   }
 
   /* The kit's close button is a small cross at 70% opacity, faint on the white dialog. */
@@ -404,71 +661,87 @@
     border-radius: var(--radius);
   }
 
-  /* Under the stage: on a phone the count, centred between the arrows. From
-     640px the count on the left and the strip of pieces in the middle. */
+  /* Under the stage. On a phone: the strip of pieces, which scrolls, then the
+     count between the arrows. From 640px: the count on the left and the strip
+     in the middle. */
   .foot {
     display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .bar {
+    display: flex;
     align-items: center;
+    gap: 0.75rem;
     min-height: 2.75rem;
   }
   .count {
+    flex: 1;
     text-align: center;
+    font-family: var(--font-gm-display);
     font-size: 0.9375rem;
     font-weight: 500;
     color: var(--foreground);
     font-variant-numeric: tabular-nums;
   }
   .strip {
-    display: none;
+    display: flex;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
   @media (width >= 640px) {
     .foot {
       grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) 1fr;
+      align-items: center;
       gap: 1rem;
+    }
+    .bar {
+      grid-area: 1 / 1;
+    }
+    .strip {
+      grid-area: 1 / 2;
     }
     .count {
       text-align: left;
     }
-    .strip {
-      display: flex;
-      gap: 0.5rem;
-      padding: 0.25rem;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
   }
+  /* Every piece at full strength, so thin drawings never fade and the paper is
+     never greyed; the piece on screen is marked by a ring. */
   .thumb {
     position: relative;
     flex: none;
-    width: 3rem;
-    height: 3rem;
+    width: 3.5rem;
+    height: 3.5rem;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 0.375rem;
     outline: 2px solid transparent;
-    outline-offset: 1px;
-    opacity: 0.8;
+    outline-offset: 2px;
   }
-  .thumb:hover {
-    opacity: 1;
-  }
-  /* The current piece: a ring, and full strength (never by colour alone). */
   .thumb[aria-current="true"] {
     outline-color: var(--foreground);
-    opacity: 1;
+  }
+  .thumb:hover:not([aria-current="true"]) {
+    outline-color: color-mix(in oklab, var(--foreground) 45%, transparent);
   }
   .thumb:focus-visible {
     outline-color: var(--ring);
-    outline-offset: 2px;
-    opacity: 1;
   }
   .thumb :global(.paper img) {
     padding: 10%;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .large {
+    .stage,
+    .large,
+    .arrow {
       transition: none;
+    }
+    .arrow:hover {
+      scale: none;
     }
   }
 </style>

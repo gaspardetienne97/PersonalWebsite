@@ -71,14 +71,13 @@
     overflow: hidden;
     background: var(--muted);
   }
-  /* Drawings, doodles, paintings and photos sit on white whatever the theme,
-     like paper or a print's border. */
+  /* Drawings, doodles, paintings and photos sit on one warm paper in both themes,
+     with a hairline edge. Nothing is dimmed on the dark page, so a piece keeps
+     its own lights and darks. */
   .paper {
-    background: #fff;
-  }
-  /* On the dark page the paper is dimmed a little so a wall of drawings doesn't glare. */
-  :global(.dark) .paper {
-    filter: brightness(0.9);
+    isolation: isolate;
+    background: var(--gm-paper, #f5f2ea);
+    box-shadow: inset 0 0 0 1px var(--gm-paper-edge, rgb(0 0 0 / 0.08));
   }
   img {
     width: 100%;
@@ -86,11 +85,13 @@
     object-fit: cover;
     display: block;
   }
-  /* Artwork is shown whole, never cropped: it sits inside the square with a
-     margin of paper around it. Posters and covers still fill their box. */
+  /* Artwork is shown whole, never cropped: it fills about 86% of the square,
+     and its white ground takes the paper's tone so no sheet edge shows. Posters
+     and covers still fill their box. */
   .paper img {
     object-fit: contain;
-    padding: 8%;
+    padding: 7%;
+    mix-blend-mode: multiply;
   }
   .cover :global(.art) {
     position: absolute;

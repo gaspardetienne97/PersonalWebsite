@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STUDIO, STUDIO_KINDS, kindsByWork } from "./studio";
+import { STUDIO, STUDIO_KINDS, kindsByWork, newestByKind } from "./studio";
 
 describe("kindsByWork", () => {
   const kinds = kindsByWork();
@@ -16,5 +16,19 @@ describe("kindsByWork", () => {
     const split = firstEmpty === -1 ? kinds.length : firstEmpty;
     for (const group of [kinds.slice(0, split), kinds.slice(split)])
       expect(order(group)).toEqual([...order(group)].sort((a, b) => a - b));
+  });
+});
+
+describe("newestByKind", () => {
+  it("gives one piece for each kind that holds work, none older than its siblings", () => {
+    const picks = newestByKind();
+    expect(picks.map((p) => p.kind)).toEqual(
+      kindsByWork()
+        .filter((k) => STUDIO[k.kind].length > 0)
+        .map((k) => k.kind),
+    );
+    for (const pick of picks)
+      for (const other of STUDIO[pick.kind])
+        expect(pick.media.year ?? 0).toBeGreaterThanOrEqual(other.media.year ?? 0);
   });
 });

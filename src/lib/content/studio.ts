@@ -41,7 +41,15 @@ import PencilLine from "@lucide/svelte/icons/pencil-line";
 import { projects, type Project } from "./projects";
 import { m } from "@repo/i18n/messages.js";
 
-type Common = { id: string; title: string; year?: number; note?: string };
+type Common = {
+  id: string;
+  title: string;
+  year?: number;
+  /** What it is made with ("ink on paper"), shown in the viewer when given. */
+  medium?: string;
+  /** A sentence about the piece, shown in the viewer when given. */
+  note?: string;
+};
 
 export type ImageEntry = Common & {
   alt: string;
@@ -385,10 +393,15 @@ export function everything(): StudioItem[] {
   return out;
 }
 
-/** The newest piece of any kind: the latest year, and the wall's order among equals. */
-export function newest(): StudioItem | undefined {
-  let best: StudioItem | undefined;
-  for (const item of everything())
-    if (!best || (item.media.year ?? 0) > (best.media.year ?? 0)) best = item;
-  return best;
+/**
+ * The newest piece of each kind that holds work: the latest year, and the
+ * list's own order among equals.
+ */
+export function newestByKind(): StudioItem[] {
+  return kindsByWork().flatMap(({ kind }) => {
+    const [first, ...rest] = STUDIO[kind];
+    if (!first) return [];
+    const year = (item: StudioItem) => item.media.year ?? 0;
+    return [rest.reduce((best, item) => (year(item) > year(best) ? item : best), first)];
+  });
 }

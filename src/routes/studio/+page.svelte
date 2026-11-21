@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { flip } from "svelte/animate";
+  import { prefersReducedMotion } from "svelte/motion";
   import { goto } from "$app/navigation";
-  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import LayoutGrid from "@lucide/svelte/icons/layout-grid";
   import Shapes from "@lucide/svelte/icons/shapes";
   import * as ToggleGroup from "@repo/ui/toggle-group";
@@ -49,35 +50,7 @@
   let viewer = $state({ open: false, index: 0 });
   const open = (item: StudioItem) =>
     (viewer = { open: true, index: viewable.indexOf(item) });
-
-  // On a phone the kinds scroll sideways: keep the selected one in view.
-  let tabs = $state<HTMLElement | null>(null);
-  $effect(() => {
-    void type;
-    const active = tabs?.querySelector<HTMLElement>('[data-state="on"]');
-    if (!tabs || !active) return;
-    const left = active.offsetLeft - tabs.clientWidth / 2 + active.offsetWidth / 2;
-    tabs.scrollTo({ left: Math.max(0, left) });
-  });
-
-  // Whether kinds are hidden past the row's edges. On the right an arrow says so
-  // and scrolls to them; on the left the row fades out.
-  let back = $state(false);
-  let more = $state(false);
-  function measure() {
-    if (!tabs) return;
-    back = tabs.scrollLeft > 1;
-    more = tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 1;
-  }
-  $effect(() => {
-    if (!tabs) return;
-    measure();
-    tabs.addEventListener("scroll", measure, { passive: true });
-    return () => tabs?.removeEventListener("scroll", measure);
-  });
 </script>
-
-<svelte:window onresize={measure} />
 
 <svelte:head>
   <title>{m.nav_studio()} | Gaspard Michel Etienne</title>
@@ -95,44 +68,28 @@
 
   <!-- One toolbar along the top edge of the wall: the kinds read like the site's
        nav, the layout switch sits flush with the wall's right edge. -->
-  <div class="toolbar">
-    <div class="kinds">
-      <ToggleGroup.Root
-        type="single"
-        bind:value={() => (view === "kinds" ? "" : type), chooseType}
-        bind:ref={tabs}
-        class="tabs {back ? 'back' : ''} {more ? 'more' : ''}"
-        aria-label={m.studio_show()}
-      >
-        <ToggleGroup.Item value="all" class="tab">
-          {m.studio_all()} <span class="count">{all.length}</span>
+  <div class="toolbar" class:by-kind={view === "kinds"}>
+    <!-- Every kind is here, each with its count, or "Soon" in words while it holds
+         nothing. A row of tabs from 1280px; under that a grid of chips, so no kind
+         is ever off screen. -->
+    <ToggleGroup.Root
+      type="single"
+      bind:value={() => (view === "kinds" ? "" : type), chooseType}
+      class="tabs"
+      aria-label={m.studio_show()}
+    >
+      <ToggleGroup.Item value="all" class="tab">
+        <span class="name">{m.studio_all()}</span>
+        <span class="count">{all.length}</span>
+      </ToggleGroup.Item>
+      {#each kinds as info (info.kind)}
+        {@const count = STUDIO[info.kind].length}
+        <ToggleGroup.Item value={info.kind} class="tab {count ? '' : 'none'}">
+          <span class="name"><i class="dot" style:background={info.dot} aria-hidden="true"></i>{info.label}</span>
+          <span class="count">{count || m.studio_soon()}</span>
         </ToggleGroup.Item>
-        {#each kinds as info (info.kind)}
-          {@const count = STUDIO[info.kind].length}
-          <ToggleGroup.Item value={info.kind} class="tab {count ? '' : 'none'}">
-            <i class="dot" style:background={info.dot} aria-hidden="true"></i>
-            {info.label}
-            {#if count}
-              <span class="count">{count}</span>
-            {:else}
-              <span class="sr-only">, {m.studio_soon()}</span>
-            {/if}
-          </ToggleGroup.Item>
-        {/each}
-      </ToggleGroup.Root>
-      {#if more}
-        <!-- A pointer shortcut only: the keyboard and screen readers reach every kind in the group. -->
-        <button
-          type="button"
-          class="more-kinds"
-          tabindex="-1"
-          aria-hidden="true"
-          onclick={() => tabs?.scrollBy({ left: tabs.clientWidth * 0.7, behavior: "smooth" })}
-        >
-          <ChevronRight />
-        </button>
-      {/if}
-    </div>
+      {/each}
+    </ToggleGroup.Root>
 
     <ToggleGroup.Root
       type="single"
@@ -176,7 +133,9 @@
       {:else}
         <ul class="wall">
           {#each items as item (item.kind + item.media.id)}
-            <li><StudioTile {item} onopen={open} /></li>
+            <li animate:flip={{ duration: prefersReducedMotion.current ? 0 : 260 }}>
+              <StudioTile {item} onopen={open} />
+            </li>
           {/each}
         </ul>
       {/if}
@@ -214,89 +173,42 @@
      kind's gradient underline sits on that line, like the header nav's. */
   .toolbar {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    align-items: flex-end;
+    gap: 0.5rem;
     margin-top: 1rem;
     border-bottom: 1px solid var(--border);
   }
-  /* On a phone the layout switch gets its own row above the kinds, so the row
-     of kinds has the whole width to scroll in. */
-  @media (width < 640px) {
-    .toolbar {
-      flex-direction: column-reverse;
-      align-items: stretch;
-      gap: 0.5rem;
-    }
-    .toolbar :global(.views) {
-      align-self: flex-end;
-    }
-  }
-  .kinds {
-    position: relative;
-    display: flex;
-    flex: 1;
-    min-width: 0;
-  }
   .toolbar :global(.tabs) {
     flex: 1;
     min-width: 0;
-    gap: 0.125rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0;
     /* Pull the first label's text onto the wall's left edge. */
-    margin-left: -0.75rem;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  /* Where kinds are hidden past an edge, the row fades out there: on the right
-     under an arrow that scrolls to them. At rest the left fade fits inside the
-     first tab's padding, so "All" is never dimmed. */
-  .toolbar :global(.tabs) {
-    --left: 0.75rem;
-    --right-from: 100%;
-    --right-to: 100%;
-    mask-image: linear-gradient(
-      90deg,
-      transparent,
-      #000 var(--left),
-      #000 var(--right-from),
-      transparent var(--right-to)
-    );
-  }
-  .toolbar :global(.tabs.back) {
-    --left: 2.5rem;
-  }
-  .toolbar :global(.tabs.more) {
-    --right-from: calc(100% - 4.5rem);
-    --right-to: calc(100% - 2rem);
-  }
-  .more-kinds {
-    position: absolute;
-    right: 0;
-    top: 0;
-    display: grid;
-    place-items: center;
-    width: 2rem;
-    height: 2.75rem;
-    color: var(--foreground);
-  }
-  .more-kinds :global(svg) {
-    width: 1.25rem;
-    height: 1.25rem;
+    margin-left: -0.45rem;
   }
   .toolbar :global(.tab) {
     position: relative;
+    flex: none;
     height: 2.75rem;
-    gap: 0.45rem;
+    /* Tight, so all eight fit one row at 1280px in French and Spanish too. */
+    gap: 0.3rem;
+    padding-inline: 0.45rem;
     border-radius: 0.375rem 0.375rem 0 0;
     font-family: var(--font-gm-display);
-    font-size: 0.975rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--foreground);
     background: transparent;
   }
-  /* Kinds that hold work read at full strength; the ones still empty are
-     quieter and carry no count. */
-  .toolbar :global(.tab) {
-    color: var(--foreground);
-    font-weight: 500;
+  .name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
   }
+  /* Kinds that hold work read at full strength and carry a count; the ones
+     still empty are quieter and say "Soon". */
   .toolbar :global(.tab.none) {
     color: var(--muted-foreground);
     font-weight: 400;
@@ -312,22 +224,106 @@
   .toolbar :global(.tab[data-state="on"])::after {
     content: "";
     position: absolute;
-    left: 0.75rem;
-    right: 0.75rem;
+    left: 0.45rem;
+    right: 0.45rem;
     bottom: 0;
     height: 2px;
     border-radius: 2px;
     background: var(--gm-brand);
   }
   .count {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
     color: var(--muted-foreground);
   }
   .dot {
+    flex: none;
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 50%;
+  }
+  /* Under 1280px the row of tabs would wrap, so the layout switch gets its own
+     row above the kinds and the kinds are chips in a grid, 48px tall, the name
+     over its count: four across on a phone, all eight in one row from 900px. The
+     chosen one is filled, so it is marked by shape as well as colour. */
+  @media (width < 1280px) {
+    .toolbar {
+      flex-direction: column-reverse;
+      align-items: stretch;
+      gap: 0.75rem;
+      border-bottom: 0;
+    }
+    .toolbar :global(.views) {
+      align-self: flex-end;
+    }
+    .toolbar :global(.tabs) {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.375rem;
+      /* The kit's group is only as wide as its items. */
+      width: 100%;
+      margin-left: 0;
+    }
+    .toolbar :global(.tab) {
+      flex-direction: column;
+      gap: 0;
+      min-width: 0;
+      height: 3rem;
+      padding-inline: 0.2rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      font-size: 0.8125rem;
+      line-height: 1.25;
+      background: var(--card);
+    }
+    .name {
+      gap: 0.3rem;
+      max-width: 100%;
+    }
+    .count {
+      font-size: 0.75rem;
+    }
+    .dot {
+      width: 0.4rem;
+      height: 0.4rem;
+    }
+    .toolbar :global(.tab:hover) {
+      background: var(--card);
+    }
+    .toolbar :global(.tab[data-state="on"]) {
+      border-color: var(--foreground);
+      color: var(--background);
+      background: var(--foreground);
+    }
+    .toolbar :global(.tab[data-state="on"] .count) {
+      color: inherit;
+    }
+    .toolbar :global(.tab[data-state="on"])::after {
+      content: none;
+    }
+  }
+  /* The longest names ("Gribouillis", "Garabatos") still fit four across on a small phone. */
+  @media (width < 380px) {
+    .toolbar :global(.tab) {
+      font-size: 0.75rem;
+    }
+    .name {
+      gap: 0.2rem;
+    }
+  }
+  /* In the kinds view the doors under the switch are the same eight links, so
+     the chips would say everything twice: they step aside (the row of tabs from
+     1280px stays). */
+  @media (width < 1280px) {
+    .toolbar.by-kind :global(.tabs) {
+      display: none;
+    }
+  }
+  @media (900px <= width < 1280px) {
+    .toolbar :global(.tabs) {
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+    }
   }
   .toolbar :global(.views) {
     flex: none;
@@ -363,18 +359,7 @@
   @media (width >= 1000px) {
     .wall {
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1.75rem 1.25rem;
-    }
-  }
-  /* Five across on a laptop, so two rows show before the fold. */
-  @media (width >= 1180px) {
-    .wall {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 1.5rem 1.25rem;
-    }
-    /* A touch smaller, so a project's line fits the narrower tile in two rows. */
-    .wall :global(.sub) {
-      font-size: 0.8125rem;
+      gap: 2rem 1.5rem;
     }
   }
 </style>
