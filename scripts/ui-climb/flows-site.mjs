@@ -40,7 +40,7 @@ export const FLOWS = [
   flow(
     "blog-index",
     "Writing: the list of posts",
-    "Finding something to read: the list of articles, newest first, with a way to filter by topic.",
+    "Finding something to read: the list of articles, newest first.",
     [
       ["list", "desktop", "light", "full"],
       ["list", "phone", "dark", "full"],
