@@ -85,12 +85,13 @@
     object-fit: cover;
     display: block;
   }
-  /* Artwork is shown whole, never cropped: it fills about 86% of the square,
-     and its white ground takes the paper's tone so no sheet edge shows. Posters
-     and covers still fill their box. */
+  /* Artwork is shown whole, never cropped, and its white ground takes the
+     paper's tone so no sheet edge shows. The files keep 2 to 4% of blank ground
+     round the ink, so with this padding the ink comes within about 6% of the
+     square's edge on its longer side. Posters and covers still fill their box. */
   .paper img {
     object-fit: contain;
-    padding: 7%;
+    padding: 3.5%;
     mix-blend-mode: multiply;
   }
   .cover :global(.art) {

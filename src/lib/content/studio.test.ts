@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STUDIO, STUDIO_KINDS, kindsByWork, newestByKind } from "./studio";
+import { STUDIO, STUDIO_KINDS, kindsByWork, newestByKind, zoomSteps } from "./studio";
 
 describe("kindsByWork", () => {
   const kinds = kindsByWork();
@@ -30,5 +30,20 @@ describe("newestByKind", () => {
     for (const pick of picks)
       for (const other of STUDIO[pick.kind])
         expect(pick.media.year ?? 0).toBeGreaterThanOrEqual(other.media.year ?? 0);
+  });
+});
+
+describe("zoomSteps", () => {
+  it("offers twice and four times while four times stays near the picture's own pixels", () => {
+    // A tall drawing fitted at 385px, its file 1600px wide: 4x is 1540px.
+    expect(zoomSteps(385, 1600)).toEqual([2, 4]);
+    // One and a half times its own pixels is the limit.
+    expect(zoomSteps(600, 1600)).toEqual([2, 4]);
+    expect(zoomSteps(601, 1600)).toEqual([2]);
+  });
+
+  it("always offers the first step, even for a picture already near its own size", () => {
+    expect(zoomSteps(1000, 1600)).toEqual([2]);
+    expect(zoomSteps(1500, 1600)).toEqual([2]);
   });
 });

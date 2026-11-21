@@ -61,14 +61,15 @@
 </svelte:head>
 
 <div class="gm-page studio">
-  <header class="hero">
+  <!-- One grid for the title, the introduction, the kinds and the layout switch,
+       so each can sit where the width allows. On a phone the switch shares the
+       title's row and the introduction is its first sentence, so the wall starts
+       in the upper half of the screen. From 900px the introduction sits beside
+       the title and the switch ends the kinds' row. -->
+  <header class="top" class:by-kind={view === "kinds"}>
     <h1 class="gm-title">{m.studio_title()}</h1>
-    <p class="gm-lede">{m.studio_lede()}</p>
-  </header>
+    <p class="gm-lede">{m.studio_lede_lead()} <span class="rest">{m.studio_lede_rest()}</span></p>
 
-  <!-- One toolbar along the top edge of the wall: the kinds read like the site's
-       nav, the layout switch sits flush with the wall's right edge. -->
-  <div class="toolbar" class:by-kind={view === "kinds"}>
     <!-- Every kind is here, each with its count, or "Soon" in words while it holds
          nothing. A row of tabs from 1280px; under that a grid of chips, so no kind
          is ever off screen. -->
@@ -106,7 +107,7 @@
         <Shapes aria-hidden="true" />{m.studio_kinds()}
       </ToggleGroup.Item>
     </ToggleGroup.Root>
-  </div>
+  </header>
 
   {#if view === "kinds"}
     <section class="group" aria-labelledby="kinds-heading">
@@ -150,44 +151,84 @@
     padding-top: 1.5rem;
   }
 
-  /* The title on the left, the introduction on the right, sharing a baseline
-     (like the home page's hero), so the wall starts high on the screen. */
-  .hero {
+  /* Phone first: the title and the switch on one row, one line of introduction,
+     then the kinds. */
+  .top {
     display: grid;
-    gap: 1rem;
-    align-items: end;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title views"
+      "lede lede"
+      "tabs tabs";
+    align-items: center;
+    gap: 0.5rem 0.75rem;
   }
-  @media (width >= 900px) {
-    .hero {
-      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-      gap: 3rem;
+  .top :global(.gm-title) {
+    grid-area: title;
+    /* Small enough that the longest title ("Estidyo mwen") and the switch share a 360px row. */
+    font-size: clamp(1.75rem, 8.2vw, 2.6rem);
+  }
+  .top :global(.gm-lede) {
+    grid-area: lede;
+    max-width: none;
+  }
+  .top :global(.tabs) {
+    grid-area: tabs;
+    margin-top: 0.5rem;
+  }
+  .top :global(.views) {
+    grid-area: views;
+    justify-self: end;
+  }
+  /* The rest of the introduction is kept for screen readers on a phone. */
+  @media (width < 640px) {
+    .rest {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
-    .hero :global(.gm-lede) {
+    /* The switch's two words carry it here; its icons would push the title off its row. */
+    .top :global(.views svg) {
+      display: none;
+    }
+  }
+  /* From 900px: the title on the left and the introduction on the right, sharing
+     a baseline (like the home page's hero), then the kinds with the switch at
+     the end of their row. */
+  @media (width >= 900px) {
+    .top {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "title lede lede"
+        "tabs tabs views";
+      align-items: end;
+      gap: 1rem 0.5rem;
+    }
+    .top :global(.gm-title) {
+      font-size: clamp(2.6rem, 6vw, 4.75rem);
+      margin-right: 2.25rem;
+      white-space: nowrap;
+    }
+    .top :global(.gm-lede) {
       font-size: 1.25rem;
       max-width: 46ch;
       justify-self: end;
     }
+    .top :global(.tabs) {
+      margin-top: 0;
+    }
   }
 
-  /* The toolbar spans the wall's width and ends in a hairline; the current
-     kind's gradient underline sits on that line, like the header nav's. */
-  .toolbar {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    border-bottom: 1px solid var(--border);
-  }
-  .toolbar :global(.tabs) {
-    flex: 1;
+  .top :global(.tabs) {
     min-width: 0;
     flex-wrap: wrap;
     justify-content: flex-start;
     gap: 0;
-    /* Pull the first label's text onto the wall's left edge. */
-    margin-left: -0.45rem;
   }
-  .toolbar :global(.tab) {
+  .top :global(.tab) {
     position: relative;
     flex: none;
     height: 2.75rem;
@@ -209,33 +250,26 @@
   }
   /* Kinds that hold work read at full strength and carry a count; the ones
      still empty are quieter and say "Soon". */
-  .toolbar :global(.tab.none) {
+  .top :global(.tab.none) {
     color: var(--muted-foreground);
     font-weight: 400;
   }
-  .toolbar :global(.tab:hover),
-  .toolbar :global(.tab[data-state="on"]) {
+  .top :global(.tab:hover),
+  .top :global(.tab[data-state="on"]) {
     color: var(--foreground);
     background: transparent;
   }
-  .toolbar :global(.tab[data-state="on"]) {
+  .top :global(.tab[data-state="on"]) {
     font-weight: 650;
   }
-  .toolbar :global(.tab[data-state="on"])::after {
-    content: "";
-    position: absolute;
-    left: 0.45rem;
-    right: 0.45rem;
-    bottom: 0;
-    height: 2px;
-    border-radius: 2px;
-    background: var(--gm-brand);
-  }
+  /* Counts and "Soon": 12px at this weight (any larger or bolder and the French
+     row of tabs wraps at 1280px), in a colour a step stronger than the
+     secondary text: 10:1 or more on the page in both themes. */
   .count {
     font-size: 0.75rem;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
-    color: var(--muted-foreground);
+    color: color-mix(in oklab, var(--foreground) 82%, var(--background));
   }
   .dot {
     flex: none;
@@ -243,100 +277,113 @@
     height: 0.5rem;
     border-radius: 50%;
   }
-  /* Under 1280px the row of tabs would wrap, so the layout switch gets its own
-     row above the kinds and the kinds are chips in a grid, 48px tall, the name
-     over its count: four across on a phone, all eight in one row from 900px. The
-     chosen one is filled, so it is marked by shape as well as colour. */
+  /* From 1280px the kinds are a row of tabs that reads like the site's nav. The
+     row ends in a hairline across the wall's width, and the current kind's
+     gradient underline sits on that line. */
+  @media (width >= 1280px) {
+    .top {
+      row-gap: 1rem;
+    }
+    .top::after {
+      content: "";
+      grid-area: 2 / 1 / 3 / -1;
+      align-self: end;
+      border-bottom: 1px solid var(--border);
+      pointer-events: none;
+    }
+    .top :global(.tabs) {
+      /* Pull the first label's text onto the wall's left edge. */
+      margin-left: -0.45rem;
+    }
+    .top :global(.tab[data-state="on"])::after {
+      content: "";
+      position: absolute;
+      left: 0.45rem;
+      right: 0.45rem;
+      bottom: 0;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--gm-brand);
+    }
+    .top :global(.views) {
+      margin-bottom: 0.4rem;
+    }
+  }
+  /* Under 1280px the row of tabs would wrap, so the kinds are chips in a grid,
+     44px tall, the name over its count: four across in two rows on a phone, all
+     eight in one row from 900px. The chosen one is filled, so it is marked by
+     shape as well as colour. */
   @media (width < 1280px) {
-    .toolbar {
-      flex-direction: column-reverse;
-      align-items: stretch;
-      gap: 0.75rem;
-      border-bottom: 0;
-    }
-    .toolbar :global(.views) {
-      align-self: flex-end;
-    }
-    .toolbar :global(.tabs) {
+    .top :global(.tabs) {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 0.375rem;
       /* The kit's group is only as wide as its items. */
       width: 100%;
-      margin-left: 0;
     }
-    .toolbar :global(.tab) {
+    .top :global(.tab) {
       flex-direction: column;
       gap: 0;
       min-width: 0;
-      height: 3rem;
+      height: 2.75rem;
       padding-inline: 0.2rem;
       border: 1px solid var(--border);
       border-radius: 0.5rem;
       font-size: 0.8125rem;
-      line-height: 1.25;
+      line-height: 1.2;
       background: var(--card);
     }
     .name {
       gap: 0.3rem;
       max-width: 100%;
     }
-    .count {
-      font-size: 0.75rem;
-    }
     .dot {
       width: 0.4rem;
       height: 0.4rem;
     }
-    .toolbar :global(.tab:hover) {
+    .top :global(.tab:hover) {
       background: var(--card);
     }
-    .toolbar :global(.tab[data-state="on"]) {
+    .top :global(.tab[data-state="on"]) {
       border-color: var(--foreground);
       color: var(--background);
       background: var(--foreground);
     }
-    .toolbar :global(.tab[data-state="on"] .count) {
+    .top :global(.tab[data-state="on"] .count) {
       color: inherit;
     }
-    .toolbar :global(.tab[data-state="on"])::after {
-      content: none;
+    /* In the kinds view the doors under the switch are the same eight links, so
+       the chips would say everything twice: they step aside (the row of tabs
+       from 1280px stays). */
+    .top.by-kind :global(.tabs) {
+      display: none;
     }
   }
   /* The longest names ("Gribouillis", "Garabatos") still fit four across on a small phone. */
   @media (width < 380px) {
-    .toolbar :global(.tab) {
+    .top :global(.tab) {
       font-size: 0.75rem;
     }
     .name {
       gap: 0.2rem;
     }
   }
-  /* In the kinds view the doors under the switch are the same eight links, so
-     the chips would say everything twice: they step aside (the row of tabs from
-     1280px stays). */
-  @media (width < 1280px) {
-    .toolbar.by-kind :global(.tabs) {
-      display: none;
-    }
-  }
   @media (900px <= width < 1280px) {
-    .toolbar :global(.tabs) {
+    .top :global(.tabs) {
       grid-template-columns: repeat(8, minmax(0, 1fr));
     }
   }
-  .toolbar :global(.views) {
+  .top :global(.views) {
     flex: none;
-    margin-bottom: 0.4rem;
   }
-  .toolbar :global(.views > *) {
+  .top :global(.views > *) {
     height: 2.75rem;
     gap: 0.4rem;
     padding-inline: 0.8rem;
     font-size: 0.875rem;
   }
-  @media (width >= 640px) and (pointer: fine) {
-    .toolbar :global(.views > *) {
+  @media (width >= 1280px) and (pointer: fine) {
+    .top :global(.views > *) {
       height: 2.25rem;
     }
   }

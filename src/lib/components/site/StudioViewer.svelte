@@ -1,31 +1,33 @@
 <!--
-  The Studio's viewer: a dialog close to the size of the screen, with the pieces
-  in a carousel. A picture sits whole on a mat of paper cut to its shape. Its box
-  is reserved from the picture's known size and the small copy from the wall
-  shows until the large one has loaded, so a half-painted picture is never on
-  screen. "Zoom in" (or a click on the picture) shows it large in a box you can
-  drag, scroll or pan with the arrow keys, with a small locator showing which
-  part is in view; Escape, the button or another click goes back. The piece on
-  screen plays if it's a video or music (the others show their cover, so moving
-  on stops playback). Swipe, use the arrow buttons, the arrow keys, or the strip
-  of small pictures under the stage. On a phone the stage is as tall as the
-  picture and the arrows sit under the strip, beside the count.
+  The Studio's viewer: a dialog close to the size of the screen (the whole
+  screen on a phone), with the pieces in a carousel. A picture sits whole on a
+  mat of paper cut to its shape, centred on a tinted stage. Its box is reserved
+  from the picture's known size and the small copy from the wall shows until the
+  large one has loaded, so a half-painted picture is never on screen. The zoom
+  control (or a click on the picture) shows it at twice, then four times its
+  size in a box you can drag, scroll or pan with the arrow keys, with a small
+  locator in the foot showing which part is in view; Escape, the minus button or
+  another click goes back. The piece on screen plays if it's a video or music
+  (the others show their cover, so moving on stops playback). Swipe, use the
+  arrow buttons, the arrow keys, or the strip of small pictures under the stage.
+  The arrows always point their own way; on the first and last piece their tip
+  and name say where the loop goes ("Last drawing"). On a phone the arrows sit
+  under the strip, beside the count.
 -->
 <script lang="ts">
   import { untrack, type ComponentProps } from "svelte";
+  import { prefersReducedMotion } from "svelte/motion";
+  import { fade } from "svelte/transition";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
-  import ArrowLeftToLine from "@lucide/svelte/icons/arrow-left-to-line";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
-  import ArrowRightToLine from "@lucide/svelte/icons/arrow-right-to-line";
   import Hand from "@lucide/svelte/icons/hand";
   import ZoomIn from "@lucide/svelte/icons/zoom-in";
   import ZoomOut from "@lucide/svelte/icons/zoom-out";
   import { m } from "@repo/i18n/messages.js";
-  import { Button } from "@repo/ui/button";
   import * as Carousel from "@repo/ui/carousel";
   import * as Dialog from "@repo/ui/dialog";
   import StudioCover from "./StudioCover.svelte";
-  import { kindInfo, type StudioItem } from "#lib/content/studio.ts";
+  import { kindInfo, zoomSteps, type StudioItem } from "#lib/content/studio.ts";
 
   let {
     items,
@@ -57,11 +59,11 @@
   // What is being stepped through: one kind when every piece here is of that
   // kind (projects are links, so a wall of drawings and projects steps through
   // the drawings), otherwise everything.
-  const set = $derived(
-    item && items.every((other) => other.kind === item.kind)
-      ? kindInfo(item.kind).label
-      : m.studio_everything(),
-  );
+  const oneKind = $derived(!!item && items.every((other) => other.kind === item.kind));
+  const set = $derived(item && oneKind ? kindInfo(item.kind).label : m.studio_everything());
+  // The word the wrapping arrows use: the kind's own ("Last drawing") when one
+  // kind is being stepped through, otherwise "piece".
+  const setKind = $derived(item && oneKind ? item.kind : "all");
 
   // The carousel calls this from an effect, so it must not read `index`: that
   // would re-run it on every slide, jumping back and breaking Embla's looping.
@@ -83,17 +85,24 @@
     else img.addEventListener("load", done, { once: true });
   }
 
-  // Zoom: the picture at up to three times its fitted width (never past its own
-  // pixels), in a box that scrolls, laid over the stage so the carousel under
-  // it can't be dragged.
+  // Zoom: the picture at twice, then four times its fitted width, in a box that
+  // scrolls, laid over the stage so the carousel under it can't be dragged. The
+  // second step is offered only while it stays near the picture's own pixels.
+  // ponytail: two fixed steps; continuous zoom (wheel, pinch) if it is asked for.
   let stage = $state<HTMLElement>();
-  let zoomed = $state(false);
-  let zoomWidth = $state(0);
+  /** 0 while the piece shows whole, otherwise the step that is on. */
+  let level = $state(0);
+  let steps = $state([2]);
+  let fitted = $state(0);
+  const zoomed = $derived(level > 0);
+  const zoomWidth = $derived(fitted * level);
+  const canZoomIn = $derived(!zoomed || steps.indexOf(level) < steps.length - 1);
   let box = $state<HTMLElement>();
+  let zoomInButton = $state<HTMLElement>();
   // The part of the zoomed picture in view, as fractions of the whole (for the locator).
   let view = $state({ x: 0, y: 0, w: 1, h: 1 });
-  // The "drag to look around" line shows until the visitor first moves the picture.
-  let moved = $state(false);
+  // The middle of the view, kept in place from one step to the next.
+  let centre = { x: 0.5, y: 0.5 };
   function locate() {
     if (!box) return;
     view = {
@@ -103,24 +112,49 @@
       h: box.clientHeight / box.scrollHeight,
     };
   }
-  function zoom(on = !zoomed) {
-    if (on) {
+  function zoomTo(next: number) {
+    if (next === level) return;
+    if (!level) {
       const img = stage?.querySelector<HTMLImageElement>("[data-current] img.large");
       if (!img) return;
-      zoomWidth = Math.min(img.naturalWidth || img.clientWidth * 3, img.clientWidth * 3);
+      fitted = img.clientWidth;
+      steps = zoomSteps(fitted, img.naturalWidth || fitted);
+      centre = { x: 0.5, y: 0.5 };
+    } else {
+      centre = { x: view.x + view.w / 2, y: view.y + view.h / 2 };
     }
-    zoomed = on;
+    level = next;
   }
+  const zoomIn = () => zoomTo(steps[steps.indexOf(level) + 1] ?? level);
+  const zoomOut = () => zoomTo(steps[steps.indexOf(level) - 1] ?? 0);
   // Moving to another piece leaves the zoom.
   $effect(() => {
     void index;
-    zoomed = false;
+    level = 0;
   });
-  // Start in the middle of the picture.
+  // Each step opens on the middle of what was in view (the picture's own middle at first).
   $effect(() => {
+    void level;
     if (!zoomed || !box) return;
-    box.scrollTo((box.scrollWidth - box.clientWidth) / 2, (box.scrollHeight - box.clientHeight) / 2);
+    box.scrollTo(
+      centre.x * box.scrollWidth - box.clientWidth / 2,
+      centre.y * box.scrollHeight - box.clientHeight / 2,
+    );
     locate();
+  });
+
+  // The "drag to look around" line shows until the visitor first moves a zoomed
+  // picture, and for three seconds at most.
+  let moved = $state(false);
+  let hint = $state(false);
+  $effect(() => {
+    if (!zoomed) {
+      hint = false;
+      return;
+    }
+    hint = true;
+    const timer = setTimeout(() => (hint = false), 3000);
+    return () => clearTimeout(timer);
   });
 
   // A mouse drags the zoomed picture (touch and the wheel scroll the box as
@@ -176,8 +210,17 @@
     }
   }
 
-  // The strip keeps the current piece in view.
+  // The strip keeps the current piece in the middle, and fades at an edge that
+  // has more to show.
   let strip = $state<HTMLElement>();
+  let more = $state({ left: false, right: false });
+  function edges() {
+    if (!strip) return;
+    more = {
+      left: strip.scrollLeft > 4,
+      right: strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 4,
+    };
+  }
   $effect(() => {
     void index;
     const current = strip?.querySelector<HTMLElement>('[aria-current="true"]');
@@ -185,79 +228,90 @@
     strip.scrollTo({
       left: Math.max(0, current.offsetLeft - strip.clientWidth / 2 + current.offsetWidth / 2),
     });
+    edges();
   });
-
 </script>
 
-<!-- Previous and next: one filled disc in both themes. The carousel loops, so on
-     the first and last piece the arrow that wraps shows where it goes instead. -->
+<svelte:window onresize={edges} />
+
+<!-- Previous and next: one filled disc in both themes, the left one always a left
+     arrow. The carousel loops, so on the first and last piece the arrow that
+     wraps is named for where it goes. The name shows as a tip under the pointer
+     and the keyboard (drawn here, since a browser's own tooltip is slow and
+     never shows for the keyboard). -->
 {#snippet arrow(dir: "prev" | "next")}
   {@const prev = dir === "prev"}
   {@const wraps = prev ? index === 0 : index === items.length - 1}
   {@const label = prev
     ? wraps
-      ? m.viewer_to_last()
+      ? m.viewer_to_last({ kind: setKind })
       : m.viewer_previous()
     : wraps
-      ? m.viewer_to_first()
+      ? m.viewer_to_first({ kind: setKind })
       : m.viewer_next()}
   <button
     type="button"
     class="arrow {dir}"
     aria-label={label}
-    title={label}
+    data-tip={label}
     onclick={() => (prev ? api?.scrollPrev() : api?.scrollNext())}
   >
-    {#if prev}
-      {#if wraps}<ArrowRightToLine aria-hidden="true" />{:else}<ArrowLeft aria-hidden="true" />{/if}
-    {:else if wraps}
-      <ArrowLeftToLine aria-hidden="true" />
-    {:else}
-      <ArrowRight aria-hidden="true" />
-    {/if}
+    {#if prev}<ArrowLeft aria-hidden="true" />{:else}<ArrowRight aria-hidden="true" />{/if}
   </button>
 {/snippet}
 
 <Dialog.Root bind:open>
   <Dialog.Content
-    class="studio-viewer flex max-h-[94dvh] w-[96vw] max-w-none flex-col gap-3 rounded-lg p-4 sm:h-[94dvh] sm:p-5"
+    class="studio-viewer flex h-dvh w-screen max-w-none flex-col gap-2 rounded-none border-0 p-4 sm:h-[96dvh] sm:w-[96vw] sm:rounded-lg sm:border"
     {onkeydown}
+    onOpenAutoFocus={(event) => {
+      // Zoom out comes first and has nothing to do yet: start on Zoom in.
+      if (!zoomInButton) return;
+      event.preventDefault();
+      zoomInButton.focus();
+    }}
     onEscapeKeydown={(event) => {
       // Escape leaves the zoom first, then the viewer.
       if (!zoomed) return;
       event.preventDefault();
-      zoomed = false;
+      zoomTo(0);
     }}
   >
-    <Dialog.Header class="min-h-11 justify-center space-y-0.5 pr-40 text-left">
+    <Dialog.Header class="min-h-12 justify-center space-y-0.5 pr-48 text-left">
       <Dialog.Title class="viewer-title">{item?.media.title ?? ""}</Dialog.Title>
       <Dialog.Description class="text-foreground/80">
         {#if item}<i class="dot" style:background={kindInfo(item.kind).dot} aria-hidden="true"></i>{/if}{facts}{#if item?.media.note}<span class="note">{item.media.note}</span>{/if}
       </Dialog.Description>
     </Dialog.Header>
 
-    {#if item?.media.type === "image"}
-      <Button
-        variant="outline"
-        class="zoom absolute top-3 right-16 h-11 gap-2 px-3"
-        aria-pressed={zoomed}
-        onclick={() => zoom()}
-      >
-        {#if zoomed}
-          <ZoomOut aria-hidden="true" />{m.viewer_zoom_out()}
-        {:else}
-          <ZoomIn aria-hidden="true" />{m.viewer_zoom_in()}
-        {/if}
-      </Button>
+    {#if image}
+      <!-- Zoom out, the step that is on, zoom in. A button at its limit stays
+           focusable and says so, instead of dropping the keyboard's place. -->
+      <div class="zoomer">
+        <button
+          type="button"
+          aria-label={m.viewer_zoom_out()}
+          data-tip={m.viewer_zoom_out()}
+          aria-disabled={!zoomed}
+          onclick={zoomOut}
+        >
+          <ZoomOut aria-hidden="true" />
+        </button>
+        <output class="level" aria-live="polite">{m.viewer_zoom_level({ level: level || 1 })}</output>
+        <button
+          type="button"
+          bind:this={zoomInButton}
+          aria-label={m.viewer_zoom_in()}
+          data-tip={m.viewer_zoom_in()}
+          aria-disabled={!canZoomIn}
+          onclick={zoomIn}
+        >
+          <ZoomIn aria-hidden="true" />
+        </button>
+      </div>
     {/if}
 
-    <div
-      class="stage"
-      class:zoomed
-      bind:this={stage}
-      style:--w={image?.width ?? 1}
-      style:--h={image?.height ?? 1}
-    >
+    <div class="stage" bind:this={stage}>
       <Carousel.Root {opts} {setApi} class="h-full">
         <Carousel.Content class="h-full">
           {#each items as piece, i (piece.kind + piece.media.id)}
@@ -275,7 +329,7 @@
                     class="mat"
                     style:--w={media.width}
                     style:--h={media.height}
-                    onclick={() => i === index && zoom(true)}
+                    onclick={() => i === index && zoomIn()}
                   >
                     <div class="pic">
                       <img class="small" src={media.small} alt="" aria-hidden="true" />
@@ -332,7 +386,7 @@
           onpointermove={pull}
           onpointerup={release}
           onpointercancel={release}
-          onclick={() => !drag?.far && zoom(false)}
+          onclick={() => !drag?.far && zoomTo(0)}
         >
           <img
             src={image.large}
@@ -342,18 +396,10 @@
             style:aspect-ratio="{image.width} / {image.height}"
           />
         </div>
-        <!-- Where the box is looking: the whole picture small, the part in view outlined. -->
-        <div class="locator" aria-hidden="true">
-          <img src={image.small} alt="" />
-          <i
-            style:left="{view.x * 100}%"
-            style:top="{view.y * 100}%"
-            style:width="{view.w * 100}%"
-            style:height="{view.h * 100}%"
-          ></i>
-        </div>
-        {#if !moved}
-          <p class="hint"><Hand size={16} aria-hidden="true" />{m.viewer_zoom_hint()}</p>
+        {#if hint && !moved}
+          <p class="hint" out:fade={{ duration: prefersReducedMotion.current ? 0 : 300 }}>
+            <Hand size={16} aria-hidden="true" />{m.viewer_zoom_hint()}
+          </p>
         {/if}
       {/if}
 
@@ -362,28 +408,54 @@
       {/if}
     </div>
 
-    {#if items.length > 1}
+    {#if items.length > 1 || zoomed}
       <div class="foot">
-        <div class="strip" bind:this={strip} role="group" aria-label={m.viewer_pieces()}>
-          {#each items as piece, i (piece.kind + piece.media.id)}
-            <button
-              type="button"
-              class="thumb"
-              aria-label={piece.media.title}
-              title={piece.media.title}
-              aria-current={i === index ? "true" : undefined}
-              onclick={() => api?.scrollTo(i)}
-            >
-              <StudioCover item={piece} size={112} eager />
-            </button>
-          {/each}
-        </div>
+        {#if items.length > 1}
+          <div
+            class="strip"
+            bind:this={strip}
+            onscroll={edges}
+            role="group"
+            aria-label={m.viewer_pieces()}
+            style:--l={more.left ? "2.5rem" : "0px"}
+            style:--r={more.right ? "2.5rem" : "0px"}
+          >
+            {#each items as piece, i (piece.kind + piece.media.id)}
+              <button
+                type="button"
+                class="thumb"
+                aria-label={piece.media.title}
+                title={piece.media.title}
+                aria-current={i === index ? "true" : undefined}
+                onclick={() => api?.scrollTo(i)}
+              >
+                <StudioCover item={piece} size={112} eager />
+              </button>
+            {/each}
+          </div>
+        {/if}
         <div class="bar">
-          {@render arrow("prev")}
-          <p class="count" aria-hidden="true">
-            {m.viewer_position({ set, position: index + 1, total: items.length })}
-          </p>
-          {@render arrow("next")}
+          {#if items.length > 1}{@render arrow("prev")}{/if}
+          <div class="where">
+            {#if zoomed && image}
+              <!-- Where the box is looking: the whole picture small, the part in view framed. -->
+              <div class="locator" aria-hidden="true" style:--w={image.width} style:--h={image.height}>
+                <img src={image.small} alt="" />
+                <i
+                  style:left="{view.x * 100}%"
+                  style:top="{view.y * 100}%"
+                  style:width="{view.w * 100}%"
+                  style:height="{view.h * 100}%"
+                ></i>
+              </div>
+            {/if}
+            {#if items.length > 1}
+              <p class="count" aria-hidden="true">
+                {m.viewer_position({ set, position: index + 1, total: items.length })}
+              </p>
+            {/if}
+          </div>
+          {#if items.length > 1}{@render arrow("next")}{/if}
         </div>
       </div>
     {/if}
@@ -391,10 +463,6 @@
 </Dialog.Root>
 
 <style>
-  /* The dialog's own width is what the phone stage is sized from. */
-  :global(.studio-viewer) {
-    container-type: inline-size;
-  }
   /* A darker scrim than the kit's, so the page behind doesn't show round the edges. */
   :global([data-dialog-overlay]:has(+ .studio-viewer)) {
     background: rgb(0 0 0 / 0.92);
@@ -417,36 +485,146 @@
     content: ". ";
   }
 
-  /* From 640px the stage takes all the room between the header and the foot,
-     with a gutter each side for the arrows. On a phone it is as tall as the
-     current picture's mat (and no taller than the room there is), so a wide
-     drawing has no empty bands; zoomed, it takes all the height it can. */
+  /* The header's controls: zoom, then close, two bordered boxes 44px tall. */
+  .zoomer,
+  :global(.studio-viewer [data-dialog-close]) {
+    position: absolute;
+    top: 1.125rem;
+    height: 2.75rem;
+    border: 1px solid var(--input);
+    border-radius: calc(var(--radius) - 2px);
+    color: var(--foreground);
+    background: var(--background);
+  }
+  .zoomer {
+    right: 4.25rem;
+    display: flex;
+    align-items: stretch;
+  }
+  .zoomer button {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    border-radius: calc(var(--radius) - 3px);
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+  @media (hover: hover) {
+    .zoomer button:hover {
+      background: var(--accent);
+    }
+  }
+  .zoomer button:focus-visible {
+    outline-color: var(--ring);
+  }
+  .zoomer button[aria-disabled="true"] {
+    color: color-mix(in oklab, var(--foreground) 40%, transparent);
+    background: transparent;
+    cursor: default;
+  }
+  .zoomer :global(svg) {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+  .level {
+    display: grid;
+    place-items: center;
+    min-width: 2rem;
+    font-family: var(--font-gm-display);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  /* The kit's close button is a small cross at 70% opacity, faint on the white dialog. */
+  :global(.studio-viewer [data-dialog-close]) {
+    display: grid;
+    place-items: center;
+    right: 1rem;
+    width: 2.75rem;
+    opacity: 1;
+  }
+  :global(.studio-viewer [data-dialog-close]:hover) {
+    background: var(--accent);
+  }
+  :global(.studio-viewer [data-dialog-close] svg) {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  /* A button's name as a tip, under the pointer and the keyboard. */
+  [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 0.5rem);
+    z-index: 5;
+    translate: -50% 0;
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.375rem;
+    font-family: var(--font-gm-display);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--background);
+    background: var(--foreground);
+    box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+  }
+  [data-tip]:focus-visible::after {
+    opacity: 1;
+  }
+  @media (hover: hover) {
+    [data-tip]:hover::after {
+      opacity: 1;
+    }
+  }
+  /* The zoom buttons sit at the top, so their tips open downward. A press
+     changes the step shown beside them, so the tip steps aside once pressed
+     (an arrow's stays: its name changes when the next press would wrap). */
+  .zoomer [data-tip]::after {
+    top: calc(100% + 0.5rem);
+    bottom: auto;
+  }
+  .zoomer [data-tip]:focus:not(:focus-visible)::after {
+    opacity: 0;
+  }
+  /* The arrows sit at the edges, so their tips start from their own edge. */
+  .arrow.prev::after {
+    left: 0;
+    translate: none;
+  }
+  .arrow.next::after {
+    left: auto;
+    right: 0;
+    translate: none;
+  }
+
+  /* The stage takes all the room between the header and the foot, on a faint
+     tint so the paper stands apart from the panel. The piece is centred in it:
+     a wide drawing on a phone is as large as the width allows, with the spare
+     room shared above and below. From 640px a gutter each side holds the arrows. */
   .stage {
     --pad: 0.625rem;
     /* A sliver each side on a phone, so the mat's edge is never at the clip. */
-    --gutter: 0.25rem;
+    --gutter: 0.375rem;
     --box-gutter: 0rem;
-    /* Room under the mat for its shadow, so its bottom edge is always seen. */
-    --room: 0.75rem;
+    /* Room round the mat for its shadow, so its edges are always seen. */
+    --room: 1rem;
     position: relative;
-    flex: 0 1 auto;
+    flex: 1;
     min-height: 0;
-    height: calc(
-      (100cqw - 2 * var(--gutter) - 2 * var(--pad) - 2px) * var(--h) / var(--w) + 2 * var(--pad) +
-        2px + var(--room)
-    );
-    transition: height 0.2s ease;
-  }
-  .stage.zoomed {
-    height: 100dvh;
+    border-radius: var(--radius);
+    background: color-mix(in oklab, var(--muted) 70%, var(--background));
   }
   @media (width >= 640px) {
     .stage {
       --pad: 1rem;
-      --gutter: 3.75rem;
-      --box-gutter: 3.75rem;
-      flex: 1;
-      height: auto;
+      --gutter: 4.25rem;
+      --box-gutter: 4.25rem;
     }
   }
   .stage :global([data-embla-container]),
@@ -503,7 +681,7 @@
 
   .zoombox {
     position: absolute;
-    /* From 640px the box stops short of the arrows, which stay on the dialog's own colour. */
+    /* From 640px the box stops short of the arrows, which stay on the stage's own colour. */
     inset: 0 var(--box-gutter);
     z-index: 2;
     display: grid;
@@ -523,32 +701,6 @@
     margin: auto;
     mix-blend-mode: multiply;
     user-select: none;
-  }
-  .locator {
-    position: absolute;
-    right: calc(var(--box-gutter) + 0.5rem);
-    bottom: 0.5rem;
-    z-index: 3;
-    width: calc(4.5rem * min(1, var(--w) / var(--h)));
-    aspect-ratio: var(--w) / var(--h);
-    overflow: hidden;
-    border: 1px solid oklch(0.2 0.03 265);
-    border-radius: 0.25rem;
-    background: var(--gm-paper, #f5f2ea);
-    box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.4);
-    pointer-events: none;
-  }
-  .locator img {
-    width: 100%;
-    height: 100%;
-    mix-blend-mode: multiply;
-    opacity: 0.55;
-  }
-  .locator i {
-    position: absolute;
-    border: 2px solid var(--gm-blue);
-    border-radius: 2px;
-    background: color-mix(in oklab, var(--gm-blue) 16%, transparent);
   }
   .hint {
     position: absolute;
@@ -571,9 +723,10 @@
   }
 
   /* The arrows: filled discs in the text colour with the page colour's glyph,
-     the same in both themes. From 640px they sit in the stage's gutters, over
+     the same in both themes. From 640px they sit in the stage's gutters, beside
      the zoom box too; on a phone they flank the count under the strip. */
   .arrow {
+    position: relative;
     display: grid;
     place-items: center;
     flex: none;
@@ -584,14 +737,14 @@
     background: var(--foreground);
     outline: 2px solid transparent;
     outline-offset: 2px;
-    transition: scale 0.15s ease;
   }
   .arrow :global(svg) {
     width: 1.25rem;
     height: 1.25rem;
+    transition: scale 0.15s ease;
   }
-  .arrow:hover {
-    scale: 1.08;
+  .arrow:hover :global(svg) {
+    scale: 1.15;
   }
   .arrow:focus-visible {
     outline-color: var(--ring);
@@ -610,35 +763,16 @@
       translate: 0 -50%;
     }
     .side .prev {
-      left: 0;
+      left: 0.75rem;
     }
     .side .next {
-      right: 0;
+      right: 0.75rem;
     }
     .bar .arrow {
       display: none;
     }
   }
 
-  /* The kit's close button is a small cross at 70% opacity, faint on the white dialog. */
-  :global(.studio-viewer [data-dialog-close]) {
-    display: grid;
-    place-items: center;
-    top: 0.75rem;
-    right: 0.75rem;
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 50%;
-    opacity: 1;
-    color: var(--foreground);
-  }
-  :global(.studio-viewer [data-dialog-close]:hover) {
-    background: var(--accent);
-  }
-  :global(.studio-viewer [data-dialog-close] svg) {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
   .player {
     width: 100%;
     height: 100%;
@@ -661,12 +795,13 @@
     border-radius: var(--radius);
   }
 
-  /* Under the stage. On a phone: the strip of pieces, which scrolls, then the
-     count between the arrows. From 640px: the count on the left and the strip
-     in the middle. */
+  /* Under the stage. On a phone: the strip of pieces, which scrolls from one
+     screen edge to the other, then the count between the arrows. From 640px one
+     row: the count, then the strip in the middle of the dialog. Zoomed, the
+     locator sits beside the count. */
   .foot {
     display: grid;
-    gap: 0.5rem;
+    gap: 0.375rem;
     min-width: 0;
   }
   .bar {
@@ -675,37 +810,79 @@
     gap: 0.75rem;
     min-height: 2.75rem;
   }
-  .count {
+  .where {
     flex: 1;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+  .count {
     font-family: var(--font-gm-display);
     font-size: 0.9375rem;
     font-weight: 500;
     color: var(--foreground);
     font-variant-numeric: tabular-nums;
   }
+  /* The whole picture, faint, with the part in view framed at full strength. */
+  .locator {
+    position: relative;
+    flex: none;
+    width: min(4rem * var(--w) / var(--h), 5.5rem);
+    aspect-ratio: var(--w) / var(--h);
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, var(--foreground) 45%, var(--border));
+    border-radius: 0.25rem;
+    background: var(--gm-paper, #f5f2ea);
+  }
+  .locator img {
+    width: 100%;
+    height: 100%;
+    mix-blend-mode: multiply;
+    opacity: 0.45;
+  }
+  .locator i {
+    position: absolute;
+    border: 2px solid var(--gm-blue);
+    border-radius: 2px;
+    background: color-mix(in oklab, var(--gm-blue) 18%, transparent);
+    /* A paper-coloured edge outside the frame, so it stands off the drawing's own lines. */
+    box-shadow: 0 0 0 1px var(--gm-paper, #f5f2ea);
+  }
   .strip {
     display: flex;
     gap: 0.5rem;
     min-width: 0;
-    padding: 0.25rem;
+    /* To the dialog's edges, with 16px of room before the first piece and after the last. */
+    margin-inline: -1rem;
+    padding: 0.25rem 1rem;
     overflow-x: auto;
     scrollbar-width: none;
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--l, 0px),
+      #000 calc(100% - var(--r, 0px)),
+      transparent
+    );
   }
   @media (width >= 640px) {
     .foot {
-      grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) 1fr;
+      grid-template-columns: 1fr minmax(0, auto) 1fr;
       align-items: center;
       gap: 1rem;
     }
     .bar {
       grid-area: 1 / 1;
     }
+    .where {
+      justify-content: flex-end;
+    }
     .strip {
       grid-area: 1 / 2;
-    }
-    .count {
-      text-align: left;
+      margin-inline: 0;
+      padding: 0.25rem;
     }
   }
   /* Every piece at full strength, so thin drawings never fade and the paper is
@@ -731,16 +908,16 @@
     outline-color: var(--ring);
   }
   .thumb :global(.paper img) {
-    padding: 10%;
+    padding: 7%;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .stage,
     .large,
-    .arrow {
+    .arrow :global(svg),
+    [data-tip]::after {
       transition: none;
     }
-    .arrow:hover {
+    .arrow:hover :global(svg) {
       scale: none;
     }
   }

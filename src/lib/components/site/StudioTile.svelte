@@ -1,12 +1,15 @@
 <!--
   One piece on the Studio wall. Every kind gets the same tile: a square picture,
-  a title and one line under it (what a project is, or a piece's kind and year),
-  led by the kind's colour dot. Projects link to the project; everything else
-  opens in the viewer. Under the pointer or the keyboard the tile lifts, the
-  picture grows and an "Open" mark shows in the same corner on every kind.
+  a title and up to two lines under it (what a project is, or a piece's kind and
+  year), led by the kind's colour dot. Projects link to the project; everything
+  else opens in the viewer. Under the pointer or the keyboard the tile lifts
+  onto a shadow, its frame takes the text colour, the picture grows, the whole
+  line shows and a mark in the corner says what a press does: "Open" for a
+  project, "View" for a piece.
 -->
 <script lang="ts">
   import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+  import Maximize from "@lucide/svelte/icons/maximize-2";
   import StudioCover from "./StudioCover.svelte";
   import { kindInfo, type StudioItem } from "#lib/content/studio.ts";
   import { m } from "@repo/i18n/messages.js";
@@ -24,13 +27,16 @@
 {#snippet body()}
   <span class="frame" class:pans={project}>
     <StudioCover {item} />
-    <span class="open" aria-hidden="true">{m.studio_open()}<ArrowUpRight size={14} /></span>
+    <span class="open" aria-hidden="true">
+      {#if project}{m.studio_open()}<ArrowUpRight size={14} />{:else}{m.studio_view()}<Maximize size={13} />{/if}
+    </span>
   </span>
   <!-- A piece's line names its kind; a project's line is its summary, so the kind is added for screen readers. -->
   <span class="title"
     >{media.title}{#if project}<span class="sr-only">, {info.singular.toLowerCase()}</span>{/if}</span
   >
-  <!-- Clamped to one line so every row has one height: the whole text is in the tooltip. -->
+  <!-- Two lines, and room kept for two on every tile, so rows keep one height.
+       The whole text shows under the pointer or the keyboard, and is in the tooltip. -->
   <span class="sub" title={line}>
     <i class="dot" style:background={info.dot} aria-hidden="true"></i>
     <span class="line">{line}</span>
@@ -73,21 +79,35 @@
     transition: scale 0.3s ease;
   }
   /* The whole tile answers the pointer and the keyboard: it lifts, the frame's
-     border darkens, the picture grows a touch and the "Open" mark shows. */
+     border takes the text colour over a shadow, the picture grows and the mark shows. */
   .tile:hover,
   .tile:focus-visible {
     translate: 0 -4px;
   }
   .tile:hover .frame,
   .tile:focus-visible .frame {
-    border-color: color-mix(in oklab, var(--foreground) 55%, var(--border));
-    box-shadow: 0 12px 26px -10px rgb(0 0 0 / 0.4);
+    border-color: var(--foreground);
+    box-shadow:
+      0 0 0 1px var(--foreground),
+      0 18px 30px -12px rgb(0 0 0 / 0.5);
+  }
+  /* On the dark page a dark shadow can't be seen: the lift is a soft light under the frame. */
+  :global(.dark) .tile:hover .frame,
+  :global(.dark) .tile:focus-visible .frame {
+    box-shadow:
+      0 0 0 1px var(--foreground),
+      0 16px 36px -10px color-mix(in oklab, var(--foreground) 45%, transparent);
   }
   .tile:hover .frame :global(.cover img),
   .tile:focus-visible .frame :global(.cover img),
   .tile:hover .frame :global(.cover .art),
   .tile:focus-visible .frame :global(.cover .art) {
-    scale: 1.05;
+    scale: 1.08;
+  }
+  /* A drawing comes close to its frame already, so it grows less and stays whole. */
+  .tile:hover .frame :global(.cover.paper img),
+  .tile:focus-visible .frame :global(.cover.paper img) {
+    scale: 1.04;
   }
   /* A project's cover is larger than its frame while hovered and drifts slowly
      from side to side, so the screenshot reads as something live. */
@@ -145,26 +165,58 @@
     text-underline-offset: 0.18em;
   }
   .sub {
+    --lh: 1.35em;
     position: relative;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.4rem;
     min-width: 0;
+    /* Room for two lines on every tile. */
+    min-height: calc(2 * var(--lh));
     font-size: 0.875rem;
     color: var(--muted-foreground);
-    line-height: 1.35;
+    line-height: var(--lh);
   }
   .dot {
     flex: none;
     width: 0.45rem;
     height: 0.45rem;
+    /* Centred on the first line. */
+    margin-top: calc((var(--lh) - 0.45rem) / 2);
     border-radius: 50%;
   }
   .line {
+    display: -webkit-box;
     min-width: 0;
     overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  /* A phone's two columns are narrow and have no pointer to show the rest, so a
+     project's line runs as long as it needs there (four lines in French). */
+  @media (width < 640px) {
+    .line {
+      -webkit-line-clamp: 4;
+      line-clamp: 4;
+    }
+  }
+  /* Under the pointer or the keyboard the whole line shows. The tile keeps its
+     height (the text runs into the gap under it), so nothing on the wall moves. */
+  @media (width >= 640px) {
+    .sub {
+      height: calc(2 * var(--lh));
+    }
+    .tile:hover .line,
+    .tile:focus-visible .line {
+      position: relative;
+      z-index: 1;
+      overflow: visible;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+      color: var(--foreground);
+      background: var(--background);
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     .tile,

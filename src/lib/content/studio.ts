@@ -405,3 +405,12 @@ export function newestByKind(): StudioItem[] {
     return [rest.reduce((best, item) => (year(item) > year(best) ? item : best), first)];
   });
 }
+
+/**
+ * The viewer's zoom steps for one picture, as multiples of its fitted width:
+ * twice always, four times only while that stays within one and a half times
+ * the picture's own pixels (past that it would only blur).
+ */
+export function zoomSteps(fittedWidth: number, ownWidth: number): number[] {
+  return [2, 4].filter((step, i) => i === 0 || fittedWidth * step <= ownWidth * 1.5);
+}
