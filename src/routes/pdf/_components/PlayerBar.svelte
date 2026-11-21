@@ -12,7 +12,7 @@
 
   import { formatNumber } from "@repo/i18n/format";
   import { m } from "@repo/i18n/messages.js";
-  import { KOKORO_VOICES, kokoroLoaded, kokoroSupported, synthesize } from "@repo/pdf-core";
+  import { KOKORO_VOICES, kokoroLoaded, kokoroSupported, synthesize, type KokoroVoice } from "@repo/pdf-core";
   import { fmt, sentenceAt } from "@repo/pdf-core/domain";
   import { getSynth } from "@repo/pdf-core/services/tts";
   import type { NarrationPlayer } from "@repo/pdf-core/stores/narration";
@@ -77,6 +77,15 @@
       ? chapters.slice(1).map((c) => (c.start / player.model.total) * 100)
       : [],
   );
+  // The current chapter's stretch of the rail, tinted so its length shows without a pointer.
+  const span = $derived.by(() => {
+    const chapter = chapters[player.chapterIndex];
+    if (chapters.length < 2 || !chapter || !player.model.total) return null;
+    return {
+      left: (chapter.start / player.model.total) * 100,
+      width: ((chapter.end - chapter.start) / player.model.total) * 100,
+    };
+  });
   // What is left at the speed being listened at.
   const timeLeft = $derived(fmt((player.model.total - player.pos) / player.speed));
   const percent = $derived(formatNumber(player.percent, { style: "percent", maximumFractionDigits: 0 }));
@@ -160,6 +169,36 @@
   // fixed backdrop: the dock's backdrop-filter would hold a fixed element inside the dock.
   function closeOnOutsidePress(e: PointerEvent) {
     if (menu && !(e.target as Element).closest(".pop-anchor")) menu = null;
+  }
+
+  // One line about a voice, in the words of the settings page: "US English, female".
+  const naturalDetail = (v: KokoroVoice) => {
+    const lang = languageName(v.lang, undefined, true);
+    return v.gender === "male" ? m.narrator_settings_detail_male({ lang }) : m.narrator_settings_detail_female({ lang });
+  };
+  const systemDetail = (v: SpeechSynthesisVoice) => {
+    const lang = languageName(v.lang, undefined, true);
+    return v.localService ? lang : m.narrator_settings_network({ lang });
+  };
+
+  // A menu's list stops on a whole row, never part of one, and marks its foot while more follows.
+  function endOnRow(node: HTMLElement) {
+    const more = () =>
+      node.toggleAttribute("data-more", node.scrollTop + node.clientHeight < node.scrollHeight - 2);
+    const limit = node.clientHeight;
+    if (node.scrollHeight > limit + 1) {
+      const top = node.getBoundingClientRect().top;
+      let end = 0;
+      for (const row of node.querySelectorAll<HTMLElement>("[data-row]")) {
+        const bottom = row.getBoundingClientRect().bottom - top;
+        if (bottom > limit) break;
+        end = bottom;
+      }
+      if (end) node.style.maxHeight = `${Math.ceil(end) + 2}px`;
+    }
+    more();
+    node.addEventListener("scroll", more, { passive: true });
+    return { destroy: () => node.removeEventListener("scroll", more) };
   }
 
   // ---- voice previews: one at a time, and never over the reading ----
@@ -253,9 +292,9 @@
   </svg>
 {/snippet}
 
-{#snippet step(label: string, onclick: () => void, forward: boolean, extra = "")}
+{#snippet step(label: string, short: string, onclick: () => void, forward: boolean, extra = "")}
   <div class="step {extra}">
-    <button class="ctrl" aria-label={label} data-tip={label} {onclick}>
+    <button class="ctrl" aria-label={label} {onclick}>
       {#if extra === "replay"}
         <svg
           viewBox="0 0 24 24"
@@ -275,8 +314,10 @@
         {@render stepGlyph(forward)}
       {/if}
     </button>
-    <!-- The same words as the button's name, so they are not read twice. -->
-    <span class="cap" aria-hidden="true">{label}</span>
+    <!-- The same words as the button's name, so they are not read twice. A phone has the room
+         for one word. -->
+    <span class="cap long" aria-hidden="true">{label}</span>
+    <span class="cap short" aria-hidden="true">{short}</span>
   </div>
 {/snippet}
 
@@ -288,9 +329,9 @@
   choose: () => void,
   preview: (() => void) | null,
 )}
-  <div class="voice-row" class:active>
+  {@const mine = previewing === key}
+  <div class="voice-row" class:active data-row>
     {#if preview}
-      {@const mine = previewing === key}
       <button
         class="preview"
         class:on={mine}
@@ -299,31 +340,29 @@
         onclick={preview}
       >
         {#if mine}
-          <svg viewBox="0 0 12 12" width="12" height="12" fill="currentColor" aria-hidden="true">
-            <rect x="1.5" y="1.5" width="9" height="9" rx="1.5" />
-          </svg>
+          <Pause size={16} strokeWidth={2} />
         {:else}
-          <Play size={15} strokeWidth={2} style="margin-left: 1px" />
+          <Play size={16} strokeWidth={2} style="margin-left: 1px" />
         {/if}
       </button>
-    {:else}
-      <span class="preview none" aria-hidden="true"><Mic size={15} strokeWidth={1.5} /></span>
     {/if}
     <button class="voice-main" aria-pressed={active} onclick={choose}>
       <span class="voice-text">
         <span class="voice-name">{name}</span>
-        <span class="voice-lang">{detail}</span>
+        <span class="voice-lang">{mine ? m.narrator_settings_playing() : detail}</span>
       </span>
-      {#if active}<Check size={16} strokeWidth={2.25} class="pop-check" />{/if}
+      {#if active}
+        <span class="in-use"><Check size={15} strokeWidth={2.25} /> {m.narrator_settings_in_use()}</span>
+      {/if}
     </button>
   </div>
 {/snippet}
 
-{#snippet naturalRow(v: (typeof KOKORO_VOICES)[number])}
+{#snippet naturalRow(v: KokoroVoice)}
   {@render voiceRow(
     "nat:" + v.id,
     v.name,
-    m.narrator_player_voice_detail({ language: languageName(v.lang), kind: m.narrator_engine_natural() }),
+    naturalDetail(v),
     isNatural && v.id === player.naturalVoice,
     () => chooseNatural(v.id),
     // Before the download a preview would start it. The row itself is how the voice is first used.
@@ -335,17 +374,22 @@
   {@render voiceRow(
     "sys:" + v.voiceURI,
     v.name,
-    m.narrator_player_voice_detail({ language: languageName(v.lang), kind: m.narrator_engine_system() }),
+    systemDetail(v),
     !isNatural && v.name === systemVoice,
     () => chooseSystem(v.name),
     () => previewSystem(v),
   )}
 {/snippet}
 
+<!-- How far through the whole document, in words. -->
+{#snippet progress(long: boolean)}
+  {long ? m.narrator_player_progress({ percent, time: timeLeft }) : m.narrator_player_percent_read({ percent })}
+{/snippet}
+
 <div class="player {variant}" class:above={openUp}>
   <div class="transport">
-    {@render step(m.narrator_player_replay(), () => player.replaySentence(), false, "replay")}
-    {@render step(m.narrator_player_previous(), () => player.prevSentence(), false)}
+    {@render step(m.narrator_player_replay(), m.narrator_player_replay_short(), () => player.replaySentence(), false, "replay")}
+    {@render step(m.narrator_player_previous(), m.narrator_player_previous_short(), () => player.prevSentence(), false)}
     <button
       class="play"
       aria-label={player.playing ? m.narrator_player_pause() : m.narrator_player_play()}
@@ -359,11 +403,11 @@
         <Play size={24} strokeWidth={2} style="margin-left: 2px" />
       {/if}
     </button>
-    {@render step(m.narrator_player_next(), () => player.nextSentence(), true)}
+    {@render step(m.narrator_player_next(), m.narrator_player_next_short(), () => player.nextSentence(), true)}
   </div>
 
   <div class="scrubber">
-    <span class="time">{fmt(player.pos)}</span>
+    <span class="time n-num">{fmt(player.pos)}</span>
     <div
       class="track"
       bind:this={trackEl}
@@ -384,6 +428,9 @@
       onkeydown={scrubKey}
     >
       <div class="rail"></div>
+      {#if span}
+        <div class="span" style:left="{span.left}%" style:width="{span.width}%"></div>
+      {/if}
       <div class="fill" style:width="{player.percent * 100}%"></div>
       {#each marks as left, i (i)}
         <span class="mark" style:left="{left}%"></span>
@@ -392,11 +439,11 @@
       {#if tip}
         <div class="tip" style:--at="{tip.left}%" aria-hidden="true">
           {#if tip.title}<span class="tip-title">{tip.title}</span>{/if}
-          <span class="tip-time">{tip.time}</span>
+          <span class="tip-time n-num">{tip.time}</span>
         </div>
       {/if}
     </div>
-    <span class="time" aria-label={m.narrator_player_time_left({ time: timeLeft })}>−{timeLeft}</span>
+    <span class="time n-num" aria-label={m.narrator_player_time_left({ time: timeLeft })}>−{timeLeft}</span>
   </div>
 
   <!-- Where the playhead is, in words: the chapter, and how far through the whole document. -->
@@ -406,15 +453,16 @@
         {m.narrator_player_loading_progress({ percent: Math.round(player.modelProgress * 100) })}
       </span>
     {:else}
-      <span class="where-main">
+      <span class="where-main" title={chapters[player.chapterIndex]?.title}>
         <span class="where-count">
           {m.narrator_player_chapter_of({ n: player.chapterIndex + 1, total: chapters.length })}
         </span>
         <span class="where-title">{chapters[player.chapterIndex]?.title ?? ""}</span>
       </span>
     {/if}
-    <span class="where-pct long">{m.narrator_player_percent({ percent })}</span>
-    <span class="where-pct short" aria-hidden="true">{percent}</span>
+    <!-- A phone, and the side panel: on the chapter's line, in two words so the chapter's name
+         keeps its room. A wide dock says the time left as well, on the chips' row (below). -->
+    <span class="where-pct n-num">{@render progress(false)}</span>
   </div>
 
   <div class="extras">
@@ -448,7 +496,7 @@
               </svg>
             </button>
             <span class="speed-now" aria-live="polite">
-              <strong>{speedText(player.speed)}</strong>
+              <strong class="n-num">{speedText(player.speed)}</strong>
               {#if player.speed === 1}<span class="pop-note">{m.narrator_player_normal()}</span>{/if}
             </span>
             <button
@@ -465,7 +513,7 @@
           <div class="speed-presets">
             {#each SPEEDS as s (s)}
               <button
-                class="speed-preset"
+                class="speed-preset n-num"
                 class:active={s === player.speed}
                 aria-pressed={s === player.speed}
                 onclick={() => {
@@ -497,12 +545,12 @@
           <div class="pop right chapters-pop">
             <div class="pop-head">
               <span class="pop-title">{m.narrator_player_chapters()}</span>
-              <span class="pop-count">{chapters.length}</span>
+              <span class="pop-count n-num">{chapters.length}</span>
               <button class="pop-close" aria-label={m.narrator_close()} onclick={() => (menu = null)}>
                 <X size={18} strokeWidth={1.75} />
               </button>
             </div>
-            <div class="pop-scroll">
+            <div class="pop-scroll" use:endOnRow>
               <ChapterList
                 model={player.model}
                 chapterIndex={player.chapterIndex}
@@ -536,7 +584,7 @@
       </button>
       {#if menu === "voice"}
         <div class="pop right voices-pop">
-          <div class="pop-scroll">
+          <div class="pop-scroll" use:endOnRow>
             <!-- The voice that is reading first, then the natural voices, then the device's. -->
             <div class="pop-label">{m.narrator_player_group_current()}</div>
             {#if isNatural && currentNatural}
@@ -579,6 +627,8 @@
         </div>
       {/if}
     </div>
+
+    <span class="progress n-num">{@render progress(true)}</span>
   </div>
 </div>
 
@@ -630,7 +680,10 @@
     line-height: 1.25;
     text-align: center;
     text-wrap: balance;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
+  }
+  .cap.short {
+    display: none;
   }
   .ctrl {
     position: relative;
@@ -694,8 +747,8 @@
     align-self: center;
   }
   .time {
-    font-family: var(--n-font-mono);
     font-size: 13px;
+    font-weight: 500;
     color: var(--n-fg-1);
     flex-shrink: 0;
     min-width: 38px;
@@ -724,6 +777,14 @@
     background: var(--n-bg-3);
     box-shadow: inset 0 0 0 1px var(--n-border-2);
   }
+  /* The chapter being read, from its first mark to its last: the part still to come is tinted. */
+  .span {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--n-accent) 42%, var(--n-bg-3));
+  }
   .fill {
     position: absolute;
     left: 0;
@@ -732,14 +793,14 @@
     border-radius: 999px;
     background: var(--n-accent);
   }
-  /* Where each chapter begins: a notch through the rail. */
+  /* Where each chapter begins: a notch through the rail, 10 px tall. */
   .mark {
     position: absolute;
     top: -2px;
     bottom: -2px;
     width: 2px;
     margin-left: -1px;
-    background: var(--n-fg-1);
+    background: var(--n-fg-0);
     border-radius: 1px;
   }
   .thumb {
@@ -784,7 +845,6 @@
     color: var(--n-fg-0);
   }
   .tip-time {
-    font-family: var(--n-font-mono);
     color: var(--n-fg-1);
   }
 
@@ -797,21 +857,15 @@
     justify-content: space-between;
     gap: 12px;
     min-width: 0;
-    /* Lined up with the rail, inside the two times. */
-    padding: 0 50px;
+    /* Starts under the rail's left end. The chapter's name runs to the dock's edge and is cut
+       only when that room runs out. */
+    padding: 0 0 0 50px;
     font-size: 13px;
     line-height: 1.5;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
   }
   .panel .where {
     padding: 0;
-  }
-  /* The side panel is narrow: the chapter's name gets the room, the percent stands alone. */
-  .panel .where-pct.long {
-    display: none;
-  }
-  .panel .where-pct.short {
-    display: inline;
   }
   .where-main {
     display: flex;
@@ -819,7 +873,7 @@
   }
   .where-count {
     flex-shrink: 0;
-    color: var(--n-fg-1);
+    color: var(--n-fg-0);
     font-weight: 600;
   }
   .where-title {
@@ -833,10 +887,23 @@
     margin: 0 7px;
   }
   .where-pct {
+    display: none;
     flex-shrink: 0;
     white-space: nowrap;
   }
-  .where-pct.short {
+  .panel .where-pct {
+    display: inline;
+  }
+  /* How far through the document and how long is left, at the right end of the chips' row. */
+  .progress {
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--n-fg-1);
+    white-space: nowrap;
+  }
+  .panel .progress {
     display: none;
   }
 
@@ -971,9 +1038,8 @@
     line-height: 1.2;
   }
   .speed-now strong {
-    font-family: var(--n-font-mono);
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--n-fg-0);
   }
   .pop-note {
@@ -993,8 +1059,7 @@
     border: 1px solid var(--n-border-2);
     background: var(--n-bg-2);
     color: var(--n-fg-1);
-    font-family: var(--n-font-mono);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
   }
@@ -1002,12 +1067,10 @@
     color: var(--n-fg-0);
     border-color: var(--n-border-3);
   }
-  /* The speed in use: a tint, a heavier weight and a ring. */
+  /* The readout above says the speed. The preset that matches it only carries an outline. */
   .speed-preset.active {
     color: var(--n-fg-0);
-    font-weight: 700;
-    background: color-mix(in srgb, var(--n-accent) 24%, var(--n-bg-2));
-    border-color: var(--n-accent-text, var(--n-fg-0));
+    border-color: var(--n-fg-1);
   }
 
   /* ---------- chapters ---------- */
@@ -1023,7 +1086,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 0 4px 12px;
+    padding: 0 0 8px 12px;
   }
   .pop-title {
     font-size: 15px;
@@ -1032,27 +1095,43 @@
   }
   .pop-count {
     flex: 1;
-    font-family: var(--n-font-mono);
-    font-size: 13px;
-    color: var(--n-fg-2);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--n-fg-1);
   }
   .pop-close {
     width: 44px;
     height: 44px;
     display: grid;
     place-items: center;
-    border: none;
+    border: 1px solid var(--n-border-3);
     border-radius: 10px;
-    background: transparent;
-    color: var(--n-fg-1);
+    background: var(--n-bg-2);
+    color: var(--n-fg-0);
     cursor: pointer;
   }
   .pop-close:hover {
-    color: var(--n-fg-0);
-    background: var(--n-bg-2);
+    background: var(--n-bg-1);
   }
   .pop-scroll {
     overflow-y: auto;
+    scroll-snap-type: y proximity;
+  }
+  /* More rows follow: a shadow on the list's foot, gone at its end. */
+  .pop-scroll::after {
+    content: "";
+    position: sticky;
+    bottom: 0;
+    display: block;
+    height: 12px;
+    margin-top: -12px;
+    background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--n-bg-0) 45%, transparent));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms var(--n-ease-out);
+  }
+  .pop-scroll:global([data-more])::after {
+    opacity: 1;
   }
 
   /* ---------- voices ---------- */
@@ -1067,7 +1146,7 @@
   .pop-label {
     font-size: 13px;
     font-weight: 600;
-    color: var(--n-fg-2);
+    color: var(--n-fg-1);
     padding: 8px 8px 4px;
   }
   .pop-note-row {
@@ -1075,17 +1154,19 @@
     padding: 8px 10px;
     border-radius: 8px;
     background: var(--n-bg-2);
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.4;
     color: var(--n-fg-1);
   }
-  /* The same row as the settings page: the preview first, the name over its language, the check. */
+  /* The same row as the settings page: the preview button, the name over one line about the
+     voice, and "In use" with a check on the voice that is reading. */
   .voice-row {
     display: flex;
     align-items: center;
     gap: 2px;
     padding-left: 6px;
     border-radius: 10px;
+    scroll-snap-align: end;
   }
   .voice-row:hover {
     background: var(--n-bg-2);
@@ -1094,41 +1175,25 @@
     background: color-mix(in srgb, var(--n-accent) 16%, var(--n-bg-2));
   }
   .preview {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     flex-shrink: 0;
     display: grid;
     place-items: center;
     border-radius: 999px;
     border: 1px solid var(--n-border-3);
-    background: var(--n-bg-1);
+    background: var(--n-bg-2);
     color: var(--n-fg-0);
     cursor: pointer;
   }
-  /* 44 px to press, 40 px to look at. */
-  button.preview {
-    position: relative;
+  .preview:hover {
+    background: var(--n-bg-1);
   }
-  button.preview::after {
-    content: "";
-    position: absolute;
-    inset: -3px;
-  }
-  button.preview:hover,
+  /* Playing: a pause mark inside a ring in the accent. */
   .preview.on {
-    border-color: var(--n-fg-1);
-  }
-  .preview.on {
-    background: var(--n-accent);
-    border-color: var(--n-accent);
-    color: var(--n-on-accent);
-  }
-  /* No preview yet (the natural voices before their download): the voice's mark, not a button. */
-  .preview.none {
+    background: var(--n-bg-3);
     border-color: transparent;
-    background: transparent;
-    color: var(--n-fg-2);
-    cursor: default;
+    box-shadow: inset 0 0 0 3px var(--n-accent-text, var(--n-accent));
   }
   .voice-main {
     flex: 1;
@@ -1136,7 +1201,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 52px;
+    min-height: 56px;
     padding: 6px 12px 6px 10px;
     border: none;
     border-radius: 10px;
@@ -1152,7 +1217,7 @@
     flex-direction: column;
   }
   .voice-name {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     line-height: 1.3;
     overflow: hidden;
@@ -1163,8 +1228,8 @@
     font-weight: 700;
   }
   .voice-lang {
-    font-size: 13px;
-    line-height: 1.3;
+    font-size: 14px;
+    line-height: 1.35;
     color: var(--n-fg-2);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1173,8 +1238,15 @@
   .active .voice-lang {
     color: var(--n-fg-1);
   }
-  .voice-main :global(.pop-check) {
+  .in-use {
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--n-fg-0);
+    white-space: nowrap;
   }
   .more {
     display: flex;
@@ -1212,23 +1284,26 @@
   }
 
   @media (max-width: 560px) {
-    /* A phone has no room for the names under the buttons, or for a fourth button. */
-    .cap,
-    .step.replay {
+    /* The same four buttons as a wide screen, each skip button over one word. */
+    .cap.long {
       display: none;
     }
+    .cap.short {
+      display: block;
+      white-space: nowrap;
+    }
     .step {
-      width: auto;
-      margin-top: 0;
+      width: 76px;
+      /* Level with the larger Play button. */
+      margin-top: 4px;
     }
     .transport {
-      align-items: center;
-      gap: 18px;
+      gap: 6px;
     }
     .play {
       width: 52px;
       height: 52px;
-      margin: 0;
+      margin: 0 6px;
     }
     /* The phone dock and the document bar stack: the scrubber on its own row with a time at each
        end, the chapter under it, the transport, then the chips. */
@@ -1240,10 +1315,11 @@
         "where"
         "transport"
         "extras";
-      row-gap: 6px;
+      /* The names under the buttons take a line. The rows above give it back. */
+      row-gap: 3px;
     }
     .player.float {
-      padding: 14px 16px calc(10px + env(safe-area-inset-bottom));
+      padding: 8px 16px calc(10px + env(safe-area-inset-bottom));
     }
     .float .scrubber,
     .bar .scrubber {
@@ -1253,15 +1329,28 @@
     .bar .time {
       min-width: 0;
     }
+    /* The chapter's name is never cut to make room for the percentage: when the two do not
+       fit one line, the percentage takes the next one, under the time left. */
     .float .where,
     .bar .where {
       padding: 0;
+      flex-wrap: wrap;
+      gap: 0 8px;
     }
-    .where-pct.long {
-      display: none;
+    .where-count + .where-title:not(:empty)::before {
+      margin: 0 5px;
     }
-    .where-pct.short {
+    .where-main {
+      max-width: 100%;
+    }
+    .where-pct {
+      margin-left: auto;
+    }
+    .where-pct {
       display: inline;
+    }
+    .progress {
+      display: none;
     }
     .where-main[role="status"] {
       display: block;
@@ -1323,35 +1412,6 @@
       border-radius: 999px;
       background: var(--n-border-3);
       flex-shrink: 0;
-    }
-  }
-  /* With the names under the buttons a tooltip would say them twice. */
-  @media (max-width: 560px) {
-    /* The button's name for a keyboard on a narrow screen. */
-    .ctrl::after {
-      content: attr(data-tip);
-      position: absolute;
-      bottom: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 5px 9px;
-      border-radius: 7px;
-      background: var(--n-bg-3);
-      border: 1px solid var(--n-border-2);
-      color: var(--n-fg-0);
-      font-size: 12px;
-      font-weight: 500;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      z-index: 40;
-    }
-    .bar .ctrl::after {
-      top: calc(100% + 8px);
-      bottom: auto;
-    }
-    .ctrl:focus-visible::after {
-      opacity: 1;
     }
   }
 </style>

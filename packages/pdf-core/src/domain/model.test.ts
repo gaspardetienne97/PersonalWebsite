@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   BASE_WPM,
   buildModel,
+  chapterHeading,
   fmt,
   fmtClock,
   fmtLong,
@@ -118,6 +119,44 @@ describe("sentenceAt", () => {
     expect(sentenceAt(model, second.start + 50)).toBe(second);
     expect(sentenceAt(model, model.total)).toBe(second);
     expect(sentenceAt(buildModel(doc([[]])), 10)).toBeUndefined();
+  });
+});
+
+describe("chapterHeading", () => {
+  it("is the first paragraph when it says the chapter's name and text follows", () => {
+    const model = buildModel(
+      doc([
+        ["Chapter 1", "It was a bright cold day. The clocks struck."],
+        ["It began without a heading.", "Chapter 2"],
+      ]),
+    );
+    // "Chapter" and "1": the first two words of the document.
+    expect(chapterHeading(model, 0)).toEqual({ wordStart: 0, wordEnd: 1 });
+    expect(chapterHeading(model, 1)).toBeNull();
+  });
+
+  it("ignores case and spacing, and takes a name of several sentences whole", () => {
+    const model = buildModel({
+      ...doc([["PART ONE.  The  Start", "Then the text."]]),
+      chapters: [
+        {
+          id: "c",
+          title: "Part One. The Start",
+          paragraphs: ["PART ONE.  The  Start", "Then the text."],
+        },
+      ],
+    });
+    expect(chapterHeading(model, 0)).toEqual({ wordStart: 0, wordEnd: 3 });
+  });
+
+  it("is null for a chapter that is only its name, has no name, or does not exist", () => {
+    expect(chapterHeading(buildModel(doc([["Chapter 1"]])), 0)).toBeNull();
+    const unnamed = buildModel({
+      ...doc([[]]),
+      chapters: [{ id: "c", title: "", paragraphs: ["", "Text."] }],
+    });
+    expect(chapterHeading(unnamed, 0)).toBeNull();
+    expect(chapterHeading(buildModel(doc([["Chapter 1", "Text."]])), 4)).toBeNull();
   });
 });
 

@@ -2,6 +2,7 @@
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import Check from "@lucide/svelte/icons/check";
 
+  import { formatNumber } from "@repo/i18n/format";
   import { m } from "@repo/i18n/messages.js";
   import { getLocale } from "@repo/i18n/runtime.js";
   import { KOKORO_VOICES, kokoroSupported } from "@repo/pdf-core";
@@ -9,6 +10,7 @@
     ACCENT_OPTIONS,
     FONT_SIZE,
     LINE_HEIGHT,
+    shareOfDefault,
     stepWithin,
     type ReaderSettings,
     type ReadingFont,
@@ -55,6 +57,9 @@
   );
   const fill = (value: number, range: { min: number; max: number }) =>
     `${((value - range.min) / (range.max - range.min)) * 100}%`;
+  // A size or a spacing as a share of the usual one: "110%" needs no unit to be understood.
+  const share = (key: "fontSize" | "lineHeight") =>
+    formatNumber(shareOfDefault(key, settings[key]), { style: "percent", maximumFractionDigits: 0 });
   // The marked word is built here, never from anything typed in.
   const sample = $derived(
     m.narrator_panel_sample({
@@ -74,6 +79,58 @@
   </svg>
 {/snippet}
 
+<!-- One type setting: its name, a step down, the slider, a step up, and its value. The value is
+     a percentage of the usual size. Away from 100% it is a button that puts the setting back. -->
+{#snippet metric(
+  key: "fontSize" | "lineHeight",
+  range: { min: number; max: number; step: number },
+  sliderStep: number,
+  label: string,
+  less: string,
+  more: string,
+  reset: string,
+)}
+  {@const value = settings[key]}
+  <div class="metric">
+    <span class="label" id="panel-{key}">{label}</span>
+    <button
+      class="round"
+      aria-label={less}
+      disabled={value <= range.min}
+      onclick={() => settings.update(key, stepWithin(value, -1, range))}
+    >
+      {@render minus()}
+    </button>
+    <input
+      type="range"
+      aria-labelledby="panel-{key}"
+      aria-valuetext={share(key)}
+      min={range.min}
+      max={range.max}
+      step={sliderStep}
+      {value}
+      style:--fill={fill(value, range)}
+      oninput={(e) => settings.update(key, Number(e.currentTarget.value))}
+    />
+    <button
+      class="round"
+      aria-label={more}
+      disabled={value >= range.max}
+      onclick={() => settings.update(key, stepWithin(value, 1, range))}
+    >
+      {@render plus()}
+    </button>
+    {#if settings.isDefault(key)}
+      <span class="value n-num">{share(key)}</span>
+    {:else}
+      <button class="value back" aria-label={reset} onclick={() => settings.reset(key)}>
+        <span class="n-num">{share(key)}</span>
+        <span class="back-word">{m.narrator_panel_reset()}</span>
+      </button>
+    {/if}
+  </div>
+{/snippet}
+
 <div class="panel" role="group" aria-label={m.narrator_panel_label()}>
   <div class="tabs" role="tablist" aria-label={m.narrator_panel_label()}>
     {#each TABS as t (t.id)}
@@ -91,86 +148,26 @@
   </div>
 
   <div class="pane" class:shown={tab === "text"} role="tabpanel" id="panel-text" aria-labelledby="panel-tab-text">
-    <div class="metric">
-      <div class="metric-head">
-        <span class="label" id="panel-size">{m.narrator_panel_text_size()}</span>
-        <!-- The size itself, not a number of pixels. -->
-        <span
-          class="aa"
-          aria-hidden="true"
-          style:font-size="{settings.fontSize}px"
-          style:font-family={settings.font === "serif" ? "var(--n-font-serif)" : "var(--n-font-sans)"}>Aa</span
-        >
-      </div>
-      <div class="stepper">
-        <button
-          class="round"
-          aria-label={m.narrator_panel_smaller()}
-          disabled={settings.fontSize <= FONT_SIZE.min}
-          onclick={() => settings.update("fontSize", stepWithin(settings.fontSize, -1, FONT_SIZE))}
-        >
-          {@render minus()}
-        </button>
-        <input
-          type="range"
-          aria-labelledby="panel-size"
-          min={FONT_SIZE.min}
-          max={FONT_SIZE.max}
-          step={FONT_SIZE.step}
-          value={settings.fontSize}
-          style:--fill={fill(settings.fontSize, FONT_SIZE)}
-          oninput={(e) => settings.update("fontSize", Number(e.currentTarget.value))}
-        />
-        <button
-          class="round"
-          aria-label={m.narrator_panel_larger()}
-          disabled={settings.fontSize >= FONT_SIZE.max}
-          onclick={() => settings.update("fontSize", stepWithin(settings.fontSize, 1, FONT_SIZE))}
-        >
-          {@render plus()}
-        </button>
-      </div>
-    </div>
+    {@render metric(
+      "fontSize",
+      FONT_SIZE,
+      FONT_SIZE.step,
+      m.narrator_panel_text_size(),
+      m.narrator_panel_smaller(),
+      m.narrator_panel_larger(),
+      m.narrator_panel_reset_size(),
+    )}
+    {@render metric(
+      "lineHeight",
+      LINE_HEIGHT,
+      0.05,
+      m.narrator_panel_line_spacing(),
+      m.narrator_panel_tighter(),
+      m.narrator_panel_looser(),
+      m.narrator_panel_reset_spacing(),
+    )}
 
-    <div class="metric">
-      <div class="metric-head">
-        <span class="label" id="panel-spacing">{m.narrator_panel_line_spacing()}</span>
-        <!-- Three lines, as far apart as the text's. -->
-        <span class="lines" aria-hidden="true" style:gap="{(settings.lineHeight - 1) * 9}px">
-          <i></i><i></i><i></i>
-        </span>
-      </div>
-      <div class="stepper">
-        <button
-          class="round"
-          aria-label={m.narrator_panel_tighter()}
-          disabled={settings.lineHeight <= LINE_HEIGHT.min}
-          onclick={() => settings.update("lineHeight", stepWithin(settings.lineHeight, -1, LINE_HEIGHT))}
-        >
-          {@render minus()}
-        </button>
-        <input
-          type="range"
-          aria-labelledby="panel-spacing"
-          min={LINE_HEIGHT.min}
-          max={LINE_HEIGHT.max}
-          step="0.05"
-          value={settings.lineHeight}
-          style:--fill={fill(settings.lineHeight, LINE_HEIGHT)}
-          oninput={(e) => settings.update("lineHeight", Number(e.currentTarget.value))}
-        />
-        <button
-          class="round"
-          aria-label={m.narrator_panel_looser()}
-          disabled={settings.lineHeight >= LINE_HEIGHT.max}
-          onclick={() => settings.update("lineHeight", stepWithin(settings.lineHeight, 1, LINE_HEIGHT))}
-        >
-          {@render plus()}
-        </button>
-      </div>
-    </div>
-
-    <div class="metric">
+    <div class="metric font">
       <span class="label" id="panel-font">{m.narrator_panel_font()}</span>
       <div class="seg" role="group" aria-labelledby="panel-font">
         {#each FONTS as f (f.value)}
@@ -228,7 +225,7 @@
 
   <div class="pane" class:shown={tab === "voice"} role="tabpanel" id="panel-voice" aria-labelledby="panel-tab-voice">
     <!-- The same switch as the settings page: the kind of voice over what it means. -->
-    <div class="switch" role="group" aria-label={m.narrator_panel_voice()}>
+    <div class="switch" role="group" aria-label={m.narrator_player_voice()}>
       {#each ENGINES as o (o.value)}
         <button
           class:on={settings.engine === o.value}
@@ -258,10 +255,12 @@
       <ArrowRight size={15} strokeWidth={1.5} />
     </a>
 
-    <!-- The interface language is chosen on the settings page: changing it reloads the app. -->
+    <!-- Its own part of the tab: the language of the menus is not a voice setting. It is chosen
+         on the settings page, since changing it reloads the app. -->
+    <h3 class="part">{m.narrator_language()}</h3>
     <a class="link-row lang" href="/pdf/settings">
-      <span>{m.narrator_language()}</span>
-      <span class="value" lang={language?.locale}>{language?.name}</span>
+      <span lang={language?.locale}>{language?.name}</span>
+      <span class="go">{m.narrator_panel_language_change()}</span>
       <ArrowRight size={15} strokeWidth={1.5} />
     </a>
   </div>
@@ -274,9 +273,10 @@
     flex-direction: column;
     padding: 12px 16px 12px;
   }
+  /* Each tab as wide as its name, with the spare room shared out: the longest name stays on
+     one line. */
   .tabs {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: 4px;
     margin-bottom: 8px;
     padding: 4px;
@@ -285,13 +285,16 @@
     border: 1px solid var(--n-border-2);
   }
   .tabs button {
+    flex: 1 1 auto;
     min-height: 44px;
+    padding: 0 10px;
     border-radius: 9px;
     border: 1px solid transparent;
     background: transparent;
     color: var(--n-fg-1);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
   }
   .tabs button:hover:not(.on) {
@@ -313,44 +316,66 @@
   .label {
     font-size: 14px;
     font-weight: 500;
+    line-height: 1.25;
     color: var(--n-fg-0);
   }
+  /* A wide screen: the name and the value over the step buttons and the slider. */
   .metric {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .metric-head {
-    display: flex;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    grid-template-areas:
+      "label label value"
+      "less slider more";
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    height: 32px;
+    gap: 2px 10px;
   }
-  .aa {
-    line-height: 1;
+  .metric .label {
+    grid-area: label;
+  }
+  .metric input {
+    grid-area: slider;
+  }
+  .metric .round:first-of-type {
+    grid-area: less;
+  }
+  .metric .round:last-of-type {
+    grid-area: more;
+  }
+  .value {
+    grid-area: value;
+    justify-self: end;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 14px;
     font-weight: 600;
+    color: var(--n-fg-1);
+    white-space: nowrap;
+  }
+  /* Away from the usual size the value is the way back to it. */
+  .value.back {
+    gap: 8px;
+    padding: 0 12px;
+    border: 1px solid var(--n-border-3);
+    border-radius: 10px;
+    background: var(--n-bg-2);
     color: var(--n-fg-0);
+    font-family: inherit;
+    cursor: pointer;
   }
-  .lines {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    width: 22px;
-    height: 32px;
+  .value.back:hover {
+    background: var(--n-bg-1);
   }
-  .lines i {
-    height: 2px;
-    border-radius: 1px;
-    background: var(--n-fg-0);
+  .back-word {
+    font-weight: 500;
+    color: var(--n-fg-1);
+    text-decoration: underline;
+    text-decoration-color: var(--n-border-3);
+    text-underline-offset: 3px;
   }
-  .lines i:last-child {
-    width: 60%;
-  }
-  .stepper {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  .metric.font {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "label" "seg";
   }
   .round {
     width: 44px;
@@ -423,6 +448,7 @@
     border-radius: 10px;
   }
   .seg {
+    grid-area: seg;
     display: flex;
     gap: 3px;
     margin-top: 4px;
@@ -482,7 +508,7 @@
     color: var(--n-fg-0);
   }
   .switch span {
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.3;
     color: var(--n-fg-2);
   }
@@ -510,7 +536,7 @@
   }
   .hint {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 400;
     line-height: 1.45;
     color: var(--n-fg-2);
@@ -530,14 +556,26 @@
   .link-row:hover {
     text-decoration-color: currentColor;
   }
+  /* A part of a tab with its own name: a rule above it and the name under the rule. */
+  .part {
+    margin: 6px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--n-border-2);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--n-fg-0);
+  }
   .link-row.lang {
-    border-top: 1px solid var(--n-border-1);
     text-decoration: none;
   }
-  .link-row .value {
+  .link-row .go {
     margin-left: auto;
     font-weight: 500;
     color: var(--n-fg-1);
+    text-decoration: underline;
+    text-decoration-color: var(--n-border-3);
+    text-underline-offset: 4px;
   }
   .swatches {
     display: grid;
@@ -594,18 +632,23 @@
   .sample :global(.word) {
     white-space: nowrap;
   }
+  /* One row, pressed as a whole. */
   .toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    min-height: 44px;
-    border: none;
-    background: transparent;
-    padding: 2px 0;
+    min-height: 48px;
+    border: 1px solid var(--n-border-2);
+    border-radius: 10px;
+    background: var(--n-bg-2);
+    padding: 6px 12px;
     cursor: pointer;
     font-family: inherit;
     text-align: left;
+  }
+  .toggle-row:hover {
+    border-color: var(--n-border-3);
   }
   .toggle-text {
     display: flex;
@@ -642,6 +685,39 @@
     .panel {
       width: 100%;
       padding: 10px 16px 14px;
+    }
+    /* One row for each control, so the sheet stays short and the text above it in view. */
+    .metric {
+      grid-template-columns: 80px 44px minmax(0, 1fr) 44px 66px;
+      grid-template-areas: "label less slider more value";
+      gap: 6px;
+    }
+    .metric .label {
+      hyphens: auto;
+      overflow-wrap: anywhere;
+    }
+    .value {
+      justify-self: stretch;
+      justify-content: center;
+    }
+    .value.back {
+      flex-direction: column;
+      gap: 0;
+      padding: 0 2px;
+      line-height: 1.2;
+    }
+    .back-word {
+      font-size: 12px;
+    }
+    .metric.font {
+      grid-template-columns: 80px minmax(0, 1fr);
+      grid-template-areas: "label seg";
+    }
+    .metric.font .seg {
+      margin-top: 0;
+    }
+    .toggle-row {
+      background: var(--n-bg-3);
     }
     .swatch.on .dot {
       box-shadow:

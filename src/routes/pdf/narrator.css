@@ -33,13 +33,15 @@
 
   --n-fg-0: #f8fafc;
   --n-fg-1: #cbd5e1;
-  /* Secondary and quiet text. The quiet one gives 6.2:1 on --n-bg-2 and 5.5:1 on --n-bg-3, and
-     is for text of 14 px or more. Labels, chips and eyebrows use --n-fg-2 at 12 px or more, in
-     the sans face with no extra letter spacing. The mono face is for times and numbers. */
-  --n-fg-2: #aab6c9;
-  --n-fg-3: #909cb3;
-  /* Reading text that was already read aloud: 5.6:1 on --n-bg-0, clearly under what is to come. */
-  --n-fg-read: #7f8aa3;
+  /* Secondary and quiet text: 11.7:1 and 9.3:1 on --n-bg-0, 8.8:1 and 7:1 on --n-bg-3. Helper
+     lines, row details and counts are 14 px or more. 12 and 13 px are for one-word labels and
+     chips only, in --n-fg-1. The quiet one is never used under 14 px. Times and numbers are in
+     the sans face with tabular figures (.n-num). */
+  --n-fg-2: #bcc6d6;
+  --n-fg-3: #a6b1c4;
+  /* Reading text that was already read aloud: 7.9:1 on --n-bg-0 and 7.3:1 on the tint of the
+     sentence being read, still clearly under what is to come (13.6:1). */
+  --n-fg-read: #98a3b9;
   /* Text and icons on an accent fill. */
   --n-on-accent: #ffffff;
 
@@ -127,9 +129,26 @@
   color: transparent;
 }
 
+/* Words for a screen reader only. */
+.narrator .n-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A time or a count: the interface face, every figure the same width. */
+.narrator .n-num {
+  font-family: var(--n-font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
 /* The word being read, in the Flow and Document views: a filled pill and an underline, so
    colour is never the only mark. The pill's edge is a shadow, so the word keeps its width and
-   the line does not jump. */
+   the line does not jump. The pill is see-through: where it reaches a neighbour, the letter
+   still shows. */
 .narrator .word {
   border-radius: 0.22em;
   transition:
@@ -141,7 +160,7 @@
   color: var(--n-fg-read);
 }
 .narrator .word.current {
-  --pill: color-mix(in srgb, var(--n-accent, var(--n-accent-app)) 52%, var(--n-bg-0));
+  --pill: color-mix(in srgb, var(--n-accent, var(--n-accent-app)) 50%, transparent);
   color: var(--n-fg-0);
   background: var(--pill);
   box-shadow: 0 0 0 0.13em var(--pill);
@@ -149,6 +168,17 @@
   text-decoration-color: var(--n-accent-text, currentColor);
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.2em;
+}
+/* A word of one or two letters ("I", "a", "of"): the pill reaches into the spaces beside it, so
+   it reads as a pill and not as a caret. The padding and the margin cancel out: nothing moves. */
+.narrator .word.current.short {
+  padding: 0 0.3em;
+  margin: 0 -0.3em;
+}
+/* One letter ("I", "a"): wide enough to read as a pill, about 1.4 em with its edge. */
+.narrator .word.current.one {
+  padding: 0 0.45em;
+  margin: 0 -0.45em;
 }
 .narrator .word.current.underline {
   background: none;

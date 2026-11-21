@@ -112,6 +112,30 @@ export function fmtLong(ms: number): string {
   return minutes ? m.narrator_duration_h_min({ hours, minutes }) : m.narrator_duration_h({ hours });
 }
 
+const plain = (text: string) => text.replace(/\s+/g, " ").trim().toLowerCase();
+
+/**
+ * A chapter's own heading: its first paragraph, when that paragraph is the chapter's name and
+ * text follows it. Many files open a chapter this way. The reader shows such a paragraph as
+ * the chapter's title, not as a sentence of its text. Null when the chapter has none.
+ */
+export function chapterHeading(
+  model: NarrationModel,
+  ci: number,
+): { wordStart: number; wordEnd: number } | null {
+  const chapter = model.chapters[ci];
+  if (!chapter || !chapter.title.trim() || chapter.wordEnd < chapter.wordStart) return null;
+  const pi = model.tokens[chapter.wordStart].pi;
+  let end = chapter.wordStart;
+  while (end < chapter.wordEnd && model.tokens[end + 1].pi === pi) end++;
+  // A chapter that is nothing but its name keeps it as its one sentence.
+  if (end === chapter.wordEnd) return null;
+  const words = model.tokens.slice(chapter.wordStart, end + 1).map((t) => t.word);
+  return plain(words.join(" ")) === plain(chapter.title)
+    ? { wordStart: chapter.wordStart, wordEnd: end }
+    : null;
+}
+
 /** The sentence being read at `pos`: the last one that starts at or before it. */
 export function sentenceAt(model: NarrationModel, pos: number): SentenceSpan | undefined {
   let found = model.sentences[0];

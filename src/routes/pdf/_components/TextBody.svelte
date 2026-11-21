@@ -32,6 +32,8 @@
 
   type Sentence = { si: number; words: { word: string; gi: number }[] };
 
+  let textEl: HTMLDivElement | undefined = $state();
+
   // The current chapter as paragraphs of sentences of words, with global token indices.
   const paras = $derived.by(() => {
     const out: { pi: number; sentences: Sentence[] }[] = [];
@@ -60,33 +62,94 @@
     ) === plain(chapterTitle),
   );
 
-  // Keep the active word in the upper third of the scroll viewport, clear of the top edge. How
-  // it gets there (smoothly or at once) is the scroll area's own scroll-behavior.
+  // Where a line's box starts: a word's own box sits inside its line with the leading split
+  // above and below it.
+  const lineOf = (el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    const height = parseFloat(getComputedStyle(el).lineHeight) || rect.height;
+    return { top: rect.top - (height - rect.height) / 2, height };
+  };
+
+  // The sentence being read starts one whole line under the top edge, so the line before it (or
+  // the space above its paragraph) is in view and nothing is cut by the top bar. A chapter's
+  // heading stays in view while the word is still in the upper part of the screen. A sentence
+  // longer than the screen is followed by its word, which is kept in the upper third. How it
+  // gets there (smoothly or at once) is the scroll area's own scroll-behavior.
   function follow() {
     const sc = scrollEl;
-    const el = sc?.querySelector<HTMLElement>('[data-active="1"]');
-    if (!sc || !el) return;
-    const top = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop;
-    sc.scrollTo({ top: top - sc.clientHeight * 0.3 });
+    const word = sc?.querySelector<HTMLElement>('[data-active="1"]');
+    const first = word?.closest(".sentence")?.querySelector<HTMLElement>(".word");
+    if (!sc || !word || !first) return;
+    const edge = sc.getBoundingClientRect().top - sc.scrollTop;
+    const at = lineOf(word);
+    const wordTop = at.top - edge;
+    let top = 0;
+    if (wordTop + at.height > sc.clientHeight * 0.7) {
+      top = lineOf(first).top - edge - at.height;
+      if (wordTop - top > sc.clientHeight * 0.55) top = wordTop - sc.clientHeight * 0.3;
+    }
+    sc.scrollTo({ top: Math.max(0, top) });
+    trim();
   }
+
+  // The reading area ends on whole lines: a line that the top or the bottom edge would cut
+  // through its letters is hidden until all of it is in view. The scroll area's mask reads the
+  // two lengths. Lines are found by the paragraph under each edge and its line height.
+  function trim() {
+    const sc = scrollEl;
+    if (!sc) return;
+    const box = sc.getBoundingClientRect();
+    const x = (textEl?.getBoundingClientRect().left ?? box.left) + 24;
+    const cut = (edge: number, fromTop: boolean) => {
+      const probe = fromTop ? edge + 1 : edge - 1;
+      const block = document
+        .elementsFromPoint(x, probe)
+        .find((el) => textEl?.contains(el) && el !== textEl)
+        ?.closest<HTMLElement>("p, h2");
+      if (!block) return 0;
+      const rect = block.getBoundingClientRect();
+      const height = parseFloat(getComputedStyle(block).lineHeight);
+      if (!height) return 0;
+      // How far the paragraph runs past the edge, and from there to its next line boundary.
+      const past = fromTop ? edge - rect.top : rect.bottom - edge;
+      return Math.max(0, Math.min(height, Math.ceil(past / height - 0.02) * height - past));
+    };
+    sc.style.setProperty("--n-cut-top", `${cut(box.top, true)}px`);
+    sc.style.setProperty("--n-cut-bottom", `${cut(box.bottom, false)}px`);
+  }
+
   $effect(() => {
     void activeWordIndex;
     void chapterIndex;
     void fontSize;
     void lineHeight;
+    void font;
     follow();
   });
   // The reading area changes height when the settings sheet opens under it: stay on the word.
+  // A scroll by hand moves the lines under the two edges.
   $effect(() => {
-    if (!scrollEl) return;
+    const sc = scrollEl;
+    if (!sc) return;
     const resized = new ResizeObserver(follow);
-    resized.observe(scrollEl);
-    return () => resized.disconnect();
+    resized.observe(sc);
+    let frame = 0;
+    const scrolled = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(trim);
+    };
+    sc.addEventListener("scroll", scrolled, { passive: true });
+    return () => {
+      resized.disconnect();
+      cancelAnimationFrame(frame);
+      sc.removeEventListener("scroll", scrolled);
+    };
   });
 </script>
 
 <div
   class="text"
+  bind:this={textEl}
   style:font-family={font === "serif" ? "var(--n-font-serif)" : "var(--n-font-sans)"}
   style:font-size="{fontSize}px"
   style:line-height={lineHeight}
@@ -112,6 +175,8 @@
             <span
               class="word {highlight}"
               class:current={gi === activeWordIndex}
+              class:short={word.replace(/[^\p{L}\p{N}]/gu, "").length < 3}
+              class:one={word.replace(/[^\p{L}\p{N}]/gu, "").length === 1}
               class:read={sentence.si === activeSentence && gi < activeWordIndex}
               data-active={gi === activeWordIndex ? "1" : "0"}
               onclick={() => onword(gi)}>{word}</span
@@ -156,12 +221,13 @@
   .sentence.read {
     color: var(--n-fg-read);
   }
-  /* One shape for the sentence being read. The padding fills the space between its lines (the
+  /* One shape for the sentence being read: a light tint, since the bar in the margin and the
+     word's own mark say where the voice is. The padding fills the space between its lines (the
      line height less the letters' own box, which --box gives for the reading face), and the
      fill is opaque so the lines' boxes meet without a seam. */
   .sentence.current {
     color: var(--n-fg-0);
-    background: color-mix(in srgb, var(--n-accent) 18%, var(--n-bg-0));
+    background: color-mix(in srgb, var(--n-accent) 9%, var(--n-bg-0));
     border-radius: 0.3em;
     padding: calc((var(--lh) - var(--box)) * 0.5em + 0.75px) 0.28em;
     margin: 0 -0.28em;

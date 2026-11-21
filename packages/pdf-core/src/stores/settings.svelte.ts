@@ -72,6 +72,14 @@ const DEFAULTS: ReaderSettingsState = {
   viewHintSeen: false,
 };
 
+/**
+ * A type setting as a share of its default: 1 is the default, 1.1 a tenth larger. The panel
+ * shows it as a percentage, which says "larger than usual" without a unit to know.
+ */
+export function shareOfDefault(key: "fontSize" | "lineHeight", value: number): number {
+  return Math.round((value / DEFAULTS[key]) * 100) / 100;
+}
+
 const SETTINGS_KEY = "narrator.settings.v2";
 
 const hasStorage = () => typeof localStorage !== "undefined";
@@ -110,6 +118,15 @@ export class ReaderSettings {
   update<K extends keyof ReaderSettingsState>(key: K, value: ReaderSettingsState[K]): void {
     (this as ReaderSettingsState)[key] = value;
     this.#persist();
+  }
+
+  isDefault(key: keyof ReaderSettingsState): boolean {
+    return (this as ReaderSettingsState)[key] === DEFAULTS[key];
+  }
+
+  /** Put one setting back to what a new reader gets. */
+  reset<K extends keyof ReaderSettingsState>(key: K): void {
+    this.update(key, DEFAULTS[key]);
   }
 
   /** Accent to use for a given document accent (honors "match each document"). */

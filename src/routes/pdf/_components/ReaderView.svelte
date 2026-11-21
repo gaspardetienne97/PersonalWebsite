@@ -8,6 +8,7 @@
   import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
   import X from "@lucide/svelte/icons/x";
   import { onDestroy } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
 
   import { formatNumber } from "@repo/i18n/format";
   import { m } from "@repo/i18n/messages.js";
@@ -59,39 +60,51 @@
   let playerMenu = $state<"speed" | "chapters" | "voice" | null>(null);
   let noticesHeight = $state(0);
 
+  // A notice on the dock is one row. A phone has the room for a short action in it.
+  const narrow = new MediaQuery("max-width: 480px");
+
   // Reopened part-way: say where listening picks up, with a way back to the start. It stays
   // until listening starts or it is closed.
   let resumeAt = $state(player.pos > 0 && !player.done ? player.percent : null);
-  $effect(() => {
-    if (player.playing) resumeAt = null;
-  });
 
-  // After a chapter is chosen: name it, and offer the place the listener came from. A few
-  // seconds, since a mistaken press is noticed at once.
-  let jump = $state<{ n: number; title: string; from: number } | null>(null);
+  // After a chapter is chosen: name it, and offer the place the listener came from. It goes
+  // when listening starts or after a few seconds, since a mistaken press is noticed at once.
+  let jump = $state<{ n: number; title: string; from: number; fromN: number } | null>(null);
   let jumpTimer: ReturnType<typeof setTimeout> | undefined;
   function jumped(from: number) {
+    const chapters = player.model.chapters;
     clearTimeout(jumpTimer);
     resumeAt = null;
-    jump = { n: player.chapterIndex + 1, title: player.model.chapters[player.chapterIndex]?.title ?? "", from };
+    jump = {
+      n: player.chapterIndex + 1,
+      title: chapters[player.chapterIndex]?.title ?? "",
+      from,
+      fromN: (chapters.filter((c) => c.start <= from).at(-1)?.ci ?? 0) + 1,
+    };
     jumpTimer = setTimeout(() => (jump = null), 8000);
   }
+  let wasPlaying = false;
+  $effect(() => {
+    const playing = player.playing;
+    if (playing && !wasPlaying) {
+      resumeAt = null;
+      jump = null;
+    }
+    wasPlaying = playing;
+  });
 
-  // The first use of the Flow or Document switch says what the chosen view is. A wide screen
-  // has the same words inside the switch all the time.
+  // The first use of the Flow or Document switch says what the chosen view does. It stays
+  // until the next press anywhere. A wide screen has a line about each view inside the switch.
   let viewHint = $state(false);
-  let hintTimer: ReturnType<typeof setTimeout> | undefined;
+  let hintFresh = false;
   function setStyle(style: "flow" | "doc") {
     readStyle = style;
     if (settings.viewHintSeen) return;
     settings.update("viewHintSeen", true);
     viewHint = true;
-    hintTimer = setTimeout(() => (viewHint = false), 8000);
+    hintFresh = true;
   }
-  onDestroy(() => {
-    clearTimeout(jumpTimer);
-    clearTimeout(hintTimer);
-  });
+  onDestroy(() => clearTimeout(jumpTimer));
 
   // The natural voice could not load and the system voice took over. The notice comes back
   // for the next failure after it was dismissed.
@@ -99,13 +112,22 @@
   $effect(() => {
     if (!player.usingFallback) fallbackDismissed = false;
   });
+  // "Try again" was pressed: the notice says so until the natural voice is heard or fails again.
+  let retrying = $state(false);
+  function retry() {
+    retrying = true;
+    player.retryNatural();
+  }
+  $effect(() => {
+    if (player.usingFallback || (player.playing && player.speaking && !player.modelLoading)) retrying = false;
+  });
 
   const accent = $derived(settings.accentFor(doc.accent));
   const layout = $derived(settings.layout);
   const isDoc = $derived(readStyle === "doc");
   const chapterTitle = $derived(player.model.chapters[player.chapterIndex]?.title ?? "");
   const hasNotice = $derived(
-    (player.usingFallback && !fallbackDismissed) || jump !== null || resumeAt !== null,
+    (player.usingFallback && !fallbackDismissed) || retrying || jump !== null || resumeAt !== null,
   );
   const voiceLabel = $derived(
     player.engineMode === "natural"
@@ -120,8 +142,15 @@
   onpointerdown={(e) => {
     if (settingsOpen && !(e.target as Element).closest(".settings-anchor, .settings-pop")) settingsOpen = false;
   }}
+  onclick={() => {
+    // The press that brought the hint up is not the one that takes it away.
+    if (hintFresh) hintFresh = false;
+    else viewHint = false;
+  }}
   onkeydown={(e) => {
-    if (e.key === "Escape") settingsOpen = false;
+    if (e.key !== "Escape") return;
+    settingsOpen = false;
+    viewHint = false;
   }}
 />
 
@@ -189,7 +218,7 @@
   {#if showToggle && viewHint}
     <p class="view-hint" role="status">
       <strong>{isDoc ? m.narrator_reader_document() : m.narrator_reader_flow()}</strong>
-      {isDoc ? m.narrator_reader_document_hint() : m.narrator_reader_flow_hint()}
+      {isDoc ? m.narrator_reader_document_explain() : m.narrator_reader_flow_explain()}
     </p>
   {/if}
 {/snippet}
@@ -260,10 +289,19 @@
             <Notice
               tone="warn"
               variant="line"
-              actions={[{ label: m.narrator_reader_fallback_retry(), onclick: () => player.retryNatural() }]}
+              short={m.narrator_reader_fallback_short()}
+              actions={[{ label: m.narrator_settings_retry(), onclick: retry }]}
               ondismiss={() => (fallbackDismissed = true)}
             >
               {m.narrator_player_fallback()}
+            </Notice>
+          {:else if retrying}
+            <Notice
+              tone="info"
+              variant="line"
+              short={player.playing ? m.narrator_reader_retrying_short() : m.narrator_reader_retry_wait_short()}
+            >
+              {player.playing ? m.narrator_reader_retrying() : m.narrator_reader_retry_wait()}
             </Notice>
           {/if}
           {#if jump}
@@ -271,9 +309,12 @@
             <Notice
               tone="info"
               variant="line"
+              short={m.narrator_reader_jumped_short({ n: jump.n })}
               actions={[
                 {
-                  label: m.narrator_reader_back_to({ time: fmt(from) }),
+                  label: narrow.current
+                    ? m.narrator_library_undo()
+                    : m.narrator_reader_back_to_chapter({ n: jump.fromN, time: fmt(from) }),
                   onclick: () => {
                     player.seekTo(from);
                     jump = null;
@@ -445,7 +486,7 @@
     white-space: nowrap;
   }
   .top-author {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--n-fg-2);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -530,7 +571,7 @@
   /* What each view is, under its name. Only where the bar has the room. */
   .seg-sub {
     display: none;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--n-fg-2);
   }
@@ -542,7 +583,7 @@
       display: block;
     }
     .seg-btn {
-      min-height: 46px;
+      min-height: 48px;
     }
     .view-hint {
       display: none;
@@ -569,15 +610,21 @@
     margin-right: var(--panel-room);
     transition: margin-right 200ms var(--n-ease-out);
   }
+  /* The text ends on a whole line at both edges: a line the edge would cut through its letters
+     is hidden until all of it is in view. TextBody measures the two lengths. */
+  .imm-scroll,
+  .audio-doc-scroll,
+  .doc-scroll {
+    --top: var(--n-cut-top, 0px);
+    --foot: calc(100% - var(--n-cut-bottom, 0px));
+    mask-image: linear-gradient(to bottom, transparent var(--top), #000 var(--top), #000 var(--foot), transparent var(--foot));
+  }
   .imm-scroll {
     position: relative;
     z-index: 1;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    /* A soft edge under the top bar, so no line is cut through its letters, and a short one
-       above the dock. The lines between them are at full strength. */
-    mask-image: linear-gradient(to bottom, transparent, #000 22px, #000 calc(100% - 26px), transparent);
   }
   .imm-doc-inner {
     max-width: 720px;
@@ -590,7 +637,7 @@
     position: absolute;
     inset: 0;
     z-index: 5;
-    background: color-mix(in srgb, var(--n-bg-0) 68%, transparent);
+    background: color-mix(in srgb, var(--n-bg-0) 84%, transparent);
   }
   .imm-stage {
     position: relative;
@@ -811,6 +858,11 @@
     .notices {
       width: calc(100% - 24px);
       padding-top: 6px;
+    }
+    /* The speed menu opens in room of its own above the player, so it never lies over the
+       sentence being read: the text gives up that room while the menu is open. */
+    .float-dock:has(:global(.speed-pop)) {
+      padding-top: 176px;
     }
     /* The settings sheet takes the dock's place under the text, which stays in view above it. */
     .root.sheet-open .float-dock {

@@ -5,6 +5,7 @@ import {
   FONT_SIZE,
   LINE_HEIGHT,
   ReaderSettings,
+  shareOfDefault,
   stepWithin,
 } from "./settings.svelte";
 
@@ -40,6 +41,34 @@ describe("ReaderSettings", () => {
     new ReaderSettings().update("font", "serif");
 
     expect(new ReaderSettings().font).toBe("serif");
+  });
+});
+
+describe("type settings against their defaults", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("gives a size or a spacing as a share of the usual one", () => {
+    expect(shareOfDefault("fontSize", 21)).toBe(1);
+    expect(shareOfDefault("fontSize", 23)).toBe(1.1);
+    expect(shareOfDefault("fontSize", 16)).toBe(0.76);
+    expect(shareOfDefault("lineHeight", 1.8)).toBe(1);
+    expect(shareOfDefault("lineHeight", 2.2)).toBe(1.22);
+  });
+
+  it("knows a changed setting from the default, and puts it back", () => {
+    const settings = new ReaderSettings();
+    expect(settings.isDefault("fontSize")).toBe(true);
+    settings.update("fontSize", 25);
+    settings.update("lineHeight", 1.5);
+    expect(settings.isDefault("fontSize")).toBe(false);
+
+    settings.reset("fontSize");
+    expect(settings.fontSize).toBe(21);
+    expect(settings.isDefault("fontSize")).toBe(true);
+    // Only the one asked for, and the reset is saved.
+    expect(settings.lineHeight).toBe(1.5);
+    expect(new ReaderSettings().fontSize).toBe(21);
+    expect(new ReaderSettings().lineHeight).toBe(1.5);
   });
 });
 
