@@ -15,11 +15,21 @@ import SubContent from "./dropdown-menu-sub-content.svelte";
 import SubTrigger from "./dropdown-menu-sub-trigger.svelte";
 import GroupHeading from "./dropdown-menu-group-heading.svelte";
 import Portal from "./dropdown-menu-portal.svelte";
+import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
+
+// Two unstyled bits-ui parts, for a caller that draws its own panel or its own radio rows.
+// Take them from here, never from "bits-ui" in the app: the app and this package each
+// resolve their own copy of bits-ui, and in a production build parts from two copies
+// cannot find each other's menu context ("Context Menu.Root | Menu.Sub not found").
+const ContentStatic = DropdownMenuPrimitive.ContentStatic;
+const PlainRadioItem = DropdownMenuPrimitive.RadioItem;
 
 export {
   CheckboxGroup,
   CheckboxItem,
   Content,
+  ContentStatic,
+  PlainRadioItem,
   Portal,
   Root as DropdownMenu,
   CheckboxGroup as DropdownMenuCheckboxGroup,

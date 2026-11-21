@@ -2,7 +2,7 @@
   The circuit board behind every site page. It is the board the intro grew when
   there was one, otherwise a fresh one grown from the same ring, kept for the
   session so it doesn't change between pages. It sits faintly behind the content
-  and comes through more strongly in the side margins.
+  and comes through at full strength in the side margins.
 -->
 <script lang="ts">
   import { onMount } from "svelte";
@@ -65,23 +65,33 @@
 {/if}
 
 <style>
+  /* Full strength in the margins outside the 76rem page column, faint inside it,
+     where the text is. Text blocks clear what is left (.gm-clear in site.css). */
   .backdrop {
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
     opacity: 0.38;
-    /* Faint behind the reading column, stronger in the margins. */
     mask-image: linear-gradient(
       90deg,
-      #000 0%,
-      rgb(0 0 0 / 0.35) 24%,
-      rgb(0 0 0 / 0.2) 50%,
-      rgb(0 0 0 / 0.35) 76%,
+      #000 0,
+      #000 max(0px, 50% - 38rem),
+      rgb(0 0 0 / 0.32) max(1.5rem, 50% - 35rem),
+      rgb(0 0 0 / 0.16) 50%,
+      rgb(0 0 0 / 0.32) min(100% - 1.5rem, 50% + 35rem),
+      #000 min(100%, 50% + 38rem),
       #000 100%
     );
   }
   :global(.dark) .backdrop {
-    opacity: 0.40;
+    opacity: 0.4;
+  }
+  /* A narrow screen has no margin, so the whole board steps back. */
+  @media (width < 900px) {
+    .backdrop,
+    :global(.dark) .backdrop {
+      opacity: 0.2;
+    }
   }
 </style>

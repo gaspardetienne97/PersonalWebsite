@@ -26,8 +26,8 @@
   src: url("/fonts/newsreader-latin-wght-italic.woff2") format("woff2");
 }
 
-/* Decorative only: traces, swatches and accent rules in artwork, never text or
-   component colours. Taken from the marker colours in the drawings. */
+/* Decorative: traces, swatches and accent rules in artwork, never text. Taken from
+   the marker colours in the drawings. The cobalt is also the site's focus ring. */
 :root {
   --gm-red: oklch(0.6 0.2 28);
   --gm-blue: oklch(0.56 0.19 262);
@@ -46,6 +46,8 @@
     #ff6fa6 75%,
     #1fa2ff 100%
   );
+  /* The same ring for an upright bar (the current row in the phone menu). */
+  --gm-brand-down: linear-gradient(180deg, #2bc4ff, #c531f2 35%, #ff1f2a 65%, #ff6fa6);
 }
 .dark {
   --gm-red: oklch(0.72 0.17 28);
@@ -55,6 +57,17 @@
   --gm-yellow: oklch(0.86 0.15 88);
   --gm-pink: oklch(0.78 0.14 0);
   --gm-cyan: oklch(0.8 0.12 225);
+}
+
+/* Site pages only (the ones that draw the site header), so Woodshed and Narrator
+   keep their own: quiet text dark enough to read on the board (7:1 or better on
+   the page colour) and a cobalt focus ring. */
+:root:has([data-site-chrome]) {
+  --muted-foreground: oklch(0.446 0.043 257.281);
+  --ring: var(--gm-blue);
+}
+.dark:has([data-site-chrome]) {
+  --muted-foreground: oklch(0.78 0.035 256);
 }
 
 @theme inline {
@@ -114,6 +127,53 @@
     line-height: 1.65;
     max-width: 62ch;
     text-wrap: pretty;
+  }
+
+  /* The circuit board stops short of text: a block of running text sits on the
+     page colour, with a soft edge of the same colour so traces fade out around it
+     and still show between blocks. Ledes, running text and posts get it without
+     asking; put .gm-clear on any other block of text that sits on the board. */
+  .gm-clear,
+  .gm-lede,
+  .gm-text,
+  .gm-prose {
+    background: var(--background);
+    box-shadow: 0 0 0.9rem 0.6rem var(--background);
+  }
+
+  /* The one text link that stands by itself (not inside a sentence): "More about
+     me", "All posts". An icon inside it (an arrow) nudges forward on hover. */
+  .gm-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    color: var(--foreground);
+    font-weight: 550;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    border-radius: 4px;
+  }
+  .gm-link:hover {
+    text-decoration-thickness: 2px;
+  }
+  .gm-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .gm-link svg {
+    flex: none;
+    width: 1em;
+    height: 1em;
+    transition: transform 0.15s;
+  }
+  .gm-link:hover svg {
+    transform: translateX(0.15em);
+  }
+  @media (pointer: coarse) {
+    .gm-link {
+      min-block-size: 44px;
+    }
   }
 
   /* Links inside running text (Markdown and serif paragraphs). */
@@ -209,6 +269,67 @@
     border-radius: var(--radius);
     padding: 1rem 1.2rem;
     overflow-x: auto;
+    tab-size: 2;
+  }
+  /* A fenced code block: a frame with a header (the language, and a Copy button
+     the article page adds) over the code. */
+  .gm-prose .gm-code {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gm-blue);
+    border-radius: var(--radius);
+    background: var(--muted);
+    overflow: hidden;
+  }
+  .gm-prose .gm-code-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2.5rem;
+    padding: 0.25rem 0.4rem 0.25rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--background) 55%, var(--muted));
+    font-family: var(--font-gm-display);
+    font-size: 0.8125rem;
+    line-height: 1.2;
+  }
+  .gm-prose .gm-code-lang {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .gm-prose .gm-code-copy {
+    margin-left: auto;
+    min-width: 4.5rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 4px);
+    background: var(--background);
+    font: inherit;
+    font-weight: 550;
+  }
+  .gm-prose .gm-code-copy:hover {
+    border-color: var(--foreground);
+  }
+  .gm-prose .gm-code-copy:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (pointer: coarse) {
+    .gm-prose .gm-code-head {
+      padding-block: 0;
+    }
+    .gm-prose .gm-code-copy {
+      min-height: 44px;
+      border-color: transparent;
+      background: transparent;
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+  }
+  .gm-prose .gm-code pre {
+    border: 0;
+    border-radius: 0;
   }
   .gm-prose img {
     border-radius: var(--radius);

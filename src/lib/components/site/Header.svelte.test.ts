@@ -18,8 +18,18 @@ describe("Header", () => {
       getComputedStyle(document.querySelector('nav[aria-label="Site navigation"]')!).display,
     ).toBe("none");
     await trigger.click();
-    for (const label of ["Home", "About", "Studio", "Blog"])
+    for (const label of ["Home", "About", "Studio", "Writing"])
       await expect.element(page.getByRole("menuitem", { name: label, exact: true })).toBeVisible();
+    // The panel also holds what the phone header has no room for: language and theme.
+    await expect
+      .element(page.getByRole("menuitemradio", { name: "English", exact: true }))
+      .toHaveAttribute("aria-checked", "true");
+    await expect
+      .element(page.getByRole("menuitem", { name: "Toggle theme", exact: true }))
+      .toBeVisible();
+    await expect
+      .element(page.getByRole("button", { name: "Toggle theme", exact: true }))
+      .not.toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await expect.element(trigger).toHaveFocus();
     await expect.element(page.getByRole("menu")).not.toBeInTheDocument();
@@ -36,7 +46,7 @@ describe("Header", () => {
     for (const [label, href] of [
       ["About", "/about"],
       ["Studio", "/studio"],
-      ["Blog", "/blog"],
+      ["Writing", "/blog"],
     ])
       expect(document.querySelector<HTMLAnchorElement>(`a[href="${href}"]`)?.textContent).toContain(
         label,

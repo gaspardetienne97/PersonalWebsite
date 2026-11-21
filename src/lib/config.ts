@@ -3,6 +3,10 @@ import { m } from "@repo/i18n/messages.js";
 // Lucide dropped brand icons in 1.0, so these are local, drawn in Lucide's style.
 import Github from "#lib/components/site/icons/Github.svelte";
 import Linkedin from "#lib/components/site/icons/Linkedin.svelte";
+import House from "@lucide/svelte/icons/house";
+import UserRound from "@lucide/svelte/icons/user-round";
+import Palette from "@lucide/svelte/icons/palette";
+import PenLine from "@lucide/svelte/icons/pen-line";
 // For the commented-out socials below: uncomment with them.
 // import Instagram from "#lib/components/site/icons/Instagram.svelte";
 // import Youtube from "#lib/components/site/icons/Youtube.svelte";
@@ -34,30 +38,36 @@ export const socials: { label: string; href: string; icon: Icon }[] = [
 /**
  * Site navigation. Big apps such as Woodshed and Narrator are reached from Projects.
  * Labels are getters, so they read in the visitor's language wherever they're used.
+ * The icons show in the phone menu. The writing section is "Writing" everywhere a
+ * visitor reads its name; its address stays /blog.
  */
 export const nav = [
   {
     href: "/",
+    icon: House as Icon,
     get label() {
       return m.nav_home();
     },
   },
   {
     href: "/about",
+    icon: UserRound as Icon,
     get label() {
       return m.nav_about();
     },
   },
   {
     href: "/studio",
+    icon: Palette as Icon,
     get label() {
       return m.nav_studio();
     },
   },
   {
     href: "/blog",
+    icon: PenLine as Icon,
     get label() {
-      return m.nav_blog();
+      return m.nav_writing();
     },
   },
 ] as const;

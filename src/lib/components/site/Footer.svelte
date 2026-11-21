@@ -1,6 +1,8 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { resolve } from "$app/paths";
+  import Lock from "@lucide/svelte/icons/lock";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import { Button } from "@repo/ui/button";
   import LogoMark from "./LogoMark.svelte";
   import { replayIntro } from "./intro.svelte";
@@ -20,7 +22,10 @@
         <p class="name">{name}</p>
         <p class="note">{m.footer_note()}</p>
         <p class="replay">
-          <Button variant="link" class="h-auto px-0" onclick={replayIntro}>{m.footer_replay()}</Button>
+          <Button variant="outline" class="h-11" onclick={replayIntro}>
+            <RotateCcw aria-hidden="true" />{m.footer_replay()}
+          </Button>
+          <!-- A keyboard shortcut is no use on a touch screen. -->
           <span class="keys">
             {m.footer_replay_or()} <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>G</kbd> <kbd>M</kbd> <kbd>E</kbd>
           </span>
@@ -37,7 +42,7 @@
           </ul>
         </div>
         <div>
-          <h2>{m.footer_projects()}</h2>
+          <h2><a href="{resolve('/studio')}?type=projects">{m.footer_projects()}</a></h2>
           <ul>
             {#each projects as project (project.slug)}
               <li><a href={project.href}>{project.title}</a></li>
@@ -62,7 +67,7 @@
     </div>
     <p class="legal">
       <span>© {year} {name}</span>
-      <a href="/private">{m.footer_private()}</a>
+      <a href={resolve("/private")} class="social"><Lock size={16} aria-hidden="true" />{m.footer_private()}</a>
     </p>
   </footer>
 {/if}
@@ -73,9 +78,11 @@
     align-items: center;
     gap: 0.5rem;
   }
+  /* A solid surface, so the board stops at the footer and never runs behind its links. */
   .site-footer {
     margin-top: clamp(4rem, 10vw, 8rem);
     border-top: 1px solid var(--border);
+    background: var(--background);
     font-family: var(--font-gm-display);
     color: var(--foreground);
   }
@@ -106,8 +113,8 @@
   .replay {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.25rem 0.6rem;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
     margin-top: 0.4rem;
   }
   .keys {
@@ -134,6 +141,9 @@
     font-weight: 650;
     margin-bottom: 0.75rem;
   }
+  h2 a {
+    color: inherit;
+  }
   ul {
     display: grid;
     gap: 0.4rem;
@@ -153,17 +163,47 @@
   }
   .legal {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.25rem 1rem;
     max-width: 76rem;
     margin-inline: auto;
     padding: 0 clamp(1rem, 4vw, 3rem) 2.5rem;
     font-size: 0.9rem;
     color: var(--muted-foreground);
   }
-  .legal a:hover {
-    color: var(--foreground);
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
+
+  /* A phone, or any touch screen: no shortcut keys, two columns of links, and every
+     link a row tall enough for a thumb. */
+  @media (hover: none), (width < 640px) {
+    .keys {
+      display: none;
+    }
+  }
+  @media (pointer: coarse), (width < 640px) {
+    ul {
+      gap: 0;
+    }
+    /* Headings take a row's height too, linked or not, so the columns line up. */
+    h2 {
+      margin-bottom: 0;
+    }
+    h2,
+    ul a,
+    h2 a,
+    .legal a {
+      display: flex;
+      align-items: center;
+      min-height: 2.75rem;
+    }
+  }
+  @media (width < 640px) {
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem 1rem;
+      width: 100%;
+    }
   }
 </style>

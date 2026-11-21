@@ -11,7 +11,12 @@ const returnTo = (url: URL) => {
 
 export const load: PageServerLoad = ({ locals, url }) => {
   if (locals.user) redirect(303, returnTo(url));
-  return { available: authentikConfigured(), error: url.searchParams.get("error") };
+  return {
+    available: authentikConfigured(),
+    error: url.searchParams.get("error"),
+    // Where signing in leads back to, when the visitor was sent here from a page.
+    returnTo: url.searchParams.has("redirectTo") ? returnTo(url) : null,
+  };
 };
 
 export const actions: Actions = {
