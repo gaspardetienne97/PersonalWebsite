@@ -58,7 +58,15 @@
   function togglePop(which: "speed" | "chapters" | "voice") {
     open = open === which ? null : which;
   }
+
+  // A press anywhere outside a chip and its menu closes the open menu. A listener, not a
+  // fixed backdrop: the dock's backdrop-filter would hold a fixed element inside the dock.
+  function closeOnOutsidePress(e: PointerEvent) {
+    if (open && !(e.target as Element).closest(".pop-anchor")) open = null;
+  }
 </script>
+
+<svelte:window onpointerdown={closeOnOutsidePress} />
 
 {#snippet transport()}
   <div class="transport" class:panel={variant === "panel"}>
@@ -101,18 +109,13 @@
 
 {#snippet extras()}
   <div class="extras">
-    {#if open}
-      <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-      <div class="backdrop" onclick={() => (open = null)}></div>
-    {/if}
-
     <div class="pop-anchor">
       <button class="chip" class:open={open === "speed"} onclick={() => togglePop("speed")}>
         <Gauge size={15} strokeWidth={1.5} />
         {speedLabel}x
       </button>
       {#if open === "speed"}
-        <div class="pop center" class:up={openUp} style="min-width: 132px">
+        <div class="pop center" style="min-width: 132px">
           {#each SPEEDS as s (s)}
             <button
               class="pop-item"
@@ -136,7 +139,7 @@
         <List size={15} strokeWidth={1.5} /> {m.narrator_player_chapters()}
       </button>
       {#if open === "chapters"}
-        <div class="pop right chapters-pop" class:up={openUp}>
+        <div class="pop right chapters-pop">
           <div class="pop-head">
             <span>{m.narrator_player_chapters()}</span>
             <span>{player.model.chapters.length}</span>
@@ -164,7 +167,7 @@
         <ChevronDown size={12} strokeWidth={1.5} style="opacity: 0.55; margin-left: 1px" />
       </button>
       {#if open === "voice"}
-        <div class="pop right voices-pop" class:up={openUp}>
+        <div class="pop right voices-pop">
           <div class="pop-label">{isNatural ? m.narrator_player_natural_kokoro() : m.narrator_narrator_voice()}</div>
           {#if player.usingFallback}
             <div class="pop-note-row">{m.narrator_player_fallback()}</div>
@@ -222,13 +225,13 @@
 {/snippet}
 
 {#if variant === "panel"}
-  <div class="layout-panel">
+  <div class="layout-panel above">
     {@render scrubber()}
     {@render transport()}
     <div class="extras-center">{@render extras()}</div>
   </div>
 {:else}
-  <div class="layout-row">
+  <div class="layout-row" class:above={openUp}>
     {@render transport()}
     <div class="scrub-grow">{@render scrubber()}</div>
     <div class="player-extras">{@render extras()}</div>
@@ -245,6 +248,7 @@
     animation: n-spin 0.8s linear infinite;
   }
   .layout-panel {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -254,6 +258,7 @@
     justify-content: center;
   }
   .layout-row {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 20px;
@@ -351,17 +356,18 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    position: relative;
     flex-wrap: wrap;
     justify-content: center;
   }
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 25;
-  }
+  /* In the document bar a menu drops from its own chip. */
   .pop-anchor {
     position: relative;
+  }
+  /* In the dock and the side panel the chips sit under the transport, so a menu opening from
+     its chip would cover the play button. There it opens above the whole player instead:
+     placed against the player (the anchor is static), level with its chip's left edge. */
+  .above .pop-anchor {
+    position: static;
   }
   .chip {
     display: inline-flex;
@@ -390,16 +396,27 @@
     padding: 6px;
     box-shadow: var(--n-shadow-lg);
   }
-  .pop.up {
-    top: auto;
-    bottom: calc(100% + 10px);
-  }
   .pop.center {
     left: 50%;
     transform: translateX(-50%);
   }
   .pop.right {
     right: 0;
+  }
+  .above .pop {
+    top: auto;
+    bottom: calc(100% + 22px);
+    left: auto;
+    right: auto;
+    transform: none;
+  }
+  /* The side panel is narrow: its two wide menus take the panel's width. */
+  .layout-panel .pop.right {
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: 320px;
+    margin-inline: auto;
   }
   .chapters-pop {
     width: 300px;
@@ -504,11 +521,31 @@
     font-size: 13px;
     color: var(--n-fg-3);
   }
+  /* Stacked, the side panel sits at the top of the screen: its menus open below it. */
+  @media (max-width: 900px) {
+    .layout-panel .pop {
+      top: calc(100% + 12px);
+      bottom: auto;
+    }
+  }
   @media (max-width: 560px) {
     .player-extras {
       width: 100%;
       justify-content: center;
       margin-top: 8px;
+    }
+    /* On a phone every menu is placed against the player, and the two wide ones span it. */
+    .pop-anchor {
+      position: static;
+    }
+    .pop.center {
+      left: auto;
+      transform: none;
+    }
+    .pop.right {
+      left: 0;
+      right: 0;
+      width: auto;
     }
   }
 </style>

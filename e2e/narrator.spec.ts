@@ -133,6 +133,43 @@ test.describe("Narrator", () => {
     await expect(page.getByRole("button", { name: /The Machine/ })).not.toBeVisible();
   });
 
+  test("a player menu closes on its chip or on a press outside, and never hides Play", async ({
+    page,
+  }) => {
+    await page.getByText("The Time Machine").first().click();
+    const chapters = page.getByRole("button", { name: "Chapters" });
+    const item = page.getByRole("button", { name: /The Argument/ });
+
+    await chapters.click();
+    await expect(item).toBeVisible();
+    await chapters.click();
+    await expect(item).not.toBeVisible();
+
+    await chapters.click();
+    await expect(item).toBeVisible();
+    // Far from the dock, over the text.
+    await page.mouse.click(12, 200);
+    await expect(item).not.toBeVisible();
+
+    // The tallest menu, open: Play still takes the press (and the press closes the menu).
+    await page.locator(".voice-chip").click();
+    await expect(page.locator(".voices-pop")).toBeVisible();
+    await page.getByRole("button", { name: "Play" }).click();
+    await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
+    await expect(page.locator(".voices-pop")).not.toBeVisible();
+    await page.getByRole("button", { name: "Pause" }).click();
+  });
+
+  test("reader settings close on a press outside the panel", async ({ page }) => {
+    await page.getByText("The Time Machine").first().click();
+    await page.getByRole("button", { name: "Reader settings" }).click();
+    const panel = page.getByRole("group", { name: "Reader settings panel" });
+    await expect(panel).toBeVisible();
+
+    await page.mouse.click(12, 400);
+    await expect(panel).not.toBeVisible();
+  });
+
   test("reader settings link opens the voice settings page", async ({ page }) => {
     await page.getByText("The Time Machine").first().click();
     await page.getByRole("button", { name: "Reader settings" }).click();

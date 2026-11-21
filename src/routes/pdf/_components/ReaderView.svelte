@@ -59,6 +59,14 @@
   );
 </script>
 
+<!-- A press outside the settings button and its panel closes the panel. A listener, not a fixed
+     backdrop: the top bar's backdrop-filter would hold a fixed element inside the bar. -->
+<svelte:window
+  onpointerdown={(e) => {
+    if (settingsOpen && !(e.target as Element).closest(".settings-anchor")) settingsOpen = false;
+  }}
+/>
+
 {#snippet styleToggle()}
   <div class="seg" role="group" aria-label={m.narrator_reader_style()}>
     <button
@@ -106,8 +114,6 @@
           <SlidersHorizontal size={16} strokeWidth={1.5} />
         </button>
         {#if settingsOpen}
-          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-          <div class="settings-backdrop" onclick={() => (settingsOpen = false)}></div>
           <div class="settings-pop"><SettingsPanel {settings} /></div>
         {/if}
       </div>
@@ -285,11 +291,6 @@
   }
   .settings-anchor {
     position: relative;
-  }
-  .settings-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 25;
   }
   .settings-pop {
     position: absolute;
