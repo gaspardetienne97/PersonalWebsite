@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 
 vi.mock("$app/navigation", () => ({ goto: vi.fn() }));
 
-const { shortcutListener } = await import("./intro.svelte");
+const { growSiteBoard, shortcutListener } = await import("./intro.svelte");
 
 const key = (code: string, timeStamp: number, mods = { ctrlKey: true, shiftKey: true }) => ({
   code,
@@ -43,5 +43,26 @@ describe("shortcutListener", () => {
     listen(key("KeyM", 3100));
     listen(key("KeyE", 3200));
     expect(onMatch).toHaveBeenCalledOnce();
+  });
+});
+
+describe("growSiteBoard", () => {
+  const ring = { cx: 195, cy: 320, r: 78 };
+  // A phone screen, with the name's block across almost its whole width under the logo.
+  const name = { x: 8, y: 430, w: 374, h: 150 };
+  const inside = (p: { x: number; y: number }) =>
+    p.x > name.x && p.x < name.x + name.w && p.y > name.y && p.y < name.y + name.h;
+
+  it("keeps every trace out of a clear area, and still fills the screen under it", () => {
+    const board = growSiteBoard(390, 844, ring, 7, [name]);
+    const points = board.chains.flatMap((chain) => chain.points);
+    expect(points.length).toBeGreaterThan(0);
+    expect(points.filter(inside)).toEqual([]);
+    expect(points.some((p) => p.y > name.y + name.h + 64)).toBe(true);
+  });
+
+  it("leaves no hole when nothing is to be kept clear", () => {
+    const board = growSiteBoard(390, 844, ring, 7);
+    expect(board.chains.flatMap((chain) => chain.points).some(inside)).toBe(true);
   });
 });

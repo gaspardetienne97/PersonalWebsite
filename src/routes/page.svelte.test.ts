@@ -36,9 +36,21 @@ describe("/+page.svelte", () => {
       "/blog/hello",
       "/studio?type=drawings",
     ]);
-    // One pip per slide, and the first is the current one.
+    // Every slide has a line under its title: its own, or how many of its kind there are.
+    const notes = [...document.querySelectorAll(".reel .slide .note")];
+    expect(notes.map((note) => note.textContent?.trim())).toEqual([
+      expect.stringMatching(/practice room/),
+      "First words.",
+      "Drawings: 9 in the Studio.",
+    ]);
+    // One pip per slide, named by its kind, and the first is the current one.
     const pips = [...document.querySelectorAll(".reel .pip")];
     expect(pips.map((pip) => pip.getAttribute("aria-current"))).toEqual(["true", null, null]);
+    expect(pips.map((pip) => pip.getAttribute("aria-label"))).toEqual([
+      "Show Woodshed (Project)",
+      "Show Hello (Post)",
+      "Show Trace maze (Drawing)",
+    ]);
     // One door per kind: the kinds with work in them first, then the rest by name.
     const doors = [...document.querySelectorAll('.doors [role="heading"]')].map((h) =>
       h.textContent?.trim(),
@@ -54,6 +66,11 @@ describe("/+page.svelte", () => {
       "Videos",
     ]);
     expect(document.querySelector('a[href="/blog"]')?.textContent).toContain("Hello");
+    // Each door says how many pieces it holds, or that they are on the way.
+    const badges = [...document.querySelectorAll(".doors .badge")].map((b) =>
+      b.textContent?.trim(),
+    );
+    expect(badges).toEqual(["9", "4", "1", "Soon", "Soon", "Soon", "Soon", "Soon"]);
     // A kind with nothing yet says what is coming to screen readers and in a
     // tooltip, not on the door's face.
     const doodles = document.querySelector('.doors a[href="/studio?type=doodles"]');

@@ -1,47 +1,47 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
-  import { Badge } from "@repo/ui/badge";
   import StudioCover from "./StudioCover.svelte";
   import { STUDIO, kindsByWork, type StudioKindInfo } from "#lib/content/studio.ts";
   import { m } from "@repo/i18n/messages.js";
 
-  let { headingLevel = 3, writing
-
-  /** Show Writing as one more door: the newest titles and how many posts there are. */
-   }: { 
+  let {
+    headingLevel = 3,
+    writing,
+  }: {
     headingLevel?: 2 | 3;
-    writing?: { titles: string[]; count: number }
-   } = $props();
+    /** Show Writing as one more door: the newest title and how many posts there are. */
+    writing?: { titles: string[]; count: number };
+  } = $props();
 
   const studio = resolve("/studio");
   const kinds = kindsByWork();
   const full = kinds.filter((info) => STUDIO[info.kind].length > 0);
   const empty = kinds.filter((info) => STUDIO[info.kind].length === 0);
-  const badge = "shrink-0 text-[0.8125rem]";
+  // One row from 1000px: a column for every door, however many there are.
+  const count = $derived(kinds.length + (writing ? 1 : 0));
 </script>
 
 <!--
-  The Studio by kind: one equal, compact door per kind. A kind that holds work
-  shows up to three of its pieces and how many there are. A kind with nothing
-  yet shows its icon and "Soon"; what is on the way is said in a tooltip (hover
-  or keyboard focus) and to screen readers. Kinds that hold work come first.
-  Given `writing` (the home page), the blog is one more door after them.
+  The Studio by kind: one equal, compact door per kind. Each is a picture cell
+  with the name under it, and how many pieces the kind holds (or "Soon") on a
+  small badge in the cell's corner. A kind that holds work shows one of its
+  pieces, large. A kind with nothing yet shows its icon; what is on the way is
+  said in a tooltip (hover or keyboard focus) and to screen readers. Kinds that
+  hold work come first. Given `writing` (the home page), the blog is one more
+  door after them.
 
-  Under 1000px a door is a row 72px tall: pictures, name, count. From 1000px
-  the doors stand four across with the pictures on top.
+  Two columns on a phone, four from 640px, and from 1000px one row of square
+  cells (eight doors on home, seven in the Studio).
 -->
 
-{#snippet label(name: string, dot: string, count?: number)}
-  <span class="label">
-    <span class="name" role="heading" aria-level={headingLevel}>
-      <i class="dot" style:background={dot}></i>{name}
-    </span>
-    {#if count}
-      <Badge variant="secondary" class={badge}>{count}</Badge>
-    {:else}
-      <Badge variant="outline" class="{badge} text-foreground">{m.studio_soon()}</Badge>
-    {/if}
+{#snippet label(name: string, dot: string)}
+  <span class="name" role="heading" aria-level={headingLevel}>
+    <i class="dot" style:background={dot}></i>{name}
   </span>
+{/snippet}
+
+{#snippet badge(count?: number)}
+  <span class="badge">{count || m.studio_soon()}</span>
 {/snippet}
 
 {#snippet door(info: StudioKindInfo)}
@@ -49,40 +49,32 @@
   <li>
     <a class="door" href="{studio}?type={info.kind}">
       {#if items.length}
-        <span class="peek" aria-hidden="true">
-          {#each items.slice(0, 3) as item (item.media.id)}
-            <span class="cell"><StudioCover {item} size={240} eager /></span>
-          {/each}
-        </span>
+        <span class="cell" aria-hidden="true"><StudioCover item={items[0]} size={240} eager /></span>
       {:else}
-        <span class="peek" aria-hidden="true">
-          <span class="cell empty">
-            <span class="glyph" style:color={info.dot}><info.icon size={22} /></span>
-          </span>
+        <span class="cell empty" aria-hidden="true">
+          <span class="glyph" style:color={info.dot}><info.icon size={22} /></span>
         </span>
       {/if}
-      {@render label(info.label, info.dot, items.length)}
+      {@render label(info.label, info.dot)}
+      {@render badge(items.length)}
       {#if !items.length}<span class="sr-only">{info.empty}</span>{/if}
     </a>
     {#if !items.length}<span class="tip" aria-hidden="true">{info.empty}</span>{/if}
   </li>
 {/snippet}
 
-<ul class="doors">
+<ul class="doors" style:--doors={count}>
   {#each full as info (info.kind)}
     {@render door(info)}
   {/each}
   {#if writing}
     <li>
       <a class="door" href={resolve("/blog")}>
-        <span class="peek" aria-hidden="true">
-          <span class="cell page">
-            {#each writing.titles.slice(0, 3) as title (title)}
-              <span>{title}</span>
-            {/each}
-          </span>
+        <span class="cell page" aria-hidden="true">
+          {#if writing.titles[0]}<span>{writing.titles[0]}</span>{/if}
         </span>
-        {@render label(m.kind_writing(), "var(--foreground)", writing.count)}
+        {@render label(m.kind_writing(), "var(--foreground)")}
+        {@render badge(writing.count)}
       </a>
     </li>
   {/if}
@@ -94,30 +86,30 @@
 <style>
   .doors {
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
   }
   @media (width >= 640px) {
     .doors {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
   @media (width >= 1000px) {
     .doors {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(var(--doors, 8), minmax(0, 1fr));
     }
   }
   li {
     position: relative;
+    min-width: 0;
   }
 
-  /* A row: pictures (or the icon), the name, the count (or "Soon"). */
+  /* A door: the picture cell on top, the name under it, the badge in the cell's
+     top right corner. 96px tall on a phone. */
   .door {
+    position: relative;
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    height: 4.5rem;
-    padding: 0.75rem;
+    flex-direction: column;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -139,33 +131,40 @@
     outline-offset: 3px;
   }
 
-  /* Up to three pieces side by side, in the same box whatever the kind. */
-  .peek {
-    flex: none;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    gap: 1px;
-    width: 8.75rem;
-    height: 3rem;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) - 4px);
-    background: var(--border);
-  }
+  /* One piece (or the kind's icon), in the same box whatever the kind. */
   .cell {
     position: relative;
+    display: block;
+    height: 3.625rem;
     overflow: hidden;
+    border-bottom: 1px solid var(--border);
     background: var(--muted);
   }
-  /* A project's icon chip is as large as a thumbnail this small. */
+  /* The badge sits where a project's icon chip would be read as a second mark. */
   .cell :global(.chip) {
     display: none;
   }
-  /* A kind with nothing in it yet: its icon on bare perfboard. */
+  /* A screenshot keeps its top edge. In a strip this low a drawing is a close
+     view of its lines, not a small whole sheet: the square cells from 1000px
+     show it whole. */
+  .cell :global(.cover img) {
+    object-position: top;
+    transition: scale 0.3s ease;
+  }
+  .cell :global(.cover.paper img) {
+    padding: 0;
+    object-fit: cover;
+    object-position: center;
+  }
+  .door:hover .cell :global(.cover img) {
+    scale: 1.04;
+  }
+  /* A kind with nothing in it yet: its icon on bare perfboard, at the left on a
+     phone so the badge has the corner to itself. */
   .empty {
     display: grid;
-    place-items: center;
+    place-items: center start;
+    padding-left: 0.65rem;
     background-color: var(--card);
     background-image: radial-gradient(circle, var(--gm-dot) 1px, transparent 1.6px);
     background-size: 16px 16px;
@@ -180,15 +179,15 @@
     border-radius: 0.6rem;
     background: var(--card);
   }
-  /* Writing's peek is a page of its newest titles. In a row there is room for
-     the newest one, on two lines. */
+  /* Writing's cell is a page: its newest title over a few ruled lines. */
   .page {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 0 0.6rem;
+    padding: 0 3.25rem 0 0.75rem;
     font-family: var(--font-gm-serif);
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
     line-height: 1.25;
     color: var(--card-foreground);
     background: var(--card);
@@ -200,28 +199,15 @@
     line-clamp: 2;
     overflow: hidden;
   }
-  .page span:first-child {
-    font-weight: 600;
-  }
-  .page span:not(:first-child) {
-    display: none;
-  }
 
-  /* The name and the badge share one line, and the line is the same height on
-     every door. */
-  .label {
-    flex: 1;
+  .name {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.45rem;
     min-width: 0;
-  }
-  .name {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0;
+    height: 2.25rem;
+    padding-inline: 0.65rem;
+    font-size: 0.9375rem;
     font-weight: 600;
     white-space: nowrap;
   }
@@ -235,22 +221,36 @@
     height: 0.5rem;
     border-radius: 50%;
   }
-  .cell :global(.cover img) {
-    transition: scale 0.3s ease;
-  }
-  .door:hover .cell :global(.cover img) {
-    scale: 1.04;
+  /* How many pieces, or "Soon": one small solid badge, so it reads on a picture
+     and on the perfboard alike. */
+  .badge {
+    position: absolute;
+    top: 0.375rem;
+    right: 0.375rem;
+    display: grid;
+    place-items: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding-inline: 0.45rem;
+    border: 1px solid color-mix(in oklab, var(--foreground) 22%, var(--border));
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    font-weight: 650;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   /* What is on the way, shown over the door on hover and on keyboard focus. */
   .tip {
     position: absolute;
-    left: 50%;
+    left: 0;
+    right: 0;
     bottom: calc(100% + 0.4rem);
     z-index: 5;
-    translate: -50% 0.25rem;
-    width: max-content;
-    max-width: min(17rem, 100%);
+    translate: 0 0.25rem;
     padding: 0.5rem 0.75rem;
     border-radius: 0.5rem;
     background: var(--foreground);
@@ -267,35 +267,29 @@
   }
   li:has(.door:focus-visible) .tip {
     opacity: 1;
-    translate: -50% 0;
+    translate: 0 0;
   }
   @media (hover: hover) {
     li:has(.door:hover) .tip {
       opacity: 1;
-      translate: -50% 0;
+      translate: 0 0;
     }
   }
 
-  /* Four across: the pictures on top, the label line under them. */
+  /* One row: square cells, and a tip wider than its door (the last door's tip
+     stays inside the row's right edge). */
   @media (width >= 1000px) {
-    .door {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0;
-      height: 12.5rem;
-      padding: 0;
-    }
-    .peek {
-      flex: 1;
-      width: auto;
+    .cell {
       height: auto;
-      min-height: 0;
-      border: 0;
-      border-bottom: 1px solid var(--border);
-      border-radius: 0;
+      aspect-ratio: 1;
     }
-    .cell :global(.chip) {
-      display: grid;
+    .empty {
+      place-items: center;
+      padding-left: 0;
+    }
+    .cell :global(.cover.paper img) {
+      padding: 7%;
+      object-fit: contain;
     }
     .glyph {
       width: 3rem;
@@ -307,25 +301,53 @@
       height: 1.625rem;
     }
     .page {
-      padding: 0 1.1rem;
-      font-size: 1rem;
-      line-height: 1.3;
+      justify-content: flex-start;
+      padding: 2.25rem 0.75rem 0;
+      font-size: 1.0625rem;
+      /* Ruled lines under the title, like the rest of a page. */
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0 0.6rem,
+        var(--border) 0.6rem calc(0.6rem + 1px)
+      );
+      background-size: calc(100% - 1.5rem) 2.5rem;
+      background-position: 0.75rem calc(100% - 0.6rem);
+      background-repeat: no-repeat;
     }
-    .page span,
-    .page span:not(:first-child) {
-      display: -webkit-box;
-      padding-block: 0.4rem;
-      box-sizing: content-box;
-      max-height: 2.6em;
-      border-bottom: 1px solid var(--border);
+    .page span {
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
     }
-    .page span:last-child {
-      border-bottom: 0;
+    .name {
+      height: 2.5rem;
     }
-    .label {
-      flex: none;
-      height: 3.25rem;
-      padding-inline: 0.9rem;
+    .tip {
+      left: 50%;
+      right: auto;
+      translate: -50% 0.25rem;
+      width: max-content;
+      max-width: 15rem;
+    }
+    li:has(.door:focus-visible) .tip {
+      translate: -50% 0;
+    }
+    @media (hover: hover) {
+      li:has(.door:hover) .tip {
+        translate: -50% 0;
+      }
+    }
+    li:last-child .tip {
+      left: auto;
+      right: 0;
+      translate: 0 0.25rem;
+    }
+    li:last-child:has(.door:focus-visible) .tip {
+      translate: 0 0;
+    }
+    @media (hover: hover) {
+      li:last-child:has(.door:hover) .tip {
+        translate: 0 0;
+      }
     }
   }
 

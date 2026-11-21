@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
+  import ArrowDown from "@lucide/svelte/icons/arrow-down";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import type Piano from "@lucide/svelte/icons/piano";
@@ -43,8 +44,17 @@
   // The projects, with their pictures: two to a row.
   const tools = STUDIO.projects;
   const drawings = STUDIO.drawings.slice(0, 4);
-  // Three real pieces beside the greeting: a drawing between two projects.
-  const fan = [STUDIO.projects[0], STUDIO.drawings[0], STUDIO.projects[1]].filter(Boolean);
+  // Three real pieces beside the greeting: a drawing between two projects. Each
+  // is a link: a project to itself, anything else to its kind in the Studio.
+  const fan = [STUDIO.projects[0], STUDIO.drawings[0], STUDIO.projects[1]]
+    .filter(Boolean)
+    .map((item) => ({
+      item,
+      href:
+        item.media.type === "project"
+          ? item.media.project.href
+          : `${resolve("/studio")}?type=${item.kind}`,
+    }));
 
   const stack = [
     [m.about_stack_framework, m.about_stack_framework_value],
@@ -69,10 +79,12 @@
   const contacts = [...socials].sort((a, b) => Number(isEmail(b.href)) - Number(isEmail(a.href)));
   const hasEmail = contacts.some((contact) => isEmail(contact.href));
 
+  // The page index. Its labels are shorter than the headings they lead to, so
+  // each fits one line of a chip on a phone in every language.
   const jumps = [
-    ["#work", m.about_work_heading],
-    ["#outside", m.about_outside_heading],
-    ["#this-website", m.about_site_heading],
+    ["#work", m.about_jump_work],
+    ["#outside", m.about_jump_outside],
+    ["#this-website", m.about_jump_site],
     ...(contacts.length > 0 ? [["#contact", m.about_say_hello] as const] : []),
   ] as const;
 
@@ -88,12 +100,13 @@
   let boardSeed = $state(1);
 
   // The page index marks the section being read: the last one whose top has
-  // passed a line a third of the way down the screen, or the last section once
+  // passed a line a third of the way down the screen (the first section until
+  // then, so one is marked from the top of the page), or the last section once
   // the page can scroll no further.
-  let current = $state("");
+  let current = $state<string>(jumps[0][0]);
   function spy() {
     const line = innerHeight * 0.35;
-    let found = "";
+    let found: string = jumps[0][0];
     for (const [href] of jumps) {
       const top = document.getElementById(href.slice(1))?.getBoundingClientRect().top;
       if (top !== undefined && top <= line) found = href;
@@ -133,17 +146,19 @@
           />
         </div>
       {/if}
-      <div class="fan" aria-hidden="true">
-        {#each fan as item (item.media.id)}
-          <span class="card"><StudioCover {item} size={240} eager /></span>
+      <ul class="fan">
+        {#each fan as { item, href } (item.media.id)}
+          <li class="card">
+            <a {href} aria-label={item.media.title}><StudioCover {item} size={240} eager /></a>
+          </li>
         {/each}
-      </div>
+      </ul>
     </div>
   </header>
 
   <div class="body">
-    <!-- One index for the page: a row of chips that scrolls sideways on a phone,
-         a narrow column that stays in view from 900px. -->
+    <!-- One index for the page: two rows of chips on a phone, a narrow column
+         that stays in view from 900px. The section being read is marked. -->
     <nav class="index" aria-label={m.post_on_this_page()}>
       <ul>
         {#each jumps as [href, label] (href)}
@@ -167,8 +182,16 @@
                   <a class="stretch-link" href={item.media.project.href}>
                     {item.media.project.title}
                   </a>
-                  <span>{item.media.project.summary}</span>
-                  <span class="open" aria-hidden="true">{m.about_open()}<ArrowRight /></span>
+                  <span class="sum">{item.media.project.summary}</span>
+                  <!-- What a press does, by name. The card about this site leads
+                       down this page, not to another one. -->
+                  <span class="open" aria-hidden="true">
+                    {#if item.media.project.href.includes("#")}
+                      {m.about_site_heading()}<ArrowDown />
+                    {:else}
+                      {m.about_open_project({ name: item.media.project.title })}<ArrowRight />
+                    {/if}
+                  </span>
                 </span>
               </li>
             {/if}
@@ -337,7 +360,7 @@
     position: relative;
     width: 100%;
     max-width: 18rem;
-    padding-bottom: 3.25rem;
+    padding-bottom: 4rem;
     justify-self: center;
   }
   .picture {
@@ -366,7 +389,7 @@
   }
   .card {
     position: relative;
-    width: 30%;
+    width: 34%;
     aspect-ratio: 4 / 5;
     margin-inline: -1.5%;
     border: 1px solid var(--border);
@@ -374,6 +397,24 @@
     overflow: hidden;
     background: var(--card);
     box-shadow: 0 12px 24px -14px rgb(0 0 0 / 0.5);
+    transition:
+      translate 0.2s ease,
+      border-color 0.2s ease;
+  }
+  .card a {
+    position: absolute;
+    inset: 0;
+    outline: none;
+  }
+  /* A piece under the pointer or the keyboard comes forward. */
+  .card:hover,
+  .card:has(a:focus-visible) {
+    z-index: 2;
+    border-color: var(--foreground);
+  }
+  .card:has(a:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
   .card:nth-child(1) {
     rotate: -7deg;
@@ -387,6 +428,12 @@
     rotate: 7deg;
     translate: 0 6%;
   }
+  .card:nth-child(odd):hover {
+    translate: 0 1%;
+  }
+  .card:nth-child(2):hover {
+    translate: 0 -9%;
+  }
   .card :global(.chip) {
     display: none;
   }
@@ -397,7 +444,7 @@
     }
     .art {
       max-width: 26rem;
-      padding-bottom: 4.5rem;
+      padding-bottom: 5.5rem;
     }
   }
 
@@ -411,25 +458,20 @@
     min-width: 0;
   }
 
-  /* The page index. On a phone: one row of chips that runs off the right edge
-     and scrolls sideways. */
+  /* The page index. On a phone: four chips of one size, two to a row, the
+     section being read filled. */
   .index ul {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
-    margin-inline: calc(-1 * clamp(1rem, 4vw, 3rem));
-    padding: 0.25rem clamp(1rem, 4vw, 3rem);
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .index li {
-    flex: none;
   }
   .index a {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
     min-height: 44px;
-    padding-inline: 1rem;
-    border: 1px solid var(--border);
+    padding-inline: 0.75rem;
+    border: 1px solid color-mix(in oklab, var(--foreground) 22%, var(--border));
     border-radius: 999px;
     background: var(--background);
     font-size: 0.9375rem;
@@ -449,7 +491,9 @@
   }
   .index a[aria-current] {
     border-color: var(--foreground);
-    font-weight: 700;
+    background: var(--foreground);
+    color: var(--background);
+    font-weight: 650;
   }
   /* From 900px: a narrow column that stays in view, the section being read
      marked by a bar and a heavier weight. */
@@ -465,16 +509,13 @@
       padding-top: 2rem;
     }
     .index ul {
-      flex-direction: column;
+      grid-template-columns: minmax(0, 1fr);
       gap: 0;
-      margin: 0;
-      padding: 0;
-      overflow: visible;
       background: var(--background);
       box-shadow: 0 0 0.9rem 0.6rem var(--background);
     }
     .index a {
-      display: flex;
+      justify-content: flex-start;
       padding-inline: 1rem 0.5rem;
       border: 0;
       border-left: 2px solid var(--border);
@@ -490,6 +531,7 @@
       border-color: color-mix(in oklab, var(--foreground) 45%, var(--border));
     }
     .index a[aria-current] {
+      background: none;
       color: var(--foreground);
       border-color: var(--foreground);
     }
@@ -500,7 +542,8 @@
     gap: 1.5rem;
     padding-top: 2rem;
     border-top: 1px solid var(--border);
-    scroll-margin-top: 4.5rem;
+    /* A section jumped to lands clear of the header, with room over its heading. */
+    scroll-margin-top: calc(var(--gm-header-h, 4rem) + 1.5rem);
   }
   section + section {
     margin-top: clamp(3rem, 6vw, 4.5rem);
@@ -544,32 +587,31 @@
   }
   .work dt {
     font-weight: 650;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
   }
+  /* Set like the rest of the page's running text. */
   .work dd {
     display: grid;
     gap: 0.5rem;
     justify-items: start;
     margin-top: 0.35rem;
     font-family: var(--font-gm-serif);
-    font-size: 1.125rem;
-    line-height: 1.55;
+    font-size: 1.2rem;
+    line-height: 1.6;
   }
   .work .gm-link {
     font-family: var(--font-gm-display);
     font-size: 0.9375rem;
   }
 
-  /* The projects, two to a row: a readable cover, the name, one line and "Open".
-     The whole card is the link. */
+  /* The projects, two to a row at every width: the cover whole (it is square),
+     the name, one line, and what a press opens. The whole card is the link.
+     Where a card is wide enough the cover stands beside the words. */
   .tools {
+    container-type: inline-size;
     display: grid;
-    gap: 1.25rem;
-  }
-  @media (width >= 640px) {
-    .tools {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
   }
   .tools li {
     position: relative;
@@ -588,20 +630,24 @@
   .shot {
     position: relative;
     display: block;
-    aspect-ratio: 16 / 10;
+    flex: none;
+    aspect-ratio: 1;
     overflow: hidden;
     border-bottom: 1px solid var(--border);
   }
   .tool-text {
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
     gap: 0.3rem;
-    justify-items: start;
-    padding: 0.9rem 1rem 1rem;
-    font-size: 1rem;
-    line-height: 1.45;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 0.7rem 0.65rem 0.8rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
   }
   .tool-text a {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     font-weight: 650;
     letter-spacing: -0.01em;
   }
@@ -609,20 +655,50 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4em;
-    margin-top: 0.35rem;
-    font-size: 0.9375rem;
+    margin-top: auto;
+    padding-top: 0.35rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.25em;
   }
   .open :global(svg) {
+    flex: none;
     width: 1em;
     height: 1em;
     transition: translate 0.15s;
   }
   .tools li:hover .open :global(svg) {
     translate: 0.15em 0;
+  }
+  @container (width >= 44rem) {
+    .tools li {
+      flex-direction: row;
+    }
+    .shot {
+      width: 10.5rem;
+      min-height: 10.5rem;
+      aspect-ratio: auto;
+      border-bottom: 0;
+      border-right: 1px solid var(--border);
+    }
+    .tool-text {
+      padding: 0.9rem 1rem 1rem;
+      font-size: 1rem;
+      line-height: 1.45;
+    }
+    .tool-text a {
+      font-size: 1.25rem;
+    }
+    .open {
+      font-size: 0.9375rem;
+    }
+  }
+  @media (width >= 640px) {
+    .tools {
+      gap: 1.25rem;
+    }
   }
 
   /* Drawings under "Outside work": four in a row, two by two on a phone. */
@@ -822,7 +898,10 @@
       font-size: 1.0625rem;
       line-height: 1.6;
     }
-    .work dd,
+    .work dt,
+    .work dd {
+      font-size: 1.0625rem;
+    }
     .map p {
       font-size: 1rem;
     }
@@ -835,6 +914,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .index a,
+    .card,
     .map li,
     .tools li,
     .thumb,
@@ -844,6 +924,12 @@
     }
     .tools li:hover .open :global(svg) {
       translate: none;
+    }
+    .card:nth-child(odd):hover {
+      translate: 0 6%;
+    }
+    .card:nth-child(2):hover {
+      translate: 0 -4%;
     }
   }
 </style>

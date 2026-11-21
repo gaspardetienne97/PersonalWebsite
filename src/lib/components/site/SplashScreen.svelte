@@ -1,9 +1,11 @@
 <!--
   The logo intro, shown full screen over the home page on a visitor's first visit
-  (and again on Ctrl+Shift+G, M, E). The name and a caption sit under the logo.
-  The first input of any kind (a press on the logo or anywhere else, a key, a
-  scroll) grows a circuit board out of its ring, the logo unfolds into the
-  initials G M E and the name appears large. It never lifts by itself: the
+  (and again on Ctrl+Shift+G, M, E). The name, the role line and a "Play the
+  intro" button sit under the logo. The button, or the first input of any kind
+  (a press on the logo or anywhere else, a key, a scroll), grows a circuit board
+  out of its ring, the logo unfolds into the initials G M E and the name appears
+  large. No trace is routed within 24px of the name, its line or the button at
+  the foot. It never lifts by itself: the
   labelled button at the foot ("Skip intro", then "Explore the site") or Escape
   lifts it away at any time, and so does a scroll once it has played. The board
   it grew stays behind the site as the background.
@@ -15,12 +17,20 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import ChevronsDown from "@lucide/svelte/icons/chevrons-down";
+  import Play from "@lucide/svelte/icons/play";
   import type { Board } from "#lib/circuit/router.ts";
   import CircuitPaths from "./CircuitPaths.svelte";
   import GmeMark from "./GmeMark.svelte";
   import { name } from "#lib/config.ts";
   import { m } from "@repo/i18n/messages.js";
-  import { SEEN_CLASS, SEEN_KEY, growSiteBoard, randomSeed, site } from "./intro.svelte";
+  import {
+    SEEN_CLASS,
+    SEEN_KEY,
+    growSiteBoard,
+    randomSeed,
+    site,
+    type Rect,
+  } from "./intro.svelte";
 
   /** GmeMark's viewBox and the logo's outer radius in it (ring 300, drawn at 1.45×). */
   const VIEW_W = 2100;
@@ -28,12 +38,16 @@
   const LOGO_RADIUS = 300 * 1.45;
   const STEP_MS = 26;
   const LEAVE_MS = 800;
+  /** No trace comes nearer than 24px to the words or the button: 24 and half a trace and a via. */
+  const CLEAR = 28;
 
   // Split so the Svelte parser doesn't read the closing tag as the end of this block.
   const headScript = `<script>try{if(localStorage.getItem("${SEEN_KEY}"))document.documentElement.classList.add("${SEEN_CLASS}")}catch(e){}<${"/"}script>`;
 
   let overlay = $state<HTMLElement>();
   let mark = $state<HTMLButtonElement>();
+  let copy = $state<HTMLElement>();
+  let actions = $state<HTMLElement>();
 
   let open = $state(true);
   let leaving = $state(false);
@@ -62,7 +76,24 @@
       r: LOGO_RADIUS * (logo.width / VIEW_W) + 6,
     };
     seed = randomSeed();
-    return growSiteBoard(box.width, box.height, ring, seed);
+    // The name and its line (laid out already, shown once the board has grown) and
+    // the button at the foot, whose label grows from "Skip intro" to "Explore the site".
+    const clear = (el: HTMLElement | undefined, side: number): Rect[] => {
+      if (!el) return [];
+      const r = el.getBoundingClientRect();
+      return [
+        {
+          x: r.left - box.left - side,
+          y: r.top - box.top - CLEAR,
+          w: r.width + side * 2,
+          h: r.height + CLEAR * 2,
+        },
+      ];
+    };
+    return growSiteBoard(box.width, box.height, ring, seed, [
+      ...clear(copy, CLEAR),
+      ...clear(actions, CLEAR + 36),
+    ]);
   }
 
   function play() {
@@ -228,24 +259,30 @@
     {/if}
 
     <div class="stage">
-      <button
-        bind:this={mark}
-        type="button"
-        class="mark"
-        onclick={play}
-        aria-label={spelled ? m.intro_fold() : m.intro_animate()}
-      >
-        <GmeMark {spelled} />
-        <span class="hit" aria-hidden="true"></span>
-        <!-- Whose site this is, from the first frame. The large name below is the one
-             a screen reader gets, so this copy of it is for the eye only. -->
-        <span class="wait" aria-hidden="true">
-          <span class="who">{name}</span>
-          <span class="press">{m.intro_press()}</span>
-        </span>
-      </button>
+      <div class="logo">
+        <button
+          bind:this={mark}
+          type="button"
+          class="mark"
+          onclick={play}
+          aria-label={spelled ? m.intro_fold() : m.intro_animate()}
+        >
+          <GmeMark {spelled} />
+          <span class="hit" aria-hidden="true"></span>
+        </button>
+        <!-- Whose site this is and what they do, from the first frame, and the button
+             that starts the intro. The large name and line below are the ones a screen
+             reader gets, so these copies are for the eye only. -->
+        <div class="wait" inert={board !== null}>
+          <span class="who" aria-hidden="true">{name}</span>
+          <span class="what" aria-hidden="true">{m.home_lede()}</span>
+          <button type="button" class="press" onclick={play}>
+            <Play aria-hidden="true" fill="currentColor" />{m.intro_play()}
+          </button>
+        </div>
+      </div>
 
-      <div class="copy">
+      <div class="copy" bind:this={copy}>
         <p class="name">{name}</p>
         <p class="role">
           {m.intro_role_line1()}<br />{m.intro_role_line2()}
@@ -253,7 +290,7 @@
       </div>
     </div>
 
-    <div class="actions">
+    <div class="actions" bind:this={actions}>
       <button type="button" class="cue" onclick={dismiss}>
         <span class="disc" aria-hidden="true"><ChevronsDown strokeWidth={1.75} /></span>
         <span class="cue-label">{revealed ? m.intro_explore() : m.intro_skip()}</span>
@@ -313,14 +350,21 @@
        arrow at the ring's edge or in its gaps. */
     cursor: pointer;
   }
-  /* Frosted veils: the board runs on under the logo and the name, washed and
-     softly blurred so it reads as texture, not noise. Edges feather out. */
+  /* The logo's box: the button, and under it what shows while the intro waits.
+     Also held to the height (less the room the name, the line and the two buttons
+     under the ring need), so on a short screen they stay clear of each other. */
+  .logo {
+    position: relative;
+    width: min(56rem, 88vw, max(12rem, 175vh - 38.5rem));
+  }
+  /* A frosted veil: the board grows out of the logo, so it runs on under it,
+     washed and softly blurred so it reads as texture, not noise. Edges feather
+     out. The name and its line need none: no trace is routed near them. */
   .mark,
   .copy {
     position: relative;
   }
-  .mark::before,
-  .copy::before {
+  .mark::before {
     content: "";
     position: absolute;
     z-index: -1;
@@ -335,26 +379,17 @@
     opacity: 0;
     transition: opacity 0.5s ease;
   }
-  .grown .mark::before,
-  .grown .copy::before {
+  .grown .mark::before {
     opacity: 1;
     transition: opacity 1.2s ease 0.15s;
   }
   .mark::before {
     inset: -20% -3%;
   }
-  /* The name and the line are read, not looked at: a deeper scrim, so no trace
-     crosses a letter. */
-  .copy::before {
-    inset: -2.5rem -3.5rem;
-    background: color-mix(in oklab, var(--background) 90%, transparent);
-    backdrop-filter: blur(8px);
-  }
 
   .mark {
-    /* Also held to the height, so on a short screen the ring, the name and the
-       caption under it stay clear of the button at the foot. */
-    width: min(56rem, 88vw, 105vh);
+    display: block;
+    width: 100%;
     padding: 0;
     border: 0;
     background: none;
@@ -447,10 +482,10 @@
     }
   }
 
-  /* Until the logo is pressed: whose site this is, and what to do, in words.
-     Both sit 24px below the ripple's widest reach (the ring is 41.4% of the
-     button's width, the ripple ends at 1.34 times that), so the ring never
-     crosses them. A press on either counts as a press on the logo. */
+  /* Until the intro starts: whose site this is, what they do, and the button
+     that plays it. They sit 24px below the ripple's widest reach (the ring is
+     41.4% of the logo's width, the ripple ends at 1.34 times that), so the ring
+     never crosses them. A press on the words counts as a press on the logo. */
   .wait {
     position: absolute;
     left: 50%;
@@ -459,31 +494,65 @@
     translate: -50% 0;
     display: grid;
     justify-items: center;
-    gap: 0.6rem;
-    white-space: nowrap;
-    pointer-events: auto;
+    width: max-content;
+    max-width: calc(100vw - 2.5rem);
+    text-align: center;
     cursor: pointer;
     transition: opacity 0.3s ease;
   }
   .who {
     font-size: 1.125rem;
     font-weight: 650;
+    line-height: 1.2;
     letter-spacing: -0.01em;
     color: var(--foreground);
   }
+  .what {
+    margin-top: 0.3rem;
+    font-family: var(--font-gm-serif);
+    font-size: 1.0625rem;
+    line-height: 1.35;
+    color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground));
+    text-wrap: balance;
+  }
+  /* A real button, in the site's main button colours, 44px tall. */
   .press {
-    padding: 0.4rem 1rem;
-    border: 1px solid color-mix(in oklab, var(--foreground) 22%, var(--border));
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    margin-top: 0.85rem;
+    padding: 0 1.25rem 0 1.1rem;
     border-radius: 999px;
-    font-size: 1.125rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--foreground);
-    background: var(--background);
+    font-size: 1rem;
+    font-weight: 650;
+    white-space: nowrap;
+    color: var(--primary-foreground);
+    background: var(--primary);
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.15s ease;
+  }
+  .press :global(svg) {
+    width: 0.9rem;
+    height: 0.9rem;
+  }
+  .press:hover {
+    background: color-mix(in oklab, var(--primary) 86%, var(--background));
+  }
+  .press:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
   }
   .grown .wait {
     opacity: 0;
     pointer-events: none;
+  }
+  /* A phone on its side has no room for the line between the name and the button. */
+  @media (height < 30rem) {
+    .what {
+      display: none;
+    }
   }
 
   .copy {
@@ -591,7 +660,7 @@
   .cue-label {
     padding: 0.15rem 0.7rem;
     border-radius: 999px;
-    font-size: 0.9375rem;
+    font-size: 1rem;
     font-weight: 600;
     white-space: nowrap;
     background: var(--background);
@@ -645,7 +714,7 @@
     .actions,
     .board,
     .mark::before,
-    .copy::before {
+    .press {
       transition: none;
     }
     .grown .disc :global(svg) {
