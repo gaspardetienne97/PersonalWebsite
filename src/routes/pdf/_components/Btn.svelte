@@ -20,6 +20,7 @@
     font-family: var(--n-font-sans);
     font-weight: 600;
     font-size: 14px;
+    min-height: 44px;
     padding: 10px 18px;
     border-radius: 8px;
     border: 1px solid transparent;
@@ -35,6 +36,14 @@
   .btn:active {
     transform: scale(0.97);
   }
+  .btn:focus-visible {
+    outline: 2px solid var(--n-fg-0);
+    outline-offset: 2px;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
   .primary {
     background: var(--n-brand-gradient);
     color: #fff;
@@ -44,6 +53,10 @@
     background: var(--n-bg-2);
     color: var(--n-fg-0);
     border-color: var(--n-border-2);
+  }
+  .secondary:hover {
+    background: var(--n-bg-3);
+    border-color: var(--n-border-3);
   }
   .ghost {
     background: transparent;

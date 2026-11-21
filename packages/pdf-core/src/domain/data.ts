@@ -132,7 +132,44 @@ const SAMPLE_KINDS: Record<string, () => string> = {
   ddia: () => m.narrator_sample_technical(),
 };
 
-/** The short kind shown on a card and in the reader: "Novel", "PDF", "Plain text". */
+/** A sample that ships with Narrator, as opposed to a document the listener added. */
+export function isSample(doc: NarratorDoc): boolean {
+  return doc.id in SAMPLE_KINDS;
+}
+
+/** A sample's genre ("Novel"). A listener's own document has none. */
+export function sampleGenre(doc: NarratorDoc): string | undefined {
+  return SAMPLE_KINDS[doc.id]?.();
+}
+
+/** The short kind shown in the reader: "Novel", "PDF", "Plain text". */
 export function kindLabel(doc: NarratorDoc): string {
-  return SAMPLE_KINDS[doc.id]?.() ?? doc.meta.split(" · ")[0];
+  return sampleGenre(doc) ?? doc.meta.split(" · ")[0];
+}
+
+/** The format a document came in, one word. The same word on the cover and under the card. */
+export function formatLabel(doc: NarratorDoc): string {
+  if (doc.kind === "pdf") return "PDF";
+  if (doc.kind === "epub") return "EPUB";
+  return doc.kind === "txt" ? m.narrator_kind_text() : m.narrator_kind_pasted();
+}
+
+/**
+ * Who wrote it, when the document says. A text file and pasted text name no author, and a PDF
+ * or EPUB without one is given its format's name by the extractor. The card shows the format
+ * already, so those count as no author.
+ */
+export function authorName(doc: NarratorDoc): string {
+  if (isSample(doc)) return doc.author;
+  const named =
+    (doc.kind === "pdf" || doc.kind === "epub") && doc.author !== "PDF" && doc.author !== "EPUB";
+  return named ? doc.author : "";
+}
+
+/** The line under a card's title: the author, with a sample's genre, or else the document's size. */
+export function byline(doc: NarratorDoc): string {
+  const author = authorName(doc);
+  const genre = sampleGenre(doc);
+  if (author) return genre ? `${author} · ${genre}` : author;
+  return doc.meta.split(" · ")[1] ?? "";
 }

@@ -28,6 +28,9 @@ function loadDocs(fallback: NarratorDoc[]): NarratorDoc[] {
 export class NarratorLibrary {
   docs = $state<NarratorDoc[]>([]);
 
+  /** The document removed last and where it sat, kept until `forgetRemoved` so it can come back. */
+  removed = $state<{ doc: NarratorDoc; index: number } | null>(null);
+
   #models = new Map<string, NarrationModel>();
 
   constructor(initial: NarratorDoc[] = SAMPLE_DOCS) {
@@ -66,10 +69,46 @@ export class NarratorLibrary {
     this.#persist();
   }
 
+  /** Takes a document out. Its place and its playhead are kept until the undo is given up. */
   remove(id: string): void {
+    const index = this.docs.findIndex((d) => d.id === id);
+    if (index < 0) return;
+    this.forgetRemoved();
+    this.removed = { doc: this.docs[index], index };
     this.docs = this.docs.filter((d) => d.id !== id);
     this.#models.delete(id);
-    clearSavedPosition(id);
+    this.#persist();
+  }
+
+  /** Puts the last removed document back where it was, with its progress. */
+  undoRemove(): void {
+    const removed = this.removed;
+    if (!removed) return;
+    this.removed = null;
+    const docs = this.docs.filter((d) => d.id !== removed.doc.id);
+    docs.splice(Math.min(removed.index, docs.length), 0, removed.doc);
+    this.docs = docs;
+    this.#persist();
+  }
+
+  /** Gives up the undo: the removed document's playhead goes too. */
+  forgetRemoved(): void {
+    if (this.removed) clearSavedPosition(this.removed.doc.id);
+    this.removed = null;
+  }
+
+  /** Whether any sample document is gone from the library. */
+  get samplesMissing(): boolean {
+    return SAMPLE_DOCS.some((s) => !this.find(s.id));
+  }
+
+  /** Brings back the samples that were removed, unplayed, after the listener's own documents. */
+  restoreSamples(): void {
+    const missing = SAMPLE_DOCS.filter((s) => !this.find(s.id));
+    if (missing.length === 0) return;
+    if (missing.some((s) => s.id === this.removed?.doc.id)) this.removed = null;
+    for (const s of missing) clearSavedPosition(s.id);
+    this.docs = [...this.docs, ...missing];
     this.#persist();
   }
 

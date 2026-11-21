@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { m } from "@repo/i18n/messages.js";
-  import type { NarratorDoc } from "@repo/pdf-core/domain";
+  import { authorName, formatLabel, type NarratorDoc } from "@repo/pdf-core/domain";
 
   import Equalizer from "./Equalizer.svelte";
 
@@ -11,9 +10,10 @@
     playing = false,
   }: { doc: NarratorDoc; size?: number; radius?: number; playing?: boolean } = $props();
 
-  const kindLabel = $derived(
-    ({ epub: "EPUB", pdf: "PDF", txt: "TXT", paste: m.narrator_cover_text() })[doc.kind] ?? "DOC",
-  );
+  // A thumbnail is too small for words at a readable size: it carries the title's first letter,
+  // and the title, author and format sit beside it in the row.
+  const thumb = $derived(size < 90);
+  const author = $derived(authorName(doc));
 
   // The title is set as large as its widest word allows, so no word is cut at the cover's edge.
   // ponytail: a word's width is estimated from four letter classes of the bold serif (in em,
@@ -28,7 +28,7 @@
     );
   const titleSize = $derived.by(() => {
     const widest = Math.max(...doc.title.split(/\s+|(?<=-)/).map(emWidth), 1);
-    return Math.max(size * 0.11, Math.min(size * 0.2, (size * 0.74) / widest));
+    return Math.max(12, size * 0.11, Math.min(size * 0.2, (size * 0.74) / widest));
   });
 </script>
 
@@ -40,17 +40,25 @@
   style:border-radius="{radius}px"
   style:background="radial-gradient(120% 90% at 100% 0%, {doc.accent}38 0%, transparent 55%), linear-gradient(160deg, #0E1530 0%, #060B1E 100%)"
 >
-  <div class="inner" style:padding="{size * 0.12}px">
-    <div class="kind" style:font-size="{Math.max(8, size * 0.085)}px" style:color={doc.accent}>
-      {kindLabel}
+  {#if thumb}
+    <div class="initial" style:font-size="{size * 0.5}px" aria-hidden="true">
+      {[...doc.title.trim()][0]?.toUpperCase() ?? ""}
     </div>
-    <div>
-      <div class="title" style:font-size="{titleSize}px">{doc.title}</div>
-      <div class="author" style:margin-top="{size * 0.05}px" style:font-size="{Math.max(8, size * 0.075)}px">
-        {doc.author}
+  {:else}
+    <div class="inner" style:padding="{size * 0.12}px">
+      <div class="kind" style:font-size="{Math.max(12, size * 0.085)}px" style:color={doc.accent}>
+        {formatLabel(doc)}
+      </div>
+      <div>
+        <div class="title" style:font-size="{titleSize}px">{doc.title}</div>
+        {#if author}
+          <div class="author" style:margin-top="{size * 0.05}px" style:font-size="{Math.max(12, size * 0.075)}px">
+            {author}
+          </div>
+        {/if}
       </div>
     </div>
-  </div>
+  {/if}
   <div class="stripe" style:background={doc.accent}></div>
   {#if playing}
     <div class="eq" style:top="{size * 0.1}px" style:right="{size * 0.1}px">
@@ -76,9 +84,20 @@
     flex-direction: column;
     justify-content: space-between;
   }
+  .initial {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-family: var(--n-font-serif);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--n-fg-0);
+  }
   .kind {
     font-family: var(--n-font-mono);
     letter-spacing: 0.12em;
+    text-transform: uppercase;
     opacity: 0.95;
     font-weight: 600;
   }
@@ -97,6 +116,12 @@
   }
   .author {
     color: var(--n-fg-2);
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .stripe {
     position: absolute;
