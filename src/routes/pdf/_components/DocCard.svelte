@@ -126,6 +126,12 @@
   .trash:focus-visible {
     opacity: 1;
   }
+  /* A touch screen has no hover to reveal it. */
+  @media (hover: none), (any-pointer: coarse) {
+    .trash {
+      opacity: 1;
+    }
+  }
   .trash:hover {
     color: var(--n-danger);
     border-color: var(--n-danger);
