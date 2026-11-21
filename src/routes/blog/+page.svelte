@@ -9,12 +9,17 @@
   import { Separator } from "@repo/ui/separator";
   import CircuitArt from "#lib/components/site/CircuitArt.svelte";
   import { MARKERS } from "#lib/circuit/router.ts";
-  import { parseDate } from "#lib/posts.ts";
+  import { categoryLabel, parseDate } from "#lib/posts.ts";
   import { formatDate } from "#lib/utils.ts";
 
   let { data } = $props();
 
-  const categories = $derived([...new Set(data.posts.flatMap((post) => post.categories))].sort());
+  // A category every post carries would filter nothing out, so only the others are offered.
+  const categories = $derived(
+    [...new Set(data.posts.flatMap((post) => post.categories))]
+      .filter((name) => data.posts.some((post) => !post.categories.includes(name)))
+      .sort(),
+  );
   let category = $state("all");
   const visible = $derived(
     category === "all"
@@ -47,7 +52,7 @@
     <p class="gm-lede">{m.blog_lede()}</p>
   </header>
 
-  {#if categories.length > 1}
+  {#if categories.length > 0}
     <ToggleGroup.Root
       type="single"
       variant="outline"
@@ -57,7 +62,7 @@
     >
       <ToggleGroup.Item value="all">{m.blog_all()}</ToggleGroup.Item>
       {#each categories as name (name)}
-        <ToggleGroup.Item value={name} class="capitalize">{name}</ToggleGroup.Item>
+        <ToggleGroup.Item value={name} class="capitalize">{categoryLabel(name)}</ToggleGroup.Item>
       {/each}
     </ToggleGroup.Root>
   {/if}
@@ -87,7 +92,7 @@
         </Card.Header>
         <Card.Footer class="mt-auto flex-wrap gap-2 pt-6">
           {#each featured.categories as name (name)}
-            <Badge variant="secondary" class="capitalize">{name}</Badge>
+            <Badge variant="secondary" class="capitalize">{categoryLabel(name)}</Badge>
           {/each}
           <Badge variant="outline">{m.reading_time({ minutes: featured.readingMinutes })}</Badge>
         </Card.Footer>
@@ -111,7 +116,7 @@
                 </span>
                 <span class="flex flex-wrap gap-2">
                   {#each post.categories as name (name)}
-                    <Badge variant="secondary" class="capitalize">{name}</Badge>
+                    <Badge variant="secondary" class="capitalize">{categoryLabel(name)}</Badge>
                   {/each}
                 </span>
               </a>

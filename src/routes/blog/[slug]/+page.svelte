@@ -9,6 +9,7 @@
   import CircuitArt from "#lib/components/site/CircuitArt.svelte";
   import { MARKERS } from "#lib/circuit/router.ts";
   import { name } from "#lib/config.ts";
+  import { categoryLabel } from "#lib/posts.ts";
   import { formatDate } from "#lib/utils.ts";
 
   let { data } = $props();
@@ -43,7 +44,7 @@
   <header class="head">
     <div class="flex flex-wrap gap-2">
       {#each post.categories as category (category)}
-        <Badge variant="secondary" class="capitalize">{category}</Badge>
+        <Badge variant="secondary" class="capitalize">{categoryLabel(category)}</Badge>
       {/each}
     </div>
     <h1 class="title">{post.title}</h1>
