@@ -4,8 +4,9 @@ import { WIDTHS, settle, snap } from "../capture-common.ts";
 import { returning, visit } from "./site.ts";
 
 const FLOW = "nav";
-// From 640px the header has its links and two tools, language then theme. On a phone it is the
-// brand and one menu button, and the menu's panel holds the pages, the languages and the theme.
+// From 860px the header has its links and two tools, the language pill then the two-part theme
+// control. Under it, the brand and one menu button, and the menu's sheet holds the pages, the
+// languages, the theme and the social links.
 const tools = ".site-header .tools button";
 const menuButton = ".site-header .actions > button";
 
@@ -19,7 +20,7 @@ for (const width of WIDTHS) {
       "header",
       width,
       width === "desktop"
-        ? "the header on the About page: logo and name, the four links with the current page marked, language and theme buttons"
+        ? "the header on the About page: logo and name, the four links with the current page underlined, the language pill and a two-part theme control (Light, Dark) of the same height, the current theme filled"
         : "the header on the About page at phone width: logo and name, and one menu button that holds the pages, the language and the theme",
     );
 
@@ -43,7 +44,7 @@ for (const width of WIDTHS) {
         FLOW,
         "phone-menu",
         width,
-        "the site menu open at phone width: a panel as wide as the screen with the pages (the current one marked), the languages, and the theme as two choices, Light and Dark, the current one marked, the page dimmed behind it",
+        "the site menu open at phone width: a sheet from under the header to the bottom of the screen with the pages (the current one marked), the languages, the theme as two choices, Light and Dark, the chosen ones filled, and an Elsewhere row with the social links at its foot, the page dimmed behind it",
       );
       // There is no separate language menu on a phone: the languages are rows of this panel.
       await page.getByRole("menuitemradio").first().focus();
@@ -69,6 +70,16 @@ for (const width of WIDTHS) {
         width,
         "the language menu open: four languages, each named in itself, the current one with a check mark",
       );
+      await page.keyboard.press("ArrowDown");
+      await settle(page, 200);
+      await snap(
+        page,
+        FLOW,
+        "language-menu-row",
+        width,
+        "the language menu open with one row highlighted by the keyboard (ArrowDown)",
+        { keepMouse: true },
+      );
       await page.keyboard.press("Escape");
       await expect(page.getByRole("menu")).toHaveCount(0);
 
@@ -89,15 +100,15 @@ for (const width of WIDTHS) {
       );
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 
-      // The theme button's tip says what a press will do. It is also the button's name.
-      await page.locator(".site-header .theme-button").hover();
+      // The theme control's two parts are named by their tips, shown on keyboard focus too.
+      await page.locator(".site-header .theme-switch .part.dark").focus();
       await settle(page, 350);
       await snap(
         page,
         FLOW,
-        "theme-tooltip",
+        "theme-control",
         width,
-        "pointer over the theme button in the header: a tip under it says what a press does",
+        'keyboard focus on the "Dark" part of the header\'s two-part theme control: a tip under it names it',
         { keepMouse: true },
       );
       await page.mouse.move(640, 500);
@@ -105,18 +116,50 @@ for (const width of WIDTHS) {
 
     // Closing a menu hands focus back to its button: let go of it, so the footer shot has no ring.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await page.evaluate(() =>
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
-    );
-    await settle(page);
-    await snap(
-      page,
-      FLOW,
-      "footer",
-      width,
-      "the footer: name and note, replay the intro, the projects with a line each, the site's pages, elsewhere, the owner sign-in link",
-    );
     if (width === "desktop") {
+      await page.evaluate(() =>
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
+      );
+      await settle(page);
+      await snap(
+        page,
+        FLOW,
+        "footer",
+        width,
+        "the footer, four even columns: name and note with replay the intro, the projects two by two with a small cover, name and line, the site's pages, elsewhere; the board's band along its top edge and the owner sign-in link",
+      );
+    } else {
+      // The footer's top edge at the top of the screen, then its end with the controls row.
+      await page.locator(".site-footer").evaluate((el) => {
+        window.scrollTo({ top: el.getBoundingClientRect().top + scrollY, behavior: "instant" });
+      });
+      await settle(page);
+      await snap(
+        page,
+        FLOW,
+        "footer",
+        width,
+        "the footer at phone width from its top edge: name and note, replay the intro, the project names with their covers two by two, the pages and elsewhere",
+      );
+      await page.evaluate(() =>
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
+      );
+      await settle(page);
+      await snap(
+        page,
+        FLOW,
+        "footer-end",
+        width,
+        "the end of the footer at phone width: the language menu and the two-part theme control in one row, then the owner sign-in link",
+      );
+    }
+    if (width === "desktop") {
+      // On the home page, at its end, so no section heading sits under the header.
+      await visit(page, "/");
+      await page.evaluate(() =>
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
+      );
+      await settle(page);
       await page.locator(".site-footer .replay button").hover();
       await settle(page, 350);
       await snap(
@@ -124,7 +167,7 @@ for (const width of WIDTHS) {
         FLOW,
         "footer-replay-hint",
         width,
-        'pointer over "Replay the intro" in the footer: a tip says what it does and gives the keyboard shortcut',
+        'pointer over "Replay the intro" in the footer: a tip on the theme\'s own surface says what it does, with the shortcut as key caps',
         { keepMouse: true },
       );
     }

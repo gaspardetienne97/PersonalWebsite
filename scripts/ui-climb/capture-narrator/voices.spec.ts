@@ -25,6 +25,31 @@ const tab = (page: P, which: "system" | "natural") =>
   page.locator(".switch .seg").nth(which === "system" ? 0 : 1);
 const rows = (page: P) => page.locator(`${voiceCard} .voices li`);
 const modelRow = ".model-row";
+const lineNotice = ".float-dock .notice.line";
+
+/** Scroll so an element's top sits just under the sticky title bar, never half behind it. */
+async function scrollUnderBar(page: P, selector: string) {
+  await page
+    .locator(selector)
+    .first()
+    .evaluate((el) => {
+      const bar =
+        document.querySelector("header.settings-head")?.getBoundingClientRect().height ?? 0;
+      window.scrollTo({
+        top: el.getBoundingClientRect().top + scrollY - bar - 12,
+        behavior: "instant",
+      });
+    });
+  await settle(page, 150);
+}
+
+/** Choose the smaller natural download, so every Natural shot reads 92 MB. */
+async function chooseSmaller(page: P) {
+  // A device with no graphics chip gets the smaller download only, and no choice.
+  if (!(await page.locator("button.quality-opt").count())) return;
+  await page.locator("button.quality-opt").nth(1).click();
+  await expect(page.locator("button.quality-opt").nth(1)).toHaveAttribute("aria-pressed", "true");
+}
 
 /** Show the natural voice's list on the settings page. */
 async function showNatural(page: P) {
@@ -58,7 +83,8 @@ for (const width of WIDTHS) {
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     }
 
-    await scrollTo(page, `${voiceCard} .voices li:nth-child(3)`);
+    if (width === "desktop") await scrollUnderBar(page, `${voiceCard} .switch`);
+    else await scrollTo(page, `${voiceCard} .voices li:nth-child(3)`);
     await nsnap(
       page,
       "voices",
@@ -94,7 +120,8 @@ for (const width of WIDTHS) {
     await page.locator(".filters .chip").nth(1).click();
     await page.locator(`${voiceCard} button.more`).click();
     await settle(page, 300);
-    await scrollTo(page, `${voiceCard} .filters`);
+    if (width === "desktop") await scrollUnderBar(page, `${voiceCard} .filters`);
+    else await scrollTo(page, `${voiceCard} .filters`);
     await nsnap(
       page,
       "voices",
@@ -103,29 +130,48 @@ for (const width of WIDTHS) {
       "the system voices with every language shown and the voices that need the internet included",
     );
 
-    // The natural voices, before any download.
+    if (width === "desktop") {
+      const extra = page.locator(`${voiceCard} .extras .extra`).first();
+      await extra.hover();
+      await settle(page, 300);
+      await nsnap(
+        page,
+        "voices",
+        "system-extra-hover",
+        width,
+        "the system voices, pointer over a full-width row under the list (show the voices that need the internet, or get better system voices)",
+        { keepMouse: true },
+      );
+      await page.mouse.move(5, 5);
+    }
+
+    // The natural voices, before any download, with the smaller download chosen.
     await showNatural(page);
-    await scrollTo(page, modelRow);
+    await chooseSmaller(page);
+    if (width === "desktop") await scrollUnderBar(page, modelRow);
+    else await scrollTo(page, modelRow);
     await nsnap(
       page,
       "voices",
       "kokoro-idle",
       width,
-      'the Natural list before its download: what a natural voice is, a button that names the download\'s size, and six voices, each marked "Download to preview" with "Use when ready"',
+      'the Natural list before its download, the smaller download chosen: what a natural voice is, a button that names the download\'s size (92 MB) with the size choice under it, one line saying one download covers all six voices, and one "Choose" on each row',
     );
-    await page.locator("details.size summary").click();
-    await settle(page, 300);
-    await scrollTo(page, "details.size");
-    await nsnap(
-      page,
-      "voices",
-      "kokoro-size",
-      width,
-      "the Natural list with the download's size opened: the sizes this device can use and whether the graphics chip is used",
-    );
-    await page.locator("details.size summary").click();
+    if (width === "desktop") {
+      await page.locator("button.quality-opt").nth(0).hover();
+      await settle(page, 300);
+      await nsnap(
+        page,
+        "voices",
+        "kokoro-size-hover",
+        width,
+        "the size choice under the download button, pointer over the other size",
+        { keepMouse: true },
+      );
+      await page.mouse.move(5, 5);
+    }
 
-    // "Use when ready" on a row chooses a natural voice before its download.
+    // "Choose" on a row picks a natural voice before its download.
     await rows(page).first().locator("button.choose").click();
     await expect(rows(page).first().locator(".in-use")).toBeVisible();
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
@@ -135,7 +181,7 @@ for (const width of WIDTHS) {
       "settings",
       "natural-selected",
       width,
-      'the Settings page with a natural voice chosen before its download: the summary names it and says "Reads after the download", and its row says it is in use',
+      'the Settings page with a natural voice chosen before its download: the summary names it and says a system voice reads until the natural voice is ready, and its row reads "Chosen"',
     );
   });
 
@@ -172,28 +218,33 @@ for (const width of WIDTHS) {
     await blockModel(page);
     await openSettings(page);
     await showNatural(page);
+    // Choose a natural voice first: while the download has failed the rows take no action.
+    await rows(page).first().locator("button.choose").click();
     await page.locator(`${modelRow} .download-btn`).click();
     await expect(page.locator(`${modelRow} .notice`)).toBeVisible({ timeout: 60_000 });
-    await scrollTo(page, modelRow);
+    if (width === "desktop") await scrollUnderBar(page, modelRow);
+    else await scrollTo(page, modelRow);
     await nsnap(
       page,
       "narrator-error",
       "kokoro-download-failed",
       width,
-      "the natural voice failed to download (network blocked for the capture): a notice with the reason and what to do next",
+      "the natural voice failed to download (network blocked for the capture): one notice on a neutral surface with a red rule, the reason and the ways out (try again, the smaller download, the system voice for now), and the rows drawn quiet until it is retried",
     );
-    await rows(page).first().locator("button.preview").click();
-    await expect(page.locator(".voices li .notice")).toBeVisible({ timeout: 60_000 });
-    await scrollTo(page, ".voices li .notice");
-    await nsnap(
-      page,
-      "narrator-error",
-      "kokoro-preview-failed",
-      width,
-      "previewing a natural voice that cannot load (network blocked for the capture): the notice under that voice's row, with Retry and a way to the system voice",
-    );
-    // Use the natural voice anyway, then listen: the player falls back to the system voice.
-    await rows(page).first().locator("button.choose").click();
+    if (width === "desktop") {
+      await page.locator(`${modelRow} .notice button`).nth(1).hover();
+      await settle(page, 300);
+      await nsnap(
+        page,
+        "narrator-error",
+        "kokoro-download-failed-hover",
+        width,
+        "the failed download's notice, pointer over one of its outlined buttons",
+        { keepMouse: true },
+      );
+      await page.mouse.move(5, 5);
+    }
+    // The natural voice is chosen, so listening falls back to the system voice.
     await page.locator("header.head a.back").click();
     await expect(page.locator(".narrator header.bar")).toBeVisible();
     await openDoc(page, "Meditations");
@@ -218,6 +269,22 @@ for (const width of WIDTHS) {
       width,
       `the same moment with the voice menu open: it sits clear above the notice (${SPEECH_NOTE})`,
     );
+    await page.keyboard.press("Escape");
+    await page.mouse.click(12, 200);
+    await expect(page.locator(".voices-pop")).toHaveCount(0);
+    // "Try again" with the model's address left hanging, so its waiting state stays up.
+    await page.unroute(/huggingface\.co|\.hf\.co/);
+    await page.route(/huggingface\.co|\.hf\.co/, () => {});
+    await page.locator(`${lineNotice} button`, { hasText: "Try again" }).click();
+    await expect(page.locator(lineNotice)).toContainText(/Trying .*again/);
+    await settle(page, 300);
+    await nsnap(
+      page,
+      "narrator-error",
+      "kokoro-retrying",
+      width,
+      `after pressing "Try again" on the fallback notice: the line says "Trying again…" while the natural voice loads (${SPEECH_NOTE})`,
+    );
   });
 
   test(`no voices ${width}`, async ({ page }) => {
@@ -229,8 +296,21 @@ for (const width of WIDTHS) {
       "narrator-error",
       "no-voices",
       width,
-      "the Settings page on a device that reports no system voices: a notice says so and offers the natural voice",
+      "the Settings page on a device that reports no system voices: a notice says so and offers the natural voice in both sizes",
     );
+    const how = page.locator(`${voiceCard} details.tip summary`);
+    if (await how.count()) {
+      await how.click();
+      await settle(page, 300);
+      await scrollTo(page, `${voiceCard} details.tip`);
+      await nsnap(
+        page,
+        "narrator-error",
+        "no-voices-how",
+        width,
+        'no system voices, with "How to add voices on this device" opened: the steps to add voices',
+      );
+    }
     await openLibrary(page);
     await openAdd(page);
     await nsnap(
@@ -249,7 +329,16 @@ for (const width of WIDTHS) {
     });
     await openSettings(page);
     await expect(rows(page).first()).toBeVisible();
-    await scrollTo(page, `${voiceCard} .switch`);
+    await expect(page.locator(`${voiceCard} .reading-with .why`)).toBeVisible();
+    await nsnap(
+      page,
+      "voices",
+      "default-other-lang",
+      width,
+      "the Settings page when the device's default voice speaks another language than the interface: the summary names it and says why, and points to the list below",
+    );
+    if (width === "desktop") await scrollUnderBar(page, `${voiceCard} .switch`);
+    else await scrollTo(page, `${voiceCard} .switch`);
     await nsnap(
       page,
       "voices",
@@ -266,7 +355,7 @@ for (const width of WIDTHS) {
       "narrator-error",
       "filters-hide-all",
       width,
-      "the system voices when hiding the internet voices leaves none in the listener's language: a notice says why, with a button to show them again and a link to every language",
+      "the system voices when hiding the internet voices leaves none in the listener's language: a notice names the language and says why, with a button to show them again and a link to every language",
     );
   });
 }
@@ -280,9 +369,7 @@ test("natural voice downloaded and playing", async ({ page }) => {
   await openSettings(page);
   // The smaller preset runs on the CPU everywhere, headless included.
   await showNatural(page);
-  await page.locator("details.size summary").click();
-  await page.locator("button.quality-opt").nth(1).click();
-  await page.locator("details.size summary").click();
+  await chooseSmaller(page);
   const client = await page.context().newCDPSession(page);
   await client.send("Network.enable");
   // A slow line, so the download can be shot part-way.
@@ -303,7 +390,7 @@ test("natural voice downloaded and playing", async ({ page }) => {
       "voices",
       "kokoro-downloading",
       width,
-      "the natural voice downloading: a bar, the percentage and the megabytes so far (a real download, slowed for the capture)",
+      "the natural voice downloading, the smaller download chosen: a bar, the percentage and the megabytes so far of 92 MB (a real download, slowed for the capture)",
     );
   }
   await client.send("Network.emulateNetworkConditions", {
@@ -325,7 +412,7 @@ test("natural voice downloaded and playing", async ({ page }) => {
       "voices",
       "kokoro-ready",
       width,
-      'the natural voice ready after its download: "Downloaded. Works offline." with a way to clear the download, and the first voice in use',
+      'the natural voice ready after its download (the smaller one): "Downloaded. Works offline." with a way to clear the download, each row with a preview button and "Use", and the first voice in use',
     );
   }
   // Preview: synthesis on the CPU takes a few seconds before the sample plays.
@@ -390,8 +477,14 @@ test("voice settings in French phone", async ({ page }) => {
     fr: true,
   });
   await showNatural(page);
+  await chooseSmaller(page);
   await scrollTo(page, modelRow);
-  await nsnap(page, "voices", "kokoro-idle", "phone", "the Natural list before its download", {
-    fr: true,
-  });
+  await nsnap(
+    page,
+    "voices",
+    "kokoro-idle",
+    "phone",
+    "the Natural list before its download, the smaller download chosen",
+    { fr: true },
+  );
 });

@@ -44,8 +44,8 @@ for (const width of WIDTHS) {
       "first-visit",
       width,
       width === "desktop"
-        ? "first visit, nothing added by the listener: an invitation to add a first document (or try a sample) beside a live line from a sample, the mark moving from word to word at the pace of speech (caught on one word), then four documents labelled as samples"
-        : "first visit, nothing added by the listener: an invitation to add a first document (or try a sample), then four documents labelled as samples",
+        ? "first visit, nothing added by the listener: one main Add in the invitation to add a first document (or try a sample; the header's Add is outlined) beside a live line from a sample, the mark moving from word to word at the pace of speech (caught on one word), then four documents labelled as samples"
+        : "first visit, nothing added by the listener: a short invitation to add a first document (or try a sample) with a live line from a sample under it (caught on one word), then four documents labelled as samples",
       { full: true },
     );
 
@@ -56,9 +56,30 @@ for (const width of WIDTHS) {
       "library-empty",
       "empty",
       width,
-      "an empty library, after every document was removed: one invitation to add a document, and Bring back the samples",
+      width === "desktop"
+        ? 'an empty library, after every document was removed: one card in the upper middle of the page inviting to add a document "or drop a file here", and Bring back the samples; no search while there is nothing to search'
+        : "an empty library, after every document was removed: one card inviting to add a document, and Bring back the samples; no search while there is nothing to search",
       { full: true },
     );
+    if (width === "desktop") {
+      // A file dragged over the empty card: it says to let go.
+      const transfer = await page.evaluateHandle(() => {
+        const dt = new DataTransfer();
+        dt.items.add(new File(["text"], "notes.txt", { type: "text/plain" }));
+        return dt;
+      });
+      await page.locator(".empty").dispatchEvent("dragover", { dataTransfer: transfer });
+      await expect(page.locator(".drop-hint.live")).toBeVisible();
+      await settle(page, 300);
+      await nsnap(
+        page,
+        "library-empty",
+        "empty-drag",
+        width,
+        'a file dragged over the empty library: the card lights and says "Release to add"',
+      );
+      await page.locator(".empty").dispatchEvent("dragleave");
+    }
   });
 
   if (width === "desktop")
@@ -104,8 +125,8 @@ for (const width of WIDTHS) {
       "grid",
       width,
       width === "phone"
-        ? "the library with seven documents (an uploaded PDF, EPUB and text file beside the samples): continue listening, then the documents as rows with their length, progress and format"
-        : "the library with seven documents (an uploaded PDF, EPUB and text file beside the samples): continue listening, then the grid with lengths, progress and formats",
+        ? "the library with seven documents (an uploaded PDF, EPUB and text file beside the samples): a compact continue card with Resume beside its bar, then the documents as rows, each with its cover, one line of length and progress, and a play button"
+        : "the library with seven documents (an uploaded PDF, EPUB and text file beside the samples): continue listening, then the grid; each cover carries the title and author in one of six hues, one footer line with length and progress, and a play button beside More",
       { full: true },
     );
     if (width === "desktop") {
@@ -124,19 +145,40 @@ for (const width of WIDTHS) {
       await page.mouse.move(2, 2);
     }
 
-    // Removing: "More" on a card, then Remove, then the card asks to confirm.
-    const card = page.locator(".grid .card").nth(1);
-    await card.scrollIntoViewIfNeeded();
-    await card.locator("button.more").click();
-    await expect(card.locator(".menu")).toBeVisible();
+    // A started document's "More" menu: Start over (the play button already resumes) and Remove.
+    const started = page
+      .locator(".grid .card")
+      .filter({ has: page.locator(".fact.played") })
+      .first();
+    await started.scrollIntoViewIfNeeded();
+    await started.locator("button.more").click();
+    await expect(started.locator(".menu")).toBeVisible();
     await settle(page, 250);
     await nsnap(
       page,
       "library",
       "library-menu",
       width,
-      'a document\'s "More" menu open: listen or resume, and Remove from library',
+      'a started document\'s "More" menu open: Start over and Remove from library',
     );
+    await started.locator(".menu button").first().click();
+    await expect(started.locator(".menu")).toHaveCount(0);
+    await page.mouse.move(2, 2);
+    await settle(page, 300);
+    await nsnap(
+      page,
+      "library",
+      "after-start-over",
+      width,
+      "the library after Start over on a started document: its card reads as not started again",
+      { full: true },
+    );
+
+    // Removing: "More" on a card, then Remove, then the card asks to confirm.
+    const card = page.locator(".grid .card").nth(1);
+    await card.scrollIntoViewIfNeeded();
+    await card.locator("button.more").click();
+    await expect(card.locator(".menu")).toBeVisible();
     await card.locator(".menu button").nth(1).click();
     await expect(card.locator(".confirm")).toBeVisible();
     await settle(page, 250);
@@ -159,7 +201,7 @@ for (const width of WIDTHS) {
       "library",
       "removed-undo",
       width,
-      "just after removing a document from a library of seven: a one-line notice at the bottom edge names it and offers Undo, the continue card and the six left above it",
+      "just after removing a document from a library of seven: a full-width bar on the bottom edge names it and offers Undo, the continue card and the six left above it",
       { keepMouse: true },
     );
     await page.evaluate(() => {
@@ -175,7 +217,7 @@ for (const width of WIDTHS) {
       "library",
       "removed-undo-bottom",
       width,
-      "the same notice with the library scrolled to its end: the last cards sit clear above it",
+      "the same bar with the library scrolled to its end: the last cards end cleanly above it",
       { keepMouse: true },
     );
     await page.locator(".toast button").first().click();
@@ -205,7 +247,7 @@ for (const width of WIDTHS) {
       "library",
       "search-none",
       width,
-      "the library searched for a word nothing matches: a message naming the search and a button to clear it",
+      'the library searched for a word nothing matches: a message naming the search and a "Show all documents" button',
     );
   });
 }

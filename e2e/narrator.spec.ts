@@ -46,7 +46,7 @@ test.describe("Narrator", () => {
 
     await expect(page.getByText("No documents match “zebra”")).toBeVisible();
     // The field has its own clear button now; this is the one in the "no match" message.
-    await page.getByRole("status").getByRole("button", { name: "Clear search" }).click();
+    await page.getByRole("status").getByRole("button", { name: "Show all documents" }).click();
     await expect(search).toHaveValue("");
     await expect(page.getByText("The Time Machine").first()).toBeVisible();
   });
@@ -61,7 +61,7 @@ test.describe("Narrator", () => {
     // One tab takes every file (the kind is detected), the other takes pasted text.
     await expect(page.getByRole("tab", { name: "File", exact: true })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Paste text" })).toBeVisible();
-    await expect(page.getByText("Narrator voice")).toBeVisible();
+    await expect(page.getByText(/^Voice:/)).toBeVisible();
     await expect(page.getByText("Drop a file here")).toBeVisible();
   });
 
@@ -171,7 +171,7 @@ test.describe("Narrator", () => {
   test("reader settings link opens the voice settings page", async ({ page }) => {
     await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
     await page.getByRole("button", { name: "Reader settings" }).click();
-    await page.getByRole("tab", { name: "Voice" }).click();
+    await page.getByRole("tab", { name: "Voice and language" }).click();
     await page
       .getByRole("group", { name: "Reader settings panel" })
       .getByRole("link", { name: /Voice settings/ })
@@ -185,7 +185,7 @@ test.describe("Narrator", () => {
   test("reader settings expose the system/natural voice engine toggle", async ({ page }) => {
     await page.getByRole("button", { name: "The Time Machine", exact: true }).click();
     await page.getByRole("button", { name: "Reader settings" }).click();
-    await page.getByRole("tab", { name: "Voice" }).click();
+    await page.getByRole("tab", { name: "Voice and language" }).click();
 
     const panel = page.getByRole("group", { name: "Reader settings panel" });
     await expect(panel.getByRole("button", { name: "System", exact: true })).toBeVisible();

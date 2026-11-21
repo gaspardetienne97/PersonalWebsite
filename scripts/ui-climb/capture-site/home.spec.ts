@@ -48,10 +48,25 @@ for (const width of WIDTHS) {
         FLOW,
         "intro-waiting",
         width,
-        'first visit, the logo intro covers the page and waits: a ring ripples out from the logo, the name sits under it with the caption "Press the logo" (any press, key or scroll starts it), and "Skip intro" goes straight to the site',
+        'first visit, the logo intro covers the page and waits: a ring ripples out from the logo, the name and the role line sit under it with a "Play the intro" button (any press, key or scroll also starts it), and "Skip intro" goes straight to the site',
         { frozen: true, themes: [theme] },
       );
       await thaw(page);
+
+      if (theme === "light") {
+        // Keyboard focus on "Play the intro" (Tab moves focus and does not start the intro).
+        await page.keyboard.press("Tab");
+        await page.keyboard.press("Tab");
+        await expect(intro.locator("button.press")).toBeFocused();
+        await settle(page, 300);
+        await snap(
+          page,
+          FLOW,
+          "intro-play-focus",
+          width,
+          'first visit, the intro waiting with keyboard focus on the "Play the intro" button',
+        );
+      }
 
       // Press the logo: the board grows from its ring and the logo unfolds into G M E.
       await pressLogo(page);
@@ -102,7 +117,9 @@ for (const width of WIDTHS) {
       FLOW,
       "home",
       width,
-      'home page for a returning visitor (no intro): name and introduction beside "Newest", a reel with one slide for each kind that holds work (the next slide peeks in), then one door per kind and a closing row of ways on',
+      width === "phone"
+        ? 'home page for a returning visitor (no intro): name, role line and the introduction paragraph, then "Newest", a reel with one slide for each kind that holds work (only the next slide\'s picture peeks in), then one door per kind in two columns and a closing row of ways on'
+        : 'home page for a returning visitor (no intro): name, role line and introduction beside "Newest", a reel with one slide for each kind that holds work (only the next slide\'s picture peeks in), then one door per kind in one row and a closing row of ways on',
       { full: true },
     );
     // The reel moves by its arrows, its dots or a swipe. It never moves by itself.
@@ -114,8 +131,32 @@ for (const width of WIDTHS) {
       FLOW,
       "home-reel-next",
       width,
-      "home page after one press of the reel's next arrow: the second slide is in front, its dot is marked and the previous arrow is now live",
+      "home page after one press of the reel's next arrow: the second slide is in front, its position mark is marked and the previous arrow is now live",
     );
+    await page.getByRole("button", { name: "Next piece" }).click();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await settle(page, 700);
+    await snap(
+      page,
+      FLOW,
+      "home-reel-last",
+      width,
+      "home page, the reel at its last slide after two presses of the next arrow",
+    );
+    if (width === "desktop") {
+      // Each position mark names its kind in a tip.
+      await page.locator(".reel .pip").nth(1).hover();
+      await settle(page, 350);
+      await snap(
+        page,
+        FLOW,
+        "home-reel-pip-tip",
+        width,
+        "home page, pointer over the reel's second position mark: a tip names the kind it stands for",
+        { keepMouse: true },
+      );
+      await page.mouse.move(0, 0);
+    }
     await scrollTo(page, "#everything-heading");
     await page.locator("#everything-heading").evaluate((el) => {
       window.scrollTo({ top: el.getBoundingClientRect().top + scrollY - 96, behavior: "instant" });
@@ -126,7 +167,9 @@ for (const width of WIDTHS) {
       FLOW,
       "home-doors",
       width,
-      "home page scrolled to 'Everything': one equal, compact door per kind of work (drawings, music, projects, writing and so on), the kinds still empty marked \"Soon\", then the closing row",
+      width === "phone"
+        ? "home page scrolled to 'Everything': one equal door per kind of work in two columns, each with its count or \"Soon\" as a badge in the cell's corner, then the closing row"
+        : "home page scrolled to 'Everything': one equal door per kind of work, all eight in one row, each with its count or \"Soon\" as a badge in the cell's corner, then the closing row",
     );
     if (width === "desktop") {
       // Pointer over a door.

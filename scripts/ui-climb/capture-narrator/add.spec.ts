@@ -17,8 +17,8 @@ for (const width of WIDTHS) {
       "modal-file",
       width,
       width === "desktop"
-        ? "the add-document modal on its File tab: two tabs (File, Paste text), one drop area that takes a PDF, an EPUB or a text file, a line that opens what each kind of file gives, and the narrator voice to use"
-        : "the add-document sheet on a phone, File tab: two tabs (File, Paste text), one button that takes a PDF, an EPUB or a text file, a line that opens what each kind of file gives, and the narrator voice to use",
+        ? 'the add-document modal on its File tab: two tabs (File, Paste text, the chosen one filled), one drop area that takes a PDF, an EPUB or a text file and says scanned PDFs with no text cannot be read, "Which files work?", and one quiet voice line ("Voice: Samantha" with Preview and Change)'
+        : 'the add-document sheet on a phone, File tab: two tabs (File, Paste text, the chosen one filled), one button that takes a PDF, an EPUB or a text file with the scanned-PDF limit, "Which files work?", and one quiet voice line',
     );
     await page.locator(".overlay details.works > summary").click();
     await settle(page, 250);
@@ -27,7 +27,7 @@ for (const width of WIDTHS) {
       "add-document",
       "modal-works",
       width,
-      'the add modal with "What works" opened: what it can read from a PDF, an EPUB and a text file',
+      'the add modal with "Which files work?" opened: what it can read from a PDF, an EPUB and a text file',
     );
     await page.locator(".overlay details.works > summary").click();
     // Nobody drags a file on a phone: there the modal is a sheet and the area is a button.
@@ -76,7 +76,7 @@ for (const width of WIDTHS) {
       "add-document",
       "paste-typed",
       width,
-      "the add modal on its Paste text tab with text typed: the word count and listening time under it, ready to narrate",
+      "the add modal on its Paste text tab with text typed: a suggested title from its first words cut on a word, the word count and the listening time in seconds, ready to narrate",
     );
   });
 
@@ -97,7 +97,7 @@ for (const width of WIDTHS) {
       "add-document",
       "parsing",
       width,
-      "a PDF being read after it was picked: a progress bar, the steps from reading the file to preparing the narration, and only Cancel to press (the first step held for the capture)",
+      "a PDF being read after it was picked: a progress bar with a percentage, the steps from reading the file to preparing the narration with the current one in full strength, and only Cancel to press (the first step held for the capture)",
     );
     await expect(page.locator(".root .top")).toBeVisible({ timeout: 30_000 });
     await settle(page, 500);
@@ -133,7 +133,7 @@ for (const width of WIDTHS) {
       "narrator-error",
       "parse-failed",
       width,
-      "the add modal after picking a file named .pdf that is not a PDF: a notice in place of the drop area says so, with Choose another file and Paste text instead",
+      "the add modal after picking a file named .pdf that is not a PDF: a notice in place of the drop area says so, with Choose another file and Paste text instead as two buttons of one height, and the voice line still under it",
     );
     await chooseFile(page, FILES.scannedPdf);
     await expect(page.locator(".overlay .pipe")).toHaveCount(0, { timeout: 30_000 });
@@ -144,7 +144,7 @@ for (const width of WIDTHS) {
       "narrator-error",
       "scanned-pdf",
       width,
-      "the add modal after picking a scanned PDF with no text in it: a notice says why, and offers another file (pasting is not offered, there is no text to copy)",
+      "the add modal after picking a scanned PDF with no text in it: a notice says it needs a PDF where you can highlight the words, and offers another file (pasting is not offered, there is no text to copy)",
     );
     await chooseFile(page, FILES.brokenEpub);
     await expect(page.locator(".overlay .pipe")).toHaveCount(0, { timeout: 30_000 });

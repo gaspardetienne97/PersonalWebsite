@@ -22,7 +22,7 @@ for (const width of WIDTHS) {
       width,
       width === "desktop"
         ? "Studio, the wall: every piece of every kind as equal tiles (a picture, a title and one line), kinds as tabs, a wall or kinds switch"
-        : "Studio, the wall on a phone: every piece of every kind as equal tiles, the kinds as chips that wrap, a wall or kinds switch",
+        : "Studio, the wall on a phone: a one-line introduction, the wall or kinds switch on the title's row, the kinds as equal chips in two rows of four, then every piece of every kind as equal tiles",
       { full: true },
     );
     if (width === "desktop") {
@@ -34,7 +34,7 @@ for (const width of WIDTHS) {
         "studio",
         "tile-hover",
         width,
-        "Studio wall, pointer over a project tile with its cover",
+        'Studio wall, pointer over a project tile: it lifts with a shadow, its picture grows, the project\'s full line shows and the mark reads "Open"',
         { keepMouse: true },
       );
       await page.locator(".wall button.tile").first().hover();
@@ -44,7 +44,7 @@ for (const width of WIDTHS) {
         "studio",
         "tile-hover-drawing",
         width,
-        "Studio wall, pointer over a drawing's tile (it opens in the viewer)",
+        'Studio wall, pointer over a drawing\'s tile: it lifts with a shadow and the mark reads "View" (it opens in the viewer)',
         { keepMouse: true },
       );
       await page.mouse.move(640, 5);
@@ -66,8 +66,8 @@ for (const width of WIDTHS) {
       "kinds",
       width,
       width === "desktop"
-        ? "Studio, the kinds view: seven doors, one per kind, each with a peek at its pieces (no separate card for everything)"
-        : "Studio, the kinds view on a phone: seven doors, one per kind, and no row of kind chips above them",
+        ? 'Studio, the kinds view: seven equal doors in one row, one per kind, each with a picture or icon and its count or "Soon" as a corner badge'
+        : 'Studio, the kinds view on a phone: seven equal doors in two columns, each with its count or "Soon" as a corner badge, and no row of kind chips above them',
       { full: true },
     );
     await visit(page, "/studio?type=music");
@@ -93,19 +93,42 @@ for (const width of WIDTHS) {
       "open",
       width,
       width === "desktop"
-        ? 'the viewer opened on the first drawing (a tall one): title, the piece whole on its mat, previous and next arrows (on the first piece the left arrow shows it wraps round to the last), Zoom in, a counter that reads "Drawings, 1 of 9" and a strip of thumbnails'
-        : 'the viewer opened on the first drawing (a tall one): title, the piece whole on its mat, Zoom in, a counter that reads "Drawings, 1 of 9" and a row of thumbnails',
+        ? 'the viewer opened on the first drawing (a tall one): title, the piece whole on its mat, a plain left arrow and a right arrow, a zoom control showing 1×, a counter that reads "Drawings, 1 of 9" with the strip of thumbnails'
+        : 'the viewer opened on the first drawing (a tall one), filling the screen: title, the piece centred, a zoom control showing 1×, a bordered Close, a counter that reads "Drawings, 1 of 9" and a row of thumbnails with the current one in the middle',
     );
-    await dialog.getByRole("button", { name: "Zoom in" }).click();
-    await expect(dialog.locator(".zoombox")).toBeVisible();
-    await settle(page, 600);
-    await snap(
-      page,
-      "studio-viewer",
-      "zoomed",
-      width,
-      "the viewer after Zoom in: the same drawing large in a box that scrolls, a hint that says to drag, a small locator showing which part is in view, and Zoom out to go back",
-    );
+    if (width === "desktop") {
+      // On the first piece the left arrow still points left; its tip says where it goes.
+      await dialog.locator(".side .arrow.prev").hover();
+      await settle(page, 400);
+      await snap(
+        page,
+        "studio-viewer",
+        "first-prev-tip",
+        width,
+        'the viewer on the first drawing, pointer over the left arrow: its tip reads "Last drawing"',
+        { keepMouse: true },
+      );
+      await page.mouse.move(640, 5);
+    }
+    // The drag hint lasts 3 s, so each theme zooms in afresh and is shot at once.
+    for (const theme of ["light", "dark"] as const) {
+      await dialog.getByRole("button", { name: "Zoom in" }).click();
+      await expect(dialog.locator(".zoombox")).toBeVisible();
+      await expect(dialog.locator(".hint")).toBeVisible();
+      await settle(page, 300);
+      await snap(
+        page,
+        "studio-viewer",
+        "zoomed",
+        width,
+        "the viewer after Zoom in: the same drawing large in a box that scrolls, a hint that says to drag, the zoom control showing 2×, and a small locator in the foot beside the counter showing which part is in view",
+        { themes: [theme] },
+      );
+      if (theme === "light") {
+        await dialog.getByRole("button", { name: "Zoom out" }).click();
+        await expect(dialog.locator(".zoombox")).toHaveCount(0);
+      }
+    }
     // Drag inside the zoomed picture: the locator's frame follows.
     const box = await dialog.locator(".zoombox").boundingBox();
     if (box) {
@@ -121,7 +144,7 @@ for (const width of WIDTHS) {
         "studio-viewer",
         "zoomed-panned",
         width,
-        "the zoomed drawing after dragging it about 160 px: another part is in view and the locator's frame has moved with it",
+        "the zoomed drawing after dragging it about 160 px: the hint has gone, another part is in view and the locator's frame in the foot has moved with it",
       );
     }
     await dialog.getByRole("button", { name: "Zoom out" }).click();

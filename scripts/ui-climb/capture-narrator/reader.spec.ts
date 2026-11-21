@@ -29,7 +29,9 @@ for (const width of WIDTHS) {
       "reader",
       "flow-start",
       width,
-      "an uploaded PDF just opened, paused at its start, in the Flow view: one sentence at a time, large, with the player bar below",
+      width === "phone"
+        ? "an uploaded PDF just opened, paused at its start, in the Flow view: the chapter's heading as a title and the first sentence large under it, with the player below (Repeat, Previous, Play, Next, names under three of them)"
+        : "an uploaded PDF just opened, paused at its start, in the Flow view: the chapter's heading as a title and the first sentence large under it, with the player bar below",
     );
     await reader.document(page).click();
     await settle(page, 400);
@@ -41,8 +43,9 @@ for (const width of WIDTHS) {
         "reader",
         "view-hint",
         width,
-        "the first press of the Flow or Document switch on a phone: a line under the top bar says what the Document view is (it goes after a few seconds)",
+        "the first press of the Flow or Document switch on a phone: a line under the top bar says what changes in the Document view (it stays until the next press)",
       );
+      await page.keyboard.press("Escape");
       await expect(page.locator(".view-hint")).toHaveCount(0, { timeout: 12_000 });
     }
     await nsnap(
@@ -68,7 +71,7 @@ for (const width of WIDTHS) {
       "settings",
       "reader-panel",
       width,
-      "the reader's settings panel open over a document on its Text tab: three tabs (Text, Colour, Voice), text size and line spacing with step buttons, and the reading face, Sans or Serif",
+      "the reader's settings panel open over a document on its Text tab: three tabs (Text, Colour, Voice and language), text size and line spacing with step buttons and their values as a share of the default, and the reading face, Sans or Serif",
     );
     const tabs = page.locator(".settings-pop [role=tab]");
     await tabs.nth(1).click();
@@ -87,7 +90,7 @@ for (const width of WIDTHS) {
       "settings",
       "reader-panel-voice",
       width,
-      "the reader's settings panel on its Voice tab: System or Natural with what each means, the link to the full Settings page, and the interface language",
+      "the reader's settings panel on its Voice and language tab: System or Natural with what each means, the link to the full Settings page, and the interface language under its own heading",
     );
     await tabs.nth(0).click();
     await settle(page, 200);
@@ -105,12 +108,17 @@ for (const width of WIDTHS) {
     // Larger text, to show a setting taking effect.
     await page.locator(".settings-pop input[type=range]").first().fill("27");
     await settle(page, 300);
+    const share =
+      (await page
+        .locator(".settings-pop input[type=range]")
+        .first()
+        .getAttribute("aria-valuetext")) ?? "";
     await nsnap(
       page,
       "settings",
       "reader-panel-large-text",
       width,
-      "the reader's settings panel after raising the text size to 27 px, the document behind it follows",
+      `the reader's settings panel after raising the text size (it reads ${share}, a share of the default, with a Reset button beside it), the document behind it follows`,
     );
   });
 
@@ -146,8 +154,9 @@ for (const width of WIDTHS) {
       `playing in the Flow view: the sentence being read is large with the current word marked, the play button shows pause, time and position move (${SPEECH_NOTE})`,
     );
     await reader.document(page).click();
-    // On a phone the first use of the switch shows its hint for a few seconds (shot in the
-    // reader flow): let it go, so these screens show listening and nothing else.
+    // On a phone the first use of the switch shows its hint (shot in the reader flow): it stays
+    // until the next press, so close it, and these screens show listening and nothing else.
+    await page.keyboard.press("Escape");
     await expect(page.locator(".view-hint")).toHaveCount(0, { timeout: 12_000 });
     await page.waitForTimeout(2600);
     await nsnap(
@@ -155,7 +164,7 @@ for (const width of WIDTHS) {
       "listening",
       "document-playing",
       width,
-      `playing in the Document view: the current word marked inside the lit sentence, words already read dimmed (${SPEECH_NOTE})`,
+      `playing in the Document view: the current word marked inside the lit sentence, the chapter's heading in view, words already read dimmed (${SPEECH_NOTE})`,
     );
     await reader.speed(page).click();
     await expect(page.locator(".pop").first()).toBeVisible();
@@ -165,7 +174,7 @@ for (const width of WIDTHS) {
       "listening",
       "speed-menu",
       width,
-      `the speed menu open while playing: slower and faster step buttons around the current speed, and presets from 0.75x to 3x (${SPEECH_NOTE})`,
+      `the speed menu open while playing: one readout between slower and faster step buttons, and presets from 0.75x to 3x (${SPEECH_NOTE})`,
     );
     await page.locator(".pop .speed-preset").nth(3).click();
     await expect(page.locator(".pop")).toHaveCount(0);
@@ -214,7 +223,9 @@ for (const width of WIDTHS) {
       "chapters",
       "after-jump",
       width,
-      "after choosing the third chapter: the Flow view shows that chapter's name and first sentence, the scrubber has moved, and a line on the player's top edge names the chapter and offers the way back to where the listener was",
+      width === "phone"
+        ? "after choosing the third chapter: the Flow view shows that chapter's name and first sentence, the scrubber has moved, and a one-row line on the player's top edge names the chapter with Undo"
+        : "after choosing the third chapter: the Flow view shows that chapter's name and first sentence, the scrubber has moved, and a line on the player's top edge names the chapter with \"Back to Chapter 1, 0:00\"",
     );
     // The line goes by itself after a few seconds.
     await expect(page.locator(lineNotice)).toHaveCount(0, { timeout: 12_000 });
@@ -236,17 +247,7 @@ for (const width of WIDTHS) {
         await page.mouse.move(2, 2);
       }
     }
-    await reader.document(page).click();
-    // The first use of the switch on a phone shows its hint: let it go (see the reader flow).
-    await expect(page.locator(".view-hint")).toHaveCount(0, { timeout: 12_000 });
-    await settle(page, 500);
-    await nsnap(
-      page,
-      "chapters",
-      "document-chapter",
-      width,
-      "the third chapter in the Document view, with its title above the text",
-    );
+    // Reopened in the same view as the jump (Flow).
     await reader.chapters(page).click();
     await expect(page.locator(".chapters-pop")).toBeVisible();
     await settle(page, 300);
@@ -255,8 +256,73 @@ for (const width of WIDTHS) {
       "chapters",
       "list-third",
       width,
-      "the chapter list reopened, the third chapter now marked as current",
+      "the chapter list reopened in the Flow view, the third chapter now marked as current",
     );
+    await page.locator(".chapters-pop .pop-close").click();
+    await expect(page.locator(".chapters-pop")).toHaveCount(0);
+    await reader.document(page).click();
+    // The first use of the switch on a phone shows its hint until the next press: close it.
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".view-hint")).toHaveCount(0, { timeout: 12_000 });
+    await settle(page, 500);
+    await nsnap(
+      page,
+      "chapters",
+      "document-chapter",
+      width,
+      "the third chapter in the Document view, with its title above the text and a full line of room under the top bar",
+    );
+  });
+
+  test(`reader marks ${width}`, async ({ page }) => {
+    await narrator(page, width);
+    await openLibrary(page);
+    await addFile(page, "pdf");
+    // About a second in: the chapter's heading is being read, as a title.
+    await reader.play(page).click();
+    await expect(page.locator(".word.current").first()).toBeVisible();
+    await page.waitForTimeout(700);
+    await reader.play(page).click();
+    await settle(page, 400);
+    await nsnap(
+      page,
+      "reader",
+      "flow-title",
+      width,
+      `Walden in the Flow view, paused about a second in: the chapter's heading ("Economy") shown as a title with the word mark on it, the first sentence large under it (${SPEECH_NOTE})`,
+    );
+    await reader.document(page).click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".view-hint")).toHaveCount(0, { timeout: 12_000 });
+    // Play on and pause the moment the one-letter word "I" is marked.
+    const caught = await page.evaluate(
+      () =>
+        new Promise<boolean>((resolve) => {
+          const playButton = document.querySelector<HTMLButtonElement>(".root button.play");
+          playButton?.click();
+          const until = performance.now() + 10_000;
+          const look = () => {
+            const word = document.querySelector(".word.current")?.textContent?.trim();
+            if (word === "I") {
+              playButton?.click();
+              resolve(true);
+            } else if (performance.now() > until) {
+              playButton?.click();
+              resolve(false);
+            } else requestAnimationFrame(look);
+          };
+          requestAnimationFrame(look);
+        }),
+    );
+    await settle(page, 400);
+    if (caught)
+      await nsnap(
+        page,
+        "reader",
+        "one-letter-word",
+        width,
+        `the Document view paused on the one-letter word "I": the word mark is drawn as a small pill, not a caret (${SPEECH_NOTE})`,
+      );
   });
 }
 
@@ -288,7 +354,7 @@ for (const width of WIDTHS) {
       "chapters",
       "list-long-title",
       width,
-      "the chapter list on a text file whose third chapter has a very long title: the title wraps onto a second line and is cut after it, beside its length",
+      "the chapter list on a text file whose third chapter has a very long title: the title shows in full, wrapped, with its start time and length",
     );
   });
 }

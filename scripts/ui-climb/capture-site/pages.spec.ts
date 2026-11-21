@@ -19,13 +19,25 @@ for (const width of WIDTHS) {
       "page",
       width,
       width === "desktop"
-        ? "About page: the greeting with pieces of the work beside it, then a page index that stays in view beside the sections (work, outside work, this website, say hello)"
-        : "About page: the greeting with pieces of the work, then a page index as a row of chips over the sections (work, outside work, this website, say hello)",
+        ? "About page: the greeting with pieces of the work beside it (each a link), then a page index that stays in view beside the sections (work, outside work, this website, say hello); each project card is one link that names its project"
+        : "About page: the greeting with pieces of the work, then a page index as chips on two rows over the sections (work, outside work, this website, say hello); project cards two by two, each one link that names its project",
       {
         full: true,
       },
     );
     if (width === "desktop") {
+      // Each piece in the hero is a link to its project or to the Studio.
+      await page.locator(".fan .card").first().hover();
+      await settle(page, 350);
+      await snap(
+        page,
+        "about",
+        "hero-piece-hover",
+        width,
+        "About page, pointer over one of the pieces beside the greeting (each is a link to its project or to the Studio)",
+        { keepMouse: true },
+      );
+      await page.mouse.move(0, 0);
       await scrollTo(page, "#outside");
       await expect(page.locator('nav.index a[href="#outside"]')).toHaveAttribute(
         "aria-current",
@@ -57,7 +69,7 @@ for (const width of WIDTHS) {
       "end",
       width,
       width === "desktop"
-        ? 'About page, the end: contact links and the footer, with "Say hello" marked in the page index'
+        ? 'About page, the end: the "Say hello" heading clear of the header, contact links and the footer, with "Say hello" marked in the page index'
         : "About page, the end: contact links and the footer",
     );
     const colophon = page.locator("details.colophon > summary");
@@ -109,7 +121,7 @@ for (const width of WIDTHS) {
       "blog-post",
       "top",
       width,
-      "an article, top: back link, title, then date, reading time and categories, then the text",
+      "an article, top: the reading column centred in the page, with the back link, the title, the summary under it as a standfirst, then date, reading time and categories, then the text",
       { full: true },
     );
     await scrollTo(page, ".gm-prose pre");
@@ -210,7 +222,16 @@ for (const width of WIDTHS) {
       "sign-in",
       "login-return",
       width,
-      "the private page opened while signed out sends you to sign in: the page names where signing in leads back to",
+      "the private page opened while signed out sends you to sign in: a line above the button says the private area asked for it, and the helper names where signing in leads back to",
+    );
+    await visit(page, at("/login?error=server_error"));
+    await expect(button).toBeVisible();
+    await snap(
+      page,
+      "sign-in",
+      "login-failed",
+      width,
+      'Sign-in page after a sign-in that failed on the server: an error notice says so, and the button reads "Try again"',
     );
   });
 
@@ -222,7 +243,7 @@ for (const width of WIDTHS) {
       "not-found",
       "404",
       width,
-      "a page that does not exist (404): the status drawn as a broken connection from the logo, a heading, the address asked for, buttons to each part of the site, and three pieces of the work to look at",
+      'a page that does not exist (404): the status drawn as a broken connection from the logo, a heading, the address asked for, buttons to each part of the site, and three pieces of the work under "From the Studio"',
       { full: true },
     );
     if (width === "desktop") {
@@ -238,6 +259,18 @@ for (const width of WIDTHS) {
         { keepMouse: true },
       );
       await page.mouse.move(40, 700);
+    } else {
+      // A tap on the drawing joins the broken connection too.
+      await page.locator(".error .broken").click();
+      await expect(page.locator(".error .broken")).toHaveAttribute("aria-pressed", "true");
+      await settle(page, 500);
+      await snap(
+        page,
+        "not-found",
+        "404-press",
+        width,
+        "the 404 page after a tap on the drawing: the broken connection joins up",
+      );
     }
     // An address one slip away from a real page.
     await visit(page, "/studoi");
@@ -247,7 +280,7 @@ for (const width of WIDTHS) {
       "not-found",
       "404-near",
       width,
-      'a mistyped address (/studoi): the 404 page asks "Did you mean /studio?" with a link, above the same buttons and three pieces',
+      'a mistyped address (/studoi): the 404 page asks "Did you mean /studio?", "Go to /studio" is the filled main button and Home is outlined, then "From the Studio" with three pieces and "See all work"',
     );
     await visit(page, "/blog/no-such-post");
     await snap(
