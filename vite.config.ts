@@ -53,10 +53,33 @@ function isIgnoredBuildLog(log: { code?: string; id?: string }): boolean {
 // braces itself; the highlighter only has to escape HTML.
 const escapeHtml = (code: string) =>
   code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// Each block sits in a frame with a header naming its language. The article page
+// adds the Copy button to that header in the browser, in the reader's language.
+const CODE_LANGUAGES: Record<string, string> = {
+  bash: "Shell",
+  css: "CSS",
+  html: "HTML",
+  js: "JavaScript",
+  json: "JSON",
+  md: "Markdown",
+  nix: "Nix",
+  py: "Python",
+  python: "Python",
+  sh: "Shell",
+  sql: "SQL",
+  svelte: "Svelte",
+  ts: "TypeScript",
+  yaml: "YAML",
+  yml: "YAML",
+};
 const highlightCodeBlock = (code: string, { lang = "" }: { lang?: string | null }) => {
   const language = (lang ?? "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
   const className = language ? ` class="language-${language}"` : "";
-  return `<pre${className}><code${className}>${escapeHtml(code)}</code></pre>`;
+  const label = CODE_LANGUAGES[language] ?? language;
+  return (
+    `<div class="gm-code"><div class="gm-code-head"><span class="gm-code-lang">${label}</span></div>` +
+    `<pre${className}><code${className}>${escapeHtml(code)}</code></pre></div>`
+  );
 };
 
 export default defineConfig(({ command, isSsrBuild }): UserConfig => ({

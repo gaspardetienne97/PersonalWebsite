@@ -1,13 +1,16 @@
 <script lang="ts">
   import { m } from "@repo/i18n/messages.js";
+  import { getLocale } from "@repo/i18n/runtime.js";
   import { resolve } from "$app/paths";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import CalendarDays from "@lucide/svelte/icons/calendar-days";
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import Clock from "@lucide/svelte/icons/clock";
+  import Languages from "@lucide/svelte/icons/languages";
   import * as Card from "@repo/ui/card";
   import { Badge } from "@repo/ui/badge";
   import { Button } from "@repo/ui/button";
-  import { Separator } from "@repo/ui/separator";
-  import CircuitArt from "#lib/components/site/CircuitArt.svelte";
-  import { MARKERS } from "#lib/circuit/router.ts";
   import { name } from "#lib/config.ts";
   import { categoryLabel } from "#lib/posts.ts";
   import { formatDate } from "#lib/utils.ts";
@@ -15,12 +18,43 @@
   let { data } = $props();
   const post = $derived(data.post);
   const Content = $derived(data.Content);
-  const neighbours = $derived(
-    [
-      data.newer && { label: m.post_newer(), post: data.newer },
-      data.older && { label: m.post_older(), post: data.older },
-    ].filter((n) => !!n),
-  );
+  // Posts are written in English whatever language the site is shown in.
+  const translated = $derived(getLocale() !== "en");
+
+  let copied = $state("");
+
+  /**
+   * What the Markdown can't carry: ids on the headings so "On this page" can
+   * link to them, and a Copy button in each code block's header.
+   */
+  function enhance(body: HTMLElement) {
+    body.querySelectorAll("h2, h3").forEach((heading, i) => {
+      const id = data.headings[i]?.id;
+      if (id) heading.id = id;
+    });
+    if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+
+    for (const head of body.querySelectorAll(".gm-code-head")) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "gm-code-copy";
+      button.textContent = m.post_copy();
+      button.addEventListener("click", async () => {
+        const code = head.parentElement?.querySelector("pre")?.textContent ?? "";
+        try {
+          await navigator.clipboard.writeText(code);
+        } catch {
+          return; // No clipboard here (an insecure page): the code is still selectable.
+        }
+        button.textContent = copied = m.post_copied();
+        setTimeout(() => {
+          button.textContent = m.post_copy();
+          copied = "";
+        }, 2000);
+      });
+      head.append(button);
+    }
+  }
 </script>
 
 <svelte:head>
@@ -31,88 +65,223 @@
   <meta property="og:description" content={post.description} />
 </svelte:head>
 
+{#snippet neighbour(other: typeof post, label: string, side: "newer" | "older")}
+  <Card.Root class="stretch near {side} relative gap-1.5 px-5 py-4">
+    <p class="near-label">
+      {#if side === "newer"}<ArrowLeft size={16} aria-hidden="true" />{/if}
+      {label}
+      {#if side === "older"}<ArrowRight size={16} aria-hidden="true" />{/if}
+    </p>
+    <h2 class="near-title" lang="en">
+      <a href={resolve("/blog/[slug]", { slug: other.slug })} class="stretch-link">
+        {other.title}
+      </a>
+    </h2>
+    <time datetime={other.date} class="near-date">{formatDate(other.date, "long")}</time>
+  </Card.Root>
+{/snippet}
+
 <article class="gm-page post">
-  <Button
-    variant="ghost"
-    href={resolve('blog')}
-    class="-ml-3"
-  >
-    <ChevronLeft data-icon="inline-start" aria-hidden="true" />
-    {m.post_all()}
-  </Button>
+  <div class="back">
+    <Button variant="ghost" href={resolve("/blog")} class="-ml-3 min-h-11">
+      <ChevronLeft data-icon="inline-start" aria-hidden="true" />
+      {m.post_all()}
+    </Button>
+  </div>
 
   <header class="head">
-    <div class="flex flex-wrap gap-2">
-      {#each post.categories as category (category)}
-        <Badge variant="secondary" class="capitalize">{categoryLabel(category)}</Badge>
-      {/each}
-    </div>
-    <h1 class="title">{post.title}</h1>
-    <p class="gm-lede">{post.description}</p>
-    <p class="text-sm text-muted-foreground">
-      <time datetime={post.date}>{formatDate(post.date, "long")}</time>, {m.reading_time({ minutes: post.readingMinutes })}
-    </p>
+    <h1 class="title gm-clear" lang="en">{post.title}</h1>
+    <p class="gm-lede" lang="en">{post.description}</p>
+    {#if translated}
+      <p class="note gm-clear">
+        <Languages size={16} aria-hidden="true" />{m.post_in_english()}
+      </p>
+    {/if}
   </header>
 
-  <div class="cover">
-    {#if post.cover}
-      <img src={post.cover} alt="" />
-    {:else}
-      <CircuitArt
-        seed={post.slug}
-        colors={[MARKERS.blue, MARKERS.violet, MARKERS.red, MARKERS.yellow]}
-        width={1200}
-        height={340}
-      />
+  <!-- Beside the text on a wide screen, under the title on a narrow one. -->
+  <aside class="side" aria-label={m.post_about()}>
+    <ul class="facts gm-clear">
+      <li>
+        <CalendarDays size={16} aria-hidden="true" />
+        <time datetime={post.date}>{formatDate(post.date, "long")}</time>
+      </li>
+      <li>
+        <Clock size={16} aria-hidden="true" />{m.reading_time({ minutes: post.readingMinutes })}
+      </li>
+      {#if post.categories.length > 0}
+        <li class="cats">
+          {#each post.categories as category (category)}
+            <Badge variant="secondary" class="chip capitalize">{categoryLabel(category)}</Badge>
+          {/each}
+        </li>
+      {/if}
+    </ul>
+    {#if data.headings.length >= 2}
+      <nav class="toc gm-clear" aria-labelledby="toc-title">
+        <h2 id="toc-title">{m.post_on_this_page()}</h2>
+        <ol lang="en">
+          {#each data.headings as heading (heading.id)}
+            <li class:sub={heading.depth === 3}><a href="#{heading.id}">{heading.text}</a></li>
+          {/each}
+        </ol>
+      </nav>
     {/if}
-  </div>
+  </aside>
 
-  <div class="gm-prose body">
-    <Content />
-  </div>
-
-  {#if neighbours.length > 0}
-    <Separator class="mt-16" />
-    <nav class="more" aria-label={m.post_more()}>
-      {#each neighbours as { label, post: other } (other.slug)}
-        <Card.Root class="stretch relative">
-          <Card.Header class="pb-6">
-            <Card.Description>{label}</Card.Description>
-            <Card.Title level={2} class="text-xl">
-              <a href={resolve("/blog/[slug]", { slug: other.slug })} class="stretch-link">
-                {other.title}
-              </a>
-            </Card.Title>
-          </Card.Header>
-        </Card.Root>
-      {/each}
-    </nav>
+  {#if post.cover}
+    <div class="cover"><img src={post.cover} alt="" /></div>
   {/if}
+
+  {#key post.slug}
+    <div class="gm-prose body" lang="en" {@attach enhance}>
+      <Content />
+    </div>
+  {/key}
+  <p class="sr-only" aria-live="polite">{copied}</p>
+
+  <footer class="end">
+    {#if data.newer || data.older}
+      <nav class="more" aria-label={m.post_more()}>
+        {#if data.newer}{@render neighbour(data.newer, m.post_newer(), "newer")}{/if}
+        {#if data.older}{@render neighbour(data.older, m.post_older(), "older")}{/if}
+      </nav>
+    {/if}
+    <a href={resolve("/blog")} class="gm-link gm-clear">{m.post_all()}<ArrowRight /></a>
+  </footer>
 </article>
 
 <style>
   .post {
-    padding-top: clamp(2rem, 5vw, 3.5rem);
+    padding-top: clamp(1.5rem, 4vw, 2.5rem);
   }
+  /* One reading column for the title, the text and the cards at the end. From
+     1100px the facts and the page's sections sit beside it and stay in view. */
+  .post > * {
+    max-width: 46rem;
+  }
+  @media (width >= 1100px) {
+    .post {
+      display: grid;
+      grid-template-columns: minmax(0, 46rem) minmax(0, 15rem);
+      justify-content: space-between;
+      column-gap: 3rem;
+    }
+    .post > * {
+      grid-column: 1;
+    }
+    .post > .side {
+      grid-column: 2;
+      grid-row: 2 / span 4;
+      align-self: start;
+      position: sticky;
+      top: 6rem;
+      margin-top: 1.75rem;
+      padding-left: 1.5rem;
+      border-left: 1px solid var(--border);
+    }
+  }
+
   .head {
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
-    max-width: 48rem;
-    margin-top: 2rem;
+    margin-top: 1.25rem;
   }
   .title {
     font-weight: 700;
-    font-size: clamp(2.25rem, 5vw, 3.75rem);
-    line-height: 1.02;
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    line-height: 1.04;
     letter-spacing: -0.03em;
     text-wrap: balance;
   }
   .head .gm-lede {
     max-width: 44ch;
   }
+  .note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+    font-size: 0.9375rem;
+    color: var(--muted-foreground);
+  }
+
+  .side {
+    margin-top: 1.25rem;
+    font-size: 0.9375rem;
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1.5rem;
+    width: fit-content;
+  }
+  .facts li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .facts :global(svg) {
+    flex: none;
+    color: var(--muted-foreground);
+  }
+  :global(.post .chip) {
+    font-size: 0.8125rem;
+  }
+  .toc {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+  .toc h2 {
+    font-size: 0.8125rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .toc ol {
+    display: grid;
+    margin-top: 0.5rem;
+  }
+  .toc a {
+    display: block;
+    padding-block: 0.35rem;
+    line-height: 1.35;
+    color: var(--muted-foreground);
+    border-radius: 4px;
+  }
+  .toc a:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .toc a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .toc .sub a {
+    padding-left: 1rem;
+    font-size: 0.875rem;
+  }
+  @media (pointer: coarse) {
+    .toc a {
+      padding-block: 0.7rem;
+    }
+  }
+  @media (width >= 1100px) {
+    .facts {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+  }
+
   .cover {
-    margin-top: 2.5rem;
+    margin-top: 2rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
@@ -121,20 +290,79 @@
   .cover img {
     display: block;
     width: 100%;
-    aspect-ratio: 1200 / 340;
+    aspect-ratio: 16 / 7;
     object-fit: cover;
   }
   .body {
-    margin-top: clamp(2.5rem, 6vw, 4rem);
+    margin-top: clamp(1.75rem, 4vw, 2.5rem);
+  }
+  .body :global(> :first-child) {
+    margin-top: 0;
+  }
+  /* A heading jumped to from "On this page" lands clear of the sticky header. */
+  .body :global(:is(h2, h3)) {
+    scroll-margin-top: 6rem;
+  }
+
+  .end {
+    margin-top: clamp(3rem, 7vw, 4.5rem);
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
   }
   .more {
     display: grid;
     gap: 1rem;
-    margin-top: 2rem;
+    margin-bottom: 1.75rem;
   }
-  @media (width >= 700px) {
+  @media (width >= 600px) {
     .more {
       grid-template-columns: 1fr 1fr;
+    }
+    .more :global(.older) {
+      grid-column: 2;
+      text-align: right;
+    }
+    .more :global(.older .near-label) {
+      justify-content: flex-end;
+    }
+  }
+  .near-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    font-weight: 550;
+    color: var(--muted-foreground);
+  }
+  .near-title {
+    font-size: 1.25rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  .near-date {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  :global(.post .near) {
+    transition: border-color 0.15s;
+  }
+  :global(.post .near:hover) {
+    border-color: color-mix(in oklab, var(--foreground) 35%, var(--border));
+  }
+  .near-label :global(svg) {
+    transition: transform 0.15s;
+  }
+  :global(.post .newer:hover .near-label svg) {
+    transform: translateX(-0.2rem);
+  }
+  :global(.post .older:hover .near-label svg) {
+    transform: translateX(0.2rem);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .near-label :global(svg) {
+      transition: none;
+      transform: none !important;
     }
   }
 </style>

@@ -1,4 +1,4 @@
-import type { Post } from "#lib/types.ts";
+import type { Post, PostHeading } from "#lib/types.ts";
 import { m } from "@repo/i18n/messages.js";
 
 type PostModule = { metadata?: Omit<Post, "slug" | "readingMinutes"> };
@@ -19,6 +19,43 @@ export function readingMinutes(source: string): number {
   return Math.max(1, Math.round(words / 230));
 }
 
+/**
+ * Newest first. Posts of one date fall back to the slug, descending, so the order
+ * is the same on every page and never depends on how the files were read.
+ */
+export function comparePosts(a: Pick<Post, "date" | "slug">, b: Pick<Post, "date" | "slug">) {
+  const byDate = parseDate(b.date).getTime() - parseDate(a.date).getTime();
+  return byDate || (a.slug < b.slug ? 1 : a.slug > b.slug ? -1 : 0);
+}
+
+/**
+ * The h2 and h3 headings of a post's Markdown, each with an id for a link.
+ * ponytail: read from the source text, so smart punctuation and inline HTML in a
+ * heading are not applied here. If that matters, turn on mdsvex's `heading_ids`
+ * and read the headings from the rendered page instead.
+ */
+export function headingsOf(source: string): PostHeading[] {
+  const body = source.replace(/^---[\s\S]*?---/, "").replace(/```[\s\S]*?```/g, "");
+  const seen = new Map<string, number>();
+  return [...body.matchAll(/^(#{2,3})[ \t]+(.+?)[ \t]*#*$/gm)].map(([, marks, raw]) => {
+    const text = raw.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[`*_]/g, "");
+    const slug =
+      text
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "section";
+    const count = (seen.get(slug) ?? 0) + 1;
+    seen.set(slug, count);
+    return { depth: marks.length as 2 | 3, text, id: count > 1 ? `${slug}-${count}` : slug };
+  });
+}
+
+/** The headings of one published post, in reading order. */
+export const postHeadings = (slug: string) =>
+  headingsOf(sources[`/src/lib/blog-posts/${slug}.md`] ?? "");
+
 /** Published posts, newest first. */
 export function getPosts(): Post[] {
   const posts: Post[] = [];
@@ -32,7 +69,7 @@ export function getPosts(): Post[] {
       readingMinutes: readingMinutes(sources[path] ?? ""),
     });
   }
-  return posts.sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
+  return posts.sort(comparePosts);
 }
 
 /**
@@ -40,7 +77,7 @@ export function getPosts(): Post[] {
  * in the visitor's language; any other shows as written.
  */
 const CATEGORY_LABELS: Record<string, () => string> = {
-  blog: m.nav_blog,
+  blog: m.blog_category_blog,
   personal: m.blog_category_personal,
 };
 export const categoryLabel = (category: string) => CATEGORY_LABELS[category]?.() ?? category;

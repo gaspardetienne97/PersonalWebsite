@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { Component } from "svelte";
-import { getPosts } from "#lib/posts.ts";
+import { getPosts, postHeadings } from "#lib/posts.ts";
 import type { PageLoad } from "./$types";
 
 const modules = import.meta.glob<{ default: Component }>("/src/lib/blog-posts/*.md");
@@ -15,6 +15,7 @@ export const load: PageLoad = async ({ params }) => {
   return {
     post: posts[index],
     Content,
+    headings: postHeadings(params.slug),
     // Posts are newest first, so the next one is older.
     newer: posts[index - 1] ?? null,
     older: posts[index + 1] ?? null,
