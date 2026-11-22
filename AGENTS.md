@@ -133,6 +133,8 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 ### Nested Agent Guidance
 - Root-level guidance applies across the repo.
 - Narrator-specific work under [src/routes/pdf/](src/routes/pdf/) (the `/pdf` read-aloud app) should also follow [src/routes/pdf/AGENTS.md](src/routes/pdf/AGENTS.md). Package work in [packages/pdf-core/](packages/pdf-core/) is part of the Narrator architecture and should follow that guidance when changes affect extraction, the narration timeline, TTS engines, the library, or reader settings.
+- Personal site pages and the site shell (home, About, Writing, Studio, Listplay, sign-in, the error page, and [src/lib/components/site/](src/lib/components/site/)) follow [src/lib/components/site/AGENTS.md](src/lib/components/site/AGENTS.md): the site's identity, tokens, shared classes and the design rules learned from the UI climb. Read it before changing how any site page looks or behaves.
+- The screenshot-judged UI climb harness is documented in [scripts/ui-climb/README.md](scripts/ui-climb/README.md).
 - If nested guidance conflicts with this file, follow the more specific nested guidance for files in that scope.
 
 ### App Boundaries

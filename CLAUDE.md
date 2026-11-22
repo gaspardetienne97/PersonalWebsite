@@ -134,6 +134,7 @@ The app uses **two hooks** in sequence ([hooks.server.ts:37](src/hooks.server.ts
 - Shared primitives live in **`packages/ui/src/`** and are imported as `@repo/ui/<component>` (NOT `src/lib/components/ui/`, which no longer exists).
 - Built on **bits-ui** (headless component library); styled with Tailwind utility classes + theme tokens.
 - Do not hardcode colors; drive everything from theme tokens (`bg-background`, `text-foreground`, `bg-primary`, etc.).
+- **Before changing how a site page looks or behaves, read [src/lib/components/site/AGENTS.md](src/lib/components/site/AGENTS.md)**: the site's fixed identity, its tokens and shared classes, and the design rules learned from the UI climb. Narrator (`/pdf`) has its own look and rules in [src/routes/pdf/AGENTS.md](src/routes/pdf/AGENTS.md). The climb harness is in [scripts/ui-climb/README.md](scripts/ui-climb/README.md).
 
 ### Local Planning & Prototype Files
 - The repo contains local-only, often git-excluded files/folders: `docs/`, `old prompts/`, `.codex/`, `.superpowers/`, `.claude/`.

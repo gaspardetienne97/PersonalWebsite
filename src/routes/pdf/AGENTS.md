@@ -270,6 +270,34 @@ Keep these two settings together if you touch either.
   `domain/data.ts`, which translates the samples' kinds by id. Progress comes
   only from the saved playhead; documents carry no authored progress.
 
+### Lessons from the UI climb
+
+Narrator went from about 6.4 to 8.1 in a screenshot-judged climb (November 2026;
+harness in `scripts/ui-climb/README.md`). What held it back each round, so you
+don't bring it back:
+
+- **Phone and desktop get the same controls.** Repeat and the names under the
+  step buttons once existed on desktop only, and every judge read the phone as
+  missing them. Anything added at 1280 px exists at 390 px, and the other way round.
+- **Labels never wrap inside a button or chip.** Check every new label at 390 px
+  in French and English; if it wraps, shorten it in all four languages.
+- **One mark, one meaning.** A check mark added to the selected tab already meant
+  "in use" on the rows below it. Look at what a mark means nearby before adding one.
+- **One notice per failure, one control per job.** Two stacked notices for one
+  failure, and three controls on a Natural voice row ("Download to preview", "Use
+  when ready", Choose), were first flaws. Merge them into one.
+- **Read text stays readable.** Dimming read words below `--n-fg-read` cost
+  reading score on every judge. The current sentence's tint stays pale and the
+  word mark is a shape (underline, fill or glow), not dimmer text.
+- **A fix must not leave a new first flaw.** Most of round 2's top flaws were
+  about round 2's own additions. Finish a change at both widths and in French
+  before calling it done, or don't make it.
+- **Standing owner decisions**: dark only (no reading themes yet), and the brand
+  gradient on every primary button, notices included. Ask the owner before
+  changing either.
+- **Judges see stills.** Never change motion or timing to make a still frame look
+  better.
+
 ### Dependencies
 
 - `pdf-core` owns `pdfjs-dist`, `jszip`, and `kokoro-js`. Add narrator deps to
