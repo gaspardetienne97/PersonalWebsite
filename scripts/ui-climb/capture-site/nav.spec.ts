@@ -5,7 +5,7 @@ import { returning, visit } from "./site.ts";
 
 const FLOW = "nav";
 // From 860px the header has its links and two tools, the language pill then the two-part theme
-// control. Under it, the brand and one menu button, and the menu's sheet holds the pages, the
+// control. Under it, the brand, a sign-in button and one menu button, and the menu's sheet holds the pages, the
 // languages, the theme and the social links.
 const tools = ".site-header .tools button";
 const menuButton = ".site-header .actions > button";
@@ -21,7 +21,7 @@ for (const width of WIDTHS) {
       width,
       width === "desktop"
         ? "the header on the About page: logo and name, the four links with the current page underlined, the language pill and a two-part theme control (Light, Dark) of the same height, the current theme filled"
-        : "the header on the About page at phone width: logo and name, and one menu button that holds the pages, the language and the theme",
+        : "the header on the About page at phone width: logo and name, a sign-in button, and one menu button that holds the pages, the language and the theme",
     );
 
     await page.evaluate(() => window.scrollTo({ top: 520, behavior: "instant" }));
@@ -126,7 +126,7 @@ for (const width of WIDTHS) {
         FLOW,
         "footer",
         width,
-        "the footer, four even columns: name and note with replay the intro, the projects two by two with a small cover, name and line, the site's pages, elsewhere; the board's band along its top edge and the owner sign-in link",
+        "the footer, four even columns: name and note with replay the intro, the projects two by two with a small cover, name and line, the site's pages, elsewhere; the board's band along its top edge",
       );
     } else {
       // The footer's top edge at the top of the screen, then its end with the controls row.
@@ -150,7 +150,7 @@ for (const width of WIDTHS) {
         FLOW,
         "footer-end",
         width,
-        "the end of the footer at phone width: the language menu and the two-part theme control in one row, then the owner sign-in link",
+        "the end of the footer at phone width: the language menu and the two-part theme control in one row, then the year",
       );
     }
     if (width === "desktop") {

@@ -7,6 +7,7 @@
   import Sun from "@lucide/svelte/icons/sun";
   import Moon from "@lucide/svelte/icons/moon";
   import Menu from "@lucide/svelte/icons/menu";
+  import LogIn from "@lucide/svelte/icons/log-in";
   import X from "@lucide/svelte/icons/x";
   import { fade } from "svelte/transition";
   import * as DropdownMenu from "@repo/ui/dropdown-menu";
@@ -191,6 +192,17 @@
           <!-- The same two choices the phone menu gives, the one in use filled. -->
           <ThemeSwitch />
         </div>
+
+        <!-- Sign in, at every width. A signed-in owner goes straight on to the private page. -->
+        <a
+          href={resolve("/login")}
+          class="gm-icon-btn sign-in"
+          aria-label={m.header_sign_in()}
+          title={m.header_sign_in()}
+          aria-current={path === "/login" ? "page" : undefined}
+        >
+          <LogIn aria-hidden="true" />
+        </a>
       </div>
     </div>
   </header>
@@ -309,6 +321,18 @@
   .links :global(.nav-link[aria-current="page"])::after {
     bottom: 0.3rem;
     height: 3px;
+  }
+
+  /* On a phone the sign-in button sits before the menu button. */
+  @media (width < 860px) {
+    .sign-in {
+      order: -1;
+    }
+  }
+  @media (width >= 860px) {
+    .sign-in {
+      margin-left: 0.5rem;
+    }
   }
 
   /* The phone's menu button: the shared bordered shape, an icon and the word. Under

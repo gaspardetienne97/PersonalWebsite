@@ -2,7 +2,6 @@
   import { page } from "$app/state";
   import { resolve } from "$app/paths";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
-  import Lock from "@lucide/svelte/icons/lock";
   import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import { Button } from "@repo/ui/button";
   import CircuitPaths from "./CircuitPaths.svelte";
@@ -100,9 +99,6 @@
     <p class="legal">
       <!-- A phone shows the year alone: the name stands at the top of this footer. -->
       <span>© {year} <span class="holder">{name}</span></span>
-      <a href={resolve("/private")} class="social owner">
-        <Lock size={16} aria-hidden="true" />{m.footer_private()}
-      </a>
     </p>
   </footer>
 {/if}
@@ -322,10 +318,6 @@
     font-size: 0.9rem;
     color: var(--muted-foreground);
   }
-  /* The owner's own door: there for the owner, quiet for everyone else. */
-  .owner {
-    color: var(--gm-dim);
-  }
   @media (prefers-reduced-motion: reduce) {
     .projects li a :global(svg) {
       transition: none;
@@ -355,11 +347,6 @@
     }
     h2 a,
     ul a,
-    .legal a {
-      display: inline-flex;
-      align-items: center;
-      min-height: 2.75rem;
-    }
     h2:has(a) {
       margin-bottom: 0;
     }

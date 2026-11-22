@@ -14,6 +14,7 @@
   "header_theme": "Tèm",
   "header_theme_light": "Klè",
   "header_theme_dark": "Fonse",
+  "header_sign_in": "Konekte",
   "language_label": "Lang",
 
   "footer_note": "Enjenyè lojisyèl nan Boston. Sit sa a mache sou yon sèvè nan homelab mwen.",
@@ -24,7 +25,6 @@
   "footer_site": "Sit",
   "footer_projects": "Pwojè",
   "footer_elsewhere": "Lòt kote",
-  "footer_private": "Koneksyon mèt sit la",
 
   "intro_label": "Entwodiksyon",
   "intro_animate": "Anime logo a",

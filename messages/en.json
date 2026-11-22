@@ -14,6 +14,7 @@
   "header_theme": "Theme",
   "header_theme_light": "Light",
   "header_theme_dark": "Dark",
+  "header_sign_in": "Sign in",
   "language_label": "Language",
 
   "footer_note": "Software engineer in Boston. This site runs on a server in my homelab.",
@@ -24,7 +25,6 @@
   "footer_site": "Site",
   "footer_projects": "Projects",
   "footer_elsewhere": "Elsewhere",
-  "footer_private": "Owner sign-in",
 
   "intro_label": "Introduction",
   "intro_animate": "Animate the logo",
