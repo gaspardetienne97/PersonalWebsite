@@ -13,6 +13,7 @@
   "header_theme_light": "Claro",
   "header_theme_dark": "Oscuro",
   "header_sign_in": "Iniciar sesión",
+  "header_private": "Página privada, sesión iniciada como {name}",
   "language_label": "Idioma",
   "footer_note": "Ingeniero de software en Boston. Este sitio corre en un servidor de mi homelab.",
   "footer_replay": "Repetir la intro",

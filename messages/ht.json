@@ -15,6 +15,7 @@
   "header_theme_light": "Klè",
   "header_theme_dark": "Fonse",
   "header_sign_in": "Konekte",
+  "header_private": "Paj prive, {name} konekte",
   "language_label": "Lang",
 
   "footer_note": "Enjenyè lojisyèl nan Boston. Sit sa a mache sou yon sèvè nan homelab mwen.",

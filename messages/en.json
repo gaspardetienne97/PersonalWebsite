@@ -15,6 +15,7 @@
   "header_theme_light": "Light",
   "header_theme_dark": "Dark",
   "header_sign_in": "Sign in",
+  "header_private": "Private page, signed in as {name}",
   "language_label": "Language",
 
   "footer_note": "Software engineer in Boston. This site runs on a server in my homelab.",

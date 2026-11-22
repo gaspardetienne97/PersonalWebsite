@@ -13,6 +13,7 @@
   "header_theme_light": "Clair",
   "header_theme_dark": "Sombre",
   "header_sign_in": "Se connecter",
+  "header_private": "Page privée, session de {name}",
   "language_label": "Langue",
   "footer_note": "Ingénieur logiciel à Boston. Ce site fonctionne sur un serveur de mon homelab.",
   "footer_replay": "Revoir l’introduction",

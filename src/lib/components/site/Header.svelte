@@ -12,6 +12,7 @@
   import { fade } from "svelte/transition";
   import * as DropdownMenu from "@repo/ui/dropdown-menu";
   import { Button } from "@repo/ui/button";
+  import * as Avatar from "@repo/ui/avatar";
   import CircuitBackground from "./CircuitBackground.svelte";
   import CircuitPaths from "./CircuitPaths.svelte";
   import LanguageMenu from "./LanguageMenu.svelte";
@@ -19,10 +20,12 @@
   import ThemeSwitch from "./ThemeSwitch.svelte";
   import { replayIntro, shortcutListener, site } from "./intro.svelte";
   import { isFullscreenApp, nav, shortName, socials } from "#lib/config.ts";
+  import { initials } from "#lib/utils.ts";
   import { projects } from "#lib/content/projects.ts";
   import { m } from "@repo/i18n/messages.js";
 
   const path = $derived(page.url?.pathname ?? "/");
+  const user = $derived(page.data.user as { name: string; image: string | null } | null | undefined);
   // Under 860px the links, the language pill and the two-part theme control no
   // longer fit beside the name in the longer languages, so the menu holds them.
   const narrow = new MediaQuery("(width < 860px)");
@@ -193,16 +196,31 @@
           <ThemeSwitch />
         </div>
 
-        <!-- Sign in, at every width. A signed-in owner goes straight on to the private page. -->
-        <a
-          href={resolve("/login")}
-          class="gm-icon-btn sign-in"
-          aria-label={m.header_sign_in()}
-          title={m.header_sign_in()}
-          aria-current={path === "/login" ? "page" : undefined}
-        >
-          <LogIn aria-hidden="true" />
-        </a>
+        <!-- Sign in, at every width. Signed in, it shows who and opens the private page. -->
+        {#if user}
+          <a
+            href={resolve("/private")}
+            class="gm-icon-btn sign-in signed-in"
+            aria-label={m.header_private({ name: user.name })}
+            title={m.header_private({ name: user.name })}
+            aria-current={path === "/private" ? "page" : undefined}
+          >
+            <Avatar.Root class="size-7">
+              {#if user.image}<Avatar.Image src={user.image} alt="" />{/if}
+              <Avatar.Fallback class="text-xs">{initials(user.name)}</Avatar.Fallback>
+            </Avatar.Root>
+          </a>
+        {:else}
+          <a
+            href={resolve("/login")}
+            class="gm-icon-btn sign-in"
+            aria-label={m.header_sign_in()}
+            title={m.header_sign_in()}
+            aria-current={path === "/login" ? "page" : undefined}
+          >
+            <LogIn aria-hidden="true" />
+          </a>
+        {/if}
       </div>
     </div>
   </header>
@@ -333,6 +351,9 @@
     .sign-in {
       margin-left: 0.5rem;
     }
+  }
+  .signed-in {
+    padding-inline: 0;
   }
 
   /* The phone's menu button: the shared bordered shape, an icon and the word. Under

@@ -6,6 +6,7 @@ describe("/+page.svelte", () => {
   it("shows the newest of each kind in a reel, then a door for every kind", async () => {
     await render(Page, {
       data: {
+        user: null,
         posts: [
           {
             slug: "hello",

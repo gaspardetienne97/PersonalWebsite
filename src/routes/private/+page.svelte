@@ -5,16 +5,9 @@
   import * as Avatar from "@repo/ui/avatar";
   import { Button } from "@repo/ui/button";
   import { Empty } from "@repo/ui/empty";
+  import { initials } from "#lib/utils.ts";
 
   let { data } = $props();
-  const initials = $derived(
-    data.user.name
-      .split(/\s+/)
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase(),
-  );
 </script>
 
 <svelte:head>
@@ -31,7 +24,7 @@
     <div class="who">
       <Avatar.Root class="size-10">
         {#if data.user.image}<Avatar.Image src={data.user.image} alt="" />{/if}
-        <Avatar.Fallback>{initials}</Avatar.Fallback>
+        <Avatar.Fallback>{initials(data.user.name)}</Avatar.Fallback>
       </Avatar.Root>
       <div class="flex flex-col">
         <span class="font-medium">{data.user.name}</span>

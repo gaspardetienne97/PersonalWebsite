@@ -64,4 +64,13 @@ export const flyAndScale = (
   };
 };
 // Dates, numbers and lists in the visitor's language live in @repo/i18n.
+/** Up to two initials from a name, for an avatar with no picture. */
+export const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
 export { formatDate, formatList, formatNumber, intlLocale } from "@repo/i18n/format";
