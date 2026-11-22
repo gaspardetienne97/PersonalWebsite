@@ -51,9 +51,6 @@
   /* The paper a drawing sits on and its hairline: one warm off-white in both themes. */
   --gm-paper: #f5f2ea;
   --gm-paper-edge: rgb(0 0 0 / 0.08);
-  /* The quietest text allowed: 4.5:1 on the page colour, for a line most visitors
-     never need (the owner's sign-in link). */
-  --gm-dim: oklch(0.554 0.046 257.417);
   /* The sticky header's height. Anything that lands under it reads this. */
   --gm-header-h: 4rem;
 }
@@ -70,7 +67,6 @@ html:has([data-site-chrome]) {
   --gm-yellow: oklch(0.86 0.15 88);
   --gm-pink: oklch(0.78 0.14 0);
   --gm-cyan: oklch(0.8 0.12 225);
-  --gm-dim: oklch(0.6 0.04 257);
 }
 
 /* Site pages only (the ones that draw the site header), so Woodshed and Narrator
