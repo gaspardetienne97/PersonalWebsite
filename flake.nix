@@ -34,123 +34,94 @@
           );
       };
 
+      # Fixed-output, so this hash must be bumped whenever pnpm-lock.yaml
+      # changes. Nothing checks that automatically: if the build suddenly fails
+      # with a hash mismatch, take the `got:` value from the error.
       pnpmDeps = pnpm.fetchDeps {
         pname = "personal-website-pnpm-deps";
         version = "0.1.0";
         inherit src;
         fetcherVersion = 2;
-        hash = "sha256-ldviHKd42dwWbceHpHipGo3rSV2FvZfogCr07BPlulQ=";
+        hash = "sha256-qYC+uL5iHWJSFMnGC015jjHjFA7ZbMmEIkoUzyM2HYc=";
       };
 
-      mkSvelteKitPackage =
-        {
-          pname,
-          packageDir ? ".",
-          binName ? pname,
-        }:
-        pkgs.stdenv.mkDerivation {
-          inherit pname src pnpmDeps;
-          version = "0.1.0";
+      web = pkgs.stdenv.mkDerivation {
+        pname = "personal-website-web";
+        version = "0.1.0";
+        inherit src pnpmDeps;
 
-          nativeBuildInputs = [
-            nodejs
-            pnpm
-            pnpm.configHook
-            pkgs.gitMinimal
-          ];
+        nativeBuildInputs = [
+          nodejs
+          pnpm
+          pnpm.configHook
+          pkgs.gitMinimal
+        ];
 
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
-          SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+        SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
 
-          buildPhase = ''
-            runHook preBuild
+        buildPhase = ''
+          runHook preBuild
 
-            export HOME="$TMPDIR"
-            export NODE_ENV=production
-            export COREPACK_ENABLE_PROJECT_SPEC=0
+          export HOME="$TMPDIR"
+          export NODE_ENV=production
 
-            pnpm --config.manage-package-manager-versions=false run prepare
-            if [ ! -f .svelte-kit/tsconfig.json ]; then
-              mkdir -p .svelte-kit/types
-              cat > .svelte-kit/tsconfig.json <<'JSON'
-{
-  "compilerOptions": {
-    "paths": {
-      "$lib": ["../src/lib"],
-      "$lib/*": ["../src/lib/*"],
-      "$app/types": ["./types/index.d.ts"]
-    },
-    "rootDirs": ["..", "./types"],
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "lib": ["esnext", "DOM", "DOM.Iterable"],
-    "moduleResolution": "bundler",
-    "module": "esnext",
-    "noEmit": true,
-    "target": "esnext",
-    "types": ["node"]
-  },
-  "include": [
-    "../vite.config.js",
-    "../vite.config.ts",
-    "../src/**/*.js",
-    "../src/**/*.ts",
-    "../src/**/*.svelte"
-  ],
-  "exclude": ["../node_modules/**"]
-}
-JSON
-            fi
+          # nixpkgs supplies pnpm, but `packageManager` tells pnpm to go fetch
+          # its own pinned build from registry.npmjs.org, and there is no
+          # network in the sandbox. A --config flag on the pnpm calls below
+          # would not help: the pnpm that `vp config` spawns does not inherit
+          # it. Removing the field is what actually settles it.
+          node -e 'const fs = require("fs"); const p = JSON.parse(fs.readFileSync("package.json", "utf8")); delete p.packageManager; fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");'
 
-            (
-              cd ${lib.escapeShellArg packageDir}
-              pnpm --config.manage-package-manager-versions=false run build
-            )
+          pnpm run prepare
+          pnpm run build
 
-            if [ ! -d "${packageDir}/build" ]; then
-              echo "Build failed: ${packageDir}/build directory not found"
-              exit 1
-            fi
+          test -f build/index.js || {
+            echo "build/index.js is missing: the vite build produced no server entry" >&2
+            exit 1
+          }
 
-            if [ ! -f "${packageDir}/build/index.js" ]; then
-              echo "Build failed: ${packageDir}/build/index.js not found"
-              exit 1
-            fi
+          runHook postBuild
+        '';
 
-            runHook postBuild
-          '';
+        installPhase = ''
+          runHook preInstall
 
-          installPhase = ''
-            runHook preInstall
+          mkdir -p "$out/bin" "$out/lib"
 
-            mkdir -p "$out/bin" "$out/lib" "$out/lib/packages"
+          cp -R build "$out/lib/build"
+          cp package.json "$out/lib/package.json"
+          # adapter-node leaves production dependencies external -- the server
+          # bundle imports better-auth, drizzle-orm, postgres and @repo/i18n by
+          # name -- so node_modules has to ship. It is ~1.5G, nearly all of it
+          # devDependencies. `pnpm prune --prod` would be the fix but it hangs
+          # in the sandbox, seemingly reaching for the registry, so the fat
+          # copy stands for now.
+          cp -R node_modules "$out/lib/node_modules"
 
-            cp -R "${packageDir}/build" "$out/lib/build"
-            cp "${packageDir}/package.json" "$out/lib/package.json"
-            cp -R node_modules "$out/lib/node_modules"
-            cp -R packages/ui "$out/lib/packages/ui"
-            rm -rf "$out/lib/packages/ui/node_modules"
+          # Every workspace package, not a hand-picked list: node_modules holds
+          # one @repo/* symlink per package, and a package missing here is a
+          # dangling symlink that fails noBrokenSymlinks. `ui` was the only one
+          # when this was a list; i18n, music-core and pdf-core came later and
+          # broke the build.
+          cp -R packages "$out/lib/packages"
 
-            cat > "$out/bin/${binName}" <<EOF
+          cat > "$out/bin/personal-website" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 cd "\$(dirname "\$0")/../lib"
 exec ${nodejs}/bin/node build/index.js "\$@"
 EOF
-            chmod +x "$out/bin/${binName}"
+          chmod +x "$out/bin/personal-website"
 
-            runHook postInstall
-          '';
-        };
+          runHook postInstall
+        '';
+      };
     in
     {
       packages.${system} = {
-        web = mkSvelteKitPackage {
-          pname = "personal-website-web";
-          binName = "personal-website";
-        };
-
-        default = self.packages.${system}.web;
+        inherit web;
+        default = web;
       };
 
       apps.${system} = {
