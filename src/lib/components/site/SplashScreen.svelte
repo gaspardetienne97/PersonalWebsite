@@ -1,8 +1,8 @@
 <!--
   The logo intro, shown full screen over the home page on a visitor's first visit
-  (and again on Ctrl+Shift+G, M, E). The name, the role line and a "Play the
-  intro" button sit under the logo. The button, or the first input of any kind
-  (a press on the logo or anywhere else, a key, a scroll), grows a circuit board
+  (and again on Ctrl+Shift+G, M, E). The name and the role line sit under the
+  logo. The first input of any kind (a press on the logo or anywhere else, a key,
+  a scroll) grows a circuit board
   out of its ring, the logo unfolds into the initials G M E and the name appears
   large. No trace is routed within 24px of the name, its line or the button at
   the foot. It never lifts by itself: the
@@ -17,7 +17,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import ChevronsDown from "@lucide/svelte/icons/chevrons-down";
-  import Play from "@lucide/svelte/icons/play";
   import type { Board } from "#lib/circuit/router.ts";
   import CircuitPaths from "./CircuitPaths.svelte";
   import GmeMark from "./GmeMark.svelte";
@@ -270,15 +269,12 @@
           <GmeMark {spelled} />
           <span class="hit" aria-hidden="true"></span>
         </button>
-        <!-- Whose site this is and what they do, from the first frame, and the button
-             that starts the intro. The large name and line below are the ones a screen
-             reader gets, so these copies are for the eye only. -->
+        <!-- Whose site this is and what they do, from the first frame. The large name
+             and line below are the ones a screen reader gets, so these copies are for
+             the eye only. -->
         <div class="wait" inert={board !== null}>
           <span class="who" aria-hidden="true">{name}</span>
           <span class="what" aria-hidden="true">{m.home_lede()}</span>
-          <button type="button" class="press" onclick={play}>
-            <Play aria-hidden="true" fill="currentColor" />{m.intro_play()}
-          </button>
         </div>
       </div>
 
@@ -351,7 +347,7 @@
     cursor: pointer;
   }
   /* The logo's box: the button, and under it what shows while the intro waits.
-     Also held to the height (less the room the name, the line and the two buttons
+     Also held to the height (less the room the name, the line and the button
      under the ring need), so on a short screen they stay clear of each other. */
   .logo {
     position: relative;
@@ -482,8 +478,7 @@
     }
   }
 
-  /* Until the intro starts: whose site this is, what they do, and the button
-     that plays it. They sit 24px below the ripple's widest reach (the ring is
+  /* Until the intro starts: whose site this is and what they do. They sit 24px below the ripple's widest reach (the ring is
      41.4% of the logo's width, the ripple ends at 1.34 times that), so the ring
      never crosses them. A press on the words counts as a press on the logo. */
   .wait {
@@ -515,40 +510,11 @@
     color: color-mix(in oklab, var(--foreground) 78%, var(--muted-foreground));
     text-wrap: balance;
   }
-  /* A real button, in the site's main button colours, 44px tall. */
-  .press {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-height: 2.75rem;
-    margin-top: 0.85rem;
-    padding: 0 1.25rem 0 1.1rem;
-    border-radius: 999px;
-    font-size: 1rem;
-    font-weight: 650;
-    white-space: nowrap;
-    color: var(--primary-foreground);
-    background: var(--primary);
-    cursor: pointer;
-    outline: none;
-    transition: background-color 0.15s ease;
-  }
-  .press :global(svg) {
-    width: 0.9rem;
-    height: 0.9rem;
-  }
-  .press:hover {
-    background: color-mix(in oklab, var(--primary) 86%, var(--background));
-  }
-  .press:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 3px;
-  }
   .grown .wait {
     opacity: 0;
     pointer-events: none;
   }
-  /* A phone on its side has no room for the line between the name and the button. */
+  /* A phone on its side has no room for the line under the name. */
   @media (height < 30rem) {
     .what {
       display: none;
@@ -713,8 +679,7 @@
     .stage,
     .actions,
     .board,
-    .mark::before,
-    .press {
+    .mark::before {
       transition: none;
     }
     .grown .disc :global(svg) {

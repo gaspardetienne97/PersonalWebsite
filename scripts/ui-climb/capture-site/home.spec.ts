@@ -48,25 +48,10 @@ for (const width of WIDTHS) {
         FLOW,
         "intro-waiting",
         width,
-        'first visit, the logo intro covers the page and waits: a ring ripples out from the logo, the name and the role line sit under it with a "Play the intro" button (any press, key or scroll also starts it), and "Skip intro" goes straight to the site',
+        'first visit, the logo intro covers the page and waits: a ring ripples out from the logo, the name and the role line sit under it (any press, key or scroll starts it), and "Skip intro" goes straight to the site',
         { frozen: true, themes: [theme] },
       );
       await thaw(page);
-
-      if (theme === "light") {
-        // Keyboard focus on "Play the intro" (Tab moves focus and does not start the intro).
-        await page.keyboard.press("Tab");
-        await page.keyboard.press("Tab");
-        await expect(intro.locator("button.press")).toBeFocused();
-        await settle(page, 300);
-        await snap(
-          page,
-          FLOW,
-          "intro-play-focus",
-          width,
-          'first visit, the intro waiting with keyboard focus on the "Play the intro" button',
-        );
-      }
 
       // Press the logo: the board grows from its ring and the logo unfolds into G M E.
       await pressLogo(page);
