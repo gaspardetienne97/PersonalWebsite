@@ -67,10 +67,6 @@
     display: block;
     overflow: visible;
     --ease: cubic-bezier(0.65, 0, 0.25, 1);
-    /* The two letters share one ring, so while they part they lie across each
-       other. A quick start takes them through that in a few frames (they are
-       clear of each other past the half-way point), then they settle slowly. */
-    --part: cubic-bezier(0.16, 1, 0.3, 1);
   }
   path {
     fill: none;
@@ -84,7 +80,7 @@
     transform-origin: 0 0;
     /* Logo: G and E stacked in the middle, drawn larger. */
     transform: translate(1050px, 340px) scale(1.45);
-    transition: transform 1s var(--part);
+    transition: transform 1s var(--ease);
   }
   .trace {
     stroke-dasharray: 1 1;
