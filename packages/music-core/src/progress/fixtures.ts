@@ -1,7 +1,8 @@
 // Test fixtures for the progress engine (imported by *.test.ts only).
 import type { PracticeSession, RunRecord, ScoringEvent } from "../types";
 
-export const T0 = Date.UTC(2026, 8, 1);
+/** Midnight on 1 September 2026, local time. */
+export const T0 = new Date(2026, 8, 1).getTime();
 
 export const ev = (over: Partial<ScoringEvent> = {}): ScoringEvent => ({
   id: "e1",

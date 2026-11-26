@@ -30,7 +30,7 @@ const inDays = (sessions: PracticeSession[], from: string, to: string) =>
     return d >= from && d <= to;
   });
 
-/** ISO weeks (Monday start, UTC). */
+/** ISO weeks (Monday start), by the player's own calendar day. */
 export function weekRollups(sessions: PracticeSession[], today: string) {
   const thisStart = weekStart(today);
   const lastStart = addDays(thisStart, -7);
@@ -109,7 +109,7 @@ export function weeklyGoals(sessions: PracticeSession[], today: string, sessionG
 export interface JournalFilter {
   skillId?: string;
   instrument?: Instrument;
-  /** Inclusive UTC day keys. */
+  /** Inclusive day keys. */
   from?: string;
   to?: string;
 }

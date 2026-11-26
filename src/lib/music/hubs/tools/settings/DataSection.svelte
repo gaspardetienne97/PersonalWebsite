@@ -24,6 +24,7 @@
   import { btn } from "#lib/music/components/ui.ts";
   import { mediaCounts, mediaKeys, restoreAssets, undoWrites, type BinaryStore } from "./media";
   import { formatList } from "@repo/i18n/format";
+  import { dayKey } from "@repo/music-core/progress/rewards";
 
   let { announce, rowCls }: { announce: (msg: string) => void; rowCls: string } = $props();
 
@@ -50,7 +51,7 @@
   let pending = $state<{ kind: "data" | "full"; data: DataBackup; assets: RestoredAsset[]; before: Record<BackupTable, number>; after: Record<BackupTable, number>; name: string } | null>(null);
   let confirmReset = $state(false);
 
-  const day = () => new Date().toISOString().slice(0, 10);
+  const day = () => dayKey(Date.now());
   const size = (b: number) => (b < 1024 ? `${b} B` : b < 1024 * 1024 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
 
   function download(blob: Blob, name: string) {

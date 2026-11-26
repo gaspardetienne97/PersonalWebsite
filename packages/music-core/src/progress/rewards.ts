@@ -26,11 +26,18 @@ export function improvementFor(
 export const levelFor = (xp: number) => Math.max(1, Math.floor(xp / 250) + 1);
 
 // ---------------------------------------------------------------------------
-// UTC day keys
+// Day keys: the calendar day on the player's own clock, so a day ends at their
+// midnight, not at midnight UTC. Arithmetic on a key is plain calendar math
+// (done in UTC, where every day is 24 hours long).
 
-export const dayKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);
-export const dayStart = (day: string) => Date.parse(`${day}T00:00:00Z`);
-export const addDays = (day: string, n: number) => dayKey(dayStart(day) + n * DAY_MS);
+const pad = (n: number) => String(n).padStart(2, "0");
+export const dayKey = (ms: number) => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+const dayStart = (day: string) => Date.parse(`${day}T00:00:00Z`);
+export const addDays = (day: string, n: number) =>
+  new Date(dayStart(day) + n * DAY_MS).toISOString().slice(0, 10);
 /** Monday of the ISO week containing `day`: one key per ISO week. */
 export const weekStart = (day: string) =>
   addDays(day, -((new Date(dayStart(day)).getUTCDay() + 6) % 7));

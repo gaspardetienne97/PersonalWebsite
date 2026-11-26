@@ -152,7 +152,9 @@ export default defineConfig(({ command, isSsrBuild }): UserConfig => ({
     include: ["src/**/*.{test,spec}.{ts,js}", "packages/**/*.{test,spec}.{ts,js}"],
     browser: {
       enabled: true,
-      provider: playwright(),
+      // One fixed zone, and not UTC, so day keys behave the same on every machine
+      // and a slip back to UTC days fails a test.
+      provider: playwright({ contextOptions: { timezoneId: "America/New_York" } }),
       instances: [{ browser: "chromium" }],
     },
   },

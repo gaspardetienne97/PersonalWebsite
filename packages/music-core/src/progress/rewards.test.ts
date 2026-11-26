@@ -3,6 +3,7 @@ import { T0, ev, session } from "./fixtures";
 import { DAY_MS } from "./mastery";
 import {
   achievements,
+  addDays,
   applyFreezes,
   computeStreak,
   dailyChallenges,
@@ -34,8 +35,11 @@ describe("xp and level", () => {
     expect([0, 249, 250, 999, 1000].map(levelFor)).toEqual([1, 1, 2, 4, 5]);
   });
 
-  it("keys days in UTC and weeks from Monday", () => {
-    expect(dayKey(Date.UTC(2026, 8, 25, 23, 59))).toBe("2026-09-25");
+  it("keys days by the player's own clock and weeks from Monday", () => {
+    // The tests run in New York: 23:59 there is already the next day in UTC.
+    expect(dayKey(new Date(2026, 8, 25, 23, 59).getTime())).toBe("2026-09-25");
+    expect(dayKey(new Date(2026, 8, 26, 0, 1).getTime())).toBe("2026-09-26");
+    expect(addDays("2026-11-01", 1)).toBe("2026-11-02"); // the clocks go back that night
     expect(weekStart("2026-09-25")).toBe("2026-09-21");
     expect(weekStart("2026-09-21")).toBe("2026-09-21");
     expect(weekStart("2026-09-27")).toBe("2026-09-21");
