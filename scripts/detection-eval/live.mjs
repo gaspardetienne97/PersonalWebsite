@@ -163,11 +163,10 @@ export function simulateLive(channels, sr, sig, a4 = 440, { clicks } = {}) {
 function readChord(frames, from, sig) {
   const frameMs = frames.length ? (frames[0].frame.length / frames[0].sampleRate) * 1000 : 0;
   const win = frames.filter((f) => f.at + frameMs > from && f.at < from + sig.CHORD_WINDOW_MS);
-  const r = sig.readChord(
-    sig.framesWindow(win, from, sig.CHORD_WINDOW_MS),
-    win[0]?.sampleRate ?? 48000,
-  );
-  return { at: from, pcs: r.pcs, chroma: r.chroma, quiet: r.quiet };
+  const buf = sig.framesWindow(win, from, sig.CHORD_WINDOW_MS);
+  const sampleRate = win[0]?.sampleRate ?? 48000;
+  const r = sig.readChord(buf, sampleRate);
+  return { at: from, pcs: r.pcs, chroma: r.chroma, quiet: r.quiet, buf, sampleRate };
 }
 
 /** One reading per audio onset (the 600 ms from it), as ChordListener hands to onStrum. */

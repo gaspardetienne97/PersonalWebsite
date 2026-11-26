@@ -245,6 +245,15 @@ describe("Chord-Perfect", () => {
       candidates: [{ symbol: "C", confidence: 1 }],
     });
     expect(extra.correct).toBe(false);
+    // The target check heard a C whose fifth the blind read missed: correct, the G still reported missing.
+    const checked = gradeStrumIdentify({
+      ...base,
+      observedPcs: [0, 4],
+      candidates: [],
+      accepted: true,
+    });
+    expect(checked).toMatchObject({ correct: true, score: 1, identified: "C" });
+    expect(checked.verification.missing).toEqual([7]);
     expect(sameChordSymbol("C#m", "Dbm")).toBe(true);
     expect(sameChordSymbol("C", "Cm")).toBe(false);
   });

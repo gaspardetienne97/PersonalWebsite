@@ -3,7 +3,7 @@
   // clusters split by 350 ms of silence, graded per arrival. With no clock a cluster
   // counts as a change only when it sounds like the next chord (groupChanges).
   // Round trips or a timed minute, optionally against a clock (BPM and beats per chord). Taps and MIDI
-  // give notes; with the microphone on, each strum is read as chroma instead.
+  // give notes; with the microphone on, each strum is read from the audio and checked against the cycle's chords.
   import { m } from "@repo/i18n/messages.js";
   import { onDestroy } from "svelte";
   import { conceptCard } from "@repo/music-core/lessons/cards";
@@ -32,6 +32,7 @@
   import { chord, note } from "#lib/music/names.svelte.ts";
   import { chordId, chordLabel, chordRef, cyclePositions, cycleRefs, groupChanges, groupedNotes, hardestPairs, mergePairRuns, PAIR_HISTORY_KEY, positionsOn, shapesFor, type ChordRef, type HardPair, type PairRun } from "./chords";
   import { ChordListener } from "./strum.svelte";
+  import { checkChord } from "@repo/music-core/signal/chord";
   import MicPanel from "./MicPanel.svelte";
   import ChordCycleSetup from "./ChordCycleSetup.svelte";
   import ChordStrip from "./ChordStrip.svelte";
@@ -248,8 +249,13 @@
     if (usedMic)
       listener.start({
         onStrum: (h) => {
-          if (phase !== "running" || h.at < ctx.downbeat - 100 || !h.pcs.length) return;
-          notes = [...notes, ...h.pcs.map((pc) => ({ midi: 60 + pc, at: h.at }))];
+          if (phase !== "running" || h.at < ctx.downbeat - 100) return;
+          // The cycle's chords are known: when exactly one passes the target check,
+          // that is the chord, even if the blind read missed a faint tone.
+          const passed = [...new Set(pcs.filter((p) => checkChord(h.analysis, p).accepted).map((p) => p.join()))];
+          const got = passed.length === 1 ? passed[0].split(",").map(Number) : h.pcs;
+          if (!got.length) return;
+          notes = [...notes, ...got.map((pc) => ({ midi: 60 + pc, at: h.at }))];
           lastNoteAt = h.at;
         },
       });

@@ -9,6 +9,7 @@
   import { catalogEntry } from "@repo/music-core/content/catalog";
   import { chordPerfectTargets, shapePcs } from "@repo/music-core/content/technique";
   import { identifyChord } from "@repo/music-core/theory/chords";
+  import { checkChord } from "@repo/music-core/signal/chord";
   import { gradeStrumIdentify } from "@repo/music-core/scoring/technique";
   import DrillShell, { type DrillMode, type Phase, type RunContext } from "#lib/music/components/DrillShell.svelte";
   import Stat from "#lib/music/components/Stat.svelte";
@@ -58,7 +59,8 @@
   let phase = $state<Phase>("ready");
   let mode = $state<DrillMode>("practice");
   let status = $state("");
-  let heard = $state<Heard | null>(null);
+  /** Tones shown as heard: the blind read, or the best fit when only the target check heard the chord. */
+  let heardPcs = $state.raw<number[]>([]);
   let identified = $state<string | null>(null);
   let summary = $state<RunSummary | null>(null);
   /** Set when the strum could not be graded: nothing was recorded, so there is no run to compare. */
@@ -92,7 +94,7 @@
   function start(ctx: RunContext) {
     demo?.stop();
     summary = null;
-    heard = null;
+    heardPcs = [];
     identified = null;
     ungraded = null;
     triggerAt = null;
@@ -118,9 +120,11 @@
   async function grade(h: Heard | null) {
     if (phase !== "running") return;
     halt();
-    heard = h;
     phase = "results";
-    if (!h || h.pcs.length < need) {
+    // Knowing the chord asked for, the check forgives a faint tone the blind read drops.
+    const check = h && checkChord(h.analysis, expected);
+    heardPcs = !h ? [] : h.pcs.length || !check?.accepted ? h.pcs : check.best;
+    if (!h || (!check?.accepted && h.pcs.length < need)) {
       // Not enough evidence to grade: nothing is recorded.
       const n = h?.pcs.length ?? 0;
       ungraded = !h
@@ -132,7 +136,7 @@
       return;
     }
     const candidates = identifyChord(h.pcs).map((c) => ({ symbol: c.symbol, confidence: c.score }));
-    const g = gradeStrumIdentify({ expectedSymbol: symbol, expectedPcs: expected, observedPcs: h.pcs, candidates });
+    const g = gradeStrumIdentify({ expectedSymbol: symbol, expectedPcs: expected, observedPcs: h.pcs, candidates, accepted: check?.accepted });
     identified = g.identified;
     const run = practice.beginRun({
       exerciseId: exerciseFor(entry.exerciseId, instr),
@@ -248,7 +252,7 @@
     <div class="flex flex-col justify-end" data-dock="instrument"><ShapeBoard {shape} {tuning} show={mode === "practice" || phase === "results"} label={neckLabel(instr, shown)} interactive={false} /></div>
     <div class="mt-4 grid gap-2">
       <p class="text-sm font-medium">{phase === "results" ? m.music_strings_strumid_held() : m.music_strings_chord_tones()}</p>
-      <ToneMap expected={mode === "practice" || phase === "results" ? expected : []} heard={phase === "results" ? (heard?.pcs ?? []) : live ? listener.live : []} plain={phase === "ready"} label={m.music_strings_chord_tones_of({ symbol: shown })} name={spell} />
+      <ToneMap expected={mode === "practice" || phase === "results" ? expected : []} heard={phase === "results" ? heardPcs : live ? listener.live : []} plain={phase === "ready"} label={m.music_strings_chord_tones_of({ symbol: shown })} name={spell} />
     </div>
     <p class="mt-3 max-w-prose text-sm text-ws-stage-soft">
       {m.music_strings_strumid_mic_limits()}

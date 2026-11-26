@@ -307,24 +307,33 @@ export function sameChordSymbol(a: string, b: string): boolean {
  * score = confidence x 0.35 + verification x 0.65, where confidence is the
  * identifier's confidence in the expected symbol; correct needs the top
  * candidate to be the expected symbol and a full, extra-free verification.
+ * `accepted` is the target check on the audio (`checkChord`): when it passes,
+ * the strum is the expected chord (score 1) even if the blind read missed a
+ * faint tone. The observed tones are still reported as heard.
  */
 export function gradeStrumIdentify(input: {
   expectedSymbol: string;
   expectedPcs: readonly number[];
   observedPcs: readonly number[];
   candidates: readonly { symbol: string; confidence: number }[];
+  accepted?: boolean;
 }): Graded & { identified: string | null; confidence: number; verification: ToneVerification } {
   const verification = verifyChordTones(input.expectedPcs, input.observedPcs);
-  const confidence =
-    input.candidates.find((c) => sameChordSymbol(c.symbol, input.expectedSymbol))?.confidence ?? 0;
-  const identified = input.candidates[0]?.symbol ?? null;
-  const score = input.observedPcs.length ? confidence * 0.35 + verification.score * 0.65 : 0;
+  const confidence = input.accepted
+    ? 1
+    : (input.candidates.find((c) => sameChordSymbol(c.symbol, input.expectedSymbol))?.confidence ??
+      0);
+  const top = input.candidates[0]?.symbol ?? null;
+  const identified = input.accepted ? input.expectedSymbol : top;
+  const read = top !== null && sameChordSymbol(top, input.expectedSymbol) && verification.correct;
+  const score = input.accepted
+    ? 1
+    : input.observedPcs.length
+      ? confidence * 0.35 + verification.score * 0.65
+      : 0;
   return {
     score,
-    correct:
-      identified !== null &&
-      sameChordSymbol(identified, input.expectedSymbol) &&
-      verification.correct,
+    correct: read || !!input.accepted,
     metrics: [
       { kind: "choice", expected: input.expectedSymbol, actual: identified ?? undefined },
       chordMetric(input.expectedPcs, verification),

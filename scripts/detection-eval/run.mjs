@@ -91,6 +91,36 @@ const [
 const sig = { ...pitch, ...chromaMod, ...chordMod, ...onset, ...level, ...biquad, ...listen };
 const { CLIPS, clipFile } = clipsMod;
 
+/**
+ * `CHORD_DUMP=<file>` saves the audio of every strum reading (the 600 ms from
+ * each onset) with what was played, to tune the chord reader without replaying
+ * every take: <file>.json indexes <file>.f32.
+ */
+const DUMP = process.env.CHORD_DUMP ? [] : null;
+let dumpLabel = "";
+const dumpStrum = (r, want) =>
+  DUMP?.push({
+    take: dumpLabel,
+    at: Math.round(r.at),
+    want: want?.symbol ?? null,
+    pcs: want?.pcs ?? [],
+    buf: r.buf,
+    sampleRate: r.sampleRate,
+  });
+process.on("exit", () => {
+  if (!DUMP?.length) return;
+  let offset = 0;
+  const index = DUMP.map(({ buf, ...d }) => ({
+    ...d,
+    offset: (offset += buf.length) - buf.length,
+    length: buf.length,
+  }));
+  const all = new Float32Array(offset);
+  DUMP.forEach((d, i) => all.set(d.buf, index[i].offset));
+  writeFileSync(`${process.env.CHORD_DUMP}.f32`, Buffer.from(all.buffer));
+  writeFileSync(`${process.env.CHORD_DUMP}.json`, JSON.stringify(index));
+});
+
 // ---------------------------------------------------------------------------
 // Small helpers
 
@@ -455,18 +485,22 @@ function chordMetrics(exp, sim, onsets) {
   const strums = strumReadings(sim, sig).map((r) => {
     const k = chordAt(r.at);
     const e = want[Math.max(0, k)];
+    dumpStrum(r, e);
     const g = grade(e, r.pcs);
     const candidates = chordsMod
       .identifyChord(r.pcs)
       .map((c) => ({ symbol: c.symbol, confidence: c.score }));
+    // Strum & identify knows the chord it asked for: the target check on the same window.
+    const checked = sig.checkChord(sig.analyseChord(r.buf, r.sampleRate), e.pcs).accepted;
     const id =
-      g.verdict === "short"
+      g.verdict === "short" && !checked
         ? null
         : technique.gradeStrumIdentify({
             expectedSymbol: e.symbol,
             expectedPcs: e.pcs,
             observedPcs: r.pcs,
             candidates,
+            accepted: checked,
           });
     return {
       at: Math.round(r.at),
@@ -562,6 +596,7 @@ function chordMetrics(exp, sim, onsets) {
 function falsePositives(sim) {
   const ons = sim.events.filter((e) => e.kind === "noteon");
   const strums = strumReadings(sim, sig);
+  for (const s of strums) dumpStrum(s, null);
   const live = liveReadouts(sim, sig);
   const rhythm = rhythmReadings(sim, sig);
   return {
@@ -605,6 +640,7 @@ const started = Date.now();
 for (const clip of clips) {
   const exp = expectation(clip);
   for (const input of inputs) {
+    dumpLabel = `${input} ${String(clip.n).padStart(2, "0")}`;
     const file = join(REC, input, clipFile(clip));
     if (!existsSync(file)) continue;
     const wav = readWav(readFileSync(file));
@@ -720,7 +756,7 @@ md.push(
   "- **notes a/b +c**: note-ons from the live note tracker (what Reading, scales, lines and the fretboard drills receive). a of b expected notes arrived in order; +c extra note-ons (o = octave of an expected note, r = repeat of an expected note, s = a semitone off, x = anything else).",
   "- **frames**: of the frames with a pitch reading, the share on an expected note / an octave of one / anything else. Membership in the clip's note set, not time-aligned, so it flatters slightly.",
   "- **onsets a/b +c**: a of b expected attacks matched, +c extra onsets. Timing error is shown only for clips played to a click and includes the player.",
-  "- **strum a/b**: chord readings (the chord reader over the 600 ms from each onset, the Strum & identify and Changes path) whose pitch classes are exactly the chord, of all readings. `named` is the chord identifier's top answer being the chord. `-X` lists chord tones missing, `+X` tones that should not be there.",
+  "- **strum a/b**: chord readings (the chord reader over the 600 ms from each onset, the Strum & identify and Changes path) whose pitch classes are exactly the chord, of all readings. `passed` is Strum & identify's verdict: the read is exactly the chord, or the target check (`checkChord`, which knows the chord asked for) accepts it. `-X` lists chord tones missing, `+X` tones that should not be there.",
   "- **live**: the on-screen Hearing readout while the chord rings: share of readouts that are exactly the chord.",
   "- **rhythm**: the rhythm page's own chord read (the chord reader over the 400 ms from each onset; `unpitched` strums read no tones and count as muted strokes): chords whose tones were all heard across their strums.",
   "- **Note-on latency**: from the start of the first frame that read the note to the end of the frame in which the app pushes the note-on. Two frames (85 ms) is the least; it does not include the attack itself or the browser's input latency.",
@@ -776,10 +812,10 @@ table(
       }),
     ],
     [
-      "Chords at a strum: exactly right / named right",
+      "Chords at a strum: read exactly / passed by Strum & identify",
       ...inputs.map((i) => {
         const a = agg(i, (r) => r.chord?.strum);
-        return `${pct(a.sum("exact"), a.sum("n"))}% / ${pct(a.sum("named"), a.sum("n"))}% of ${a.sum("n")}`;
+        return `${pct(a.sum("exact"), a.sum("n"))}% / ${pct(a.sum("correct"), a.sum("n"))}% of ${a.sum("n")}`;
       }),
     ],
     [
@@ -831,7 +867,7 @@ const chordCell = (r) => {
   const c = r.chord;
   const miss = tallyText(c.strum.missingPcs);
   const extra = tallyText(c.strum.extraPcs);
-  return `strum ${c.strum.exact}/${c.strum.n}, named ${c.strum.named}${c.strum.short ? `, ${c.strum.short} too few tones` : ""}${miss ? ` -[${miss}]` : ""}${extra ? ` +[${extra}]` : ""}; live ${c.live.exactPct ?? "n/a"}%; rhythm ${c.rhythm.held}/${c.rhythm.chords}${c.rhythm.unpitched ? ` (${c.rhythm.unpitched} unpitched)` : ""}; onsets ${r.onsets.hits}/${r.onsets.expected} +${r.onsets.extra}${r.onsets.medianAbsErrMs !== null ? ` ±${r.onsets.medianAbsErrMs} ms` : ""}${flagText(r)}`;
+  return `strum ${c.strum.exact}/${c.strum.n}, passed ${c.strum.correct}${c.strum.short ? `, ${c.strum.short} too few tones` : ""}${miss ? ` -[${miss}]` : ""}${extra ? ` +[${extra}]` : ""}; live ${c.live.exactPct ?? "n/a"}%; rhythm ${c.rhythm.held}/${c.rhythm.chords}${c.rhythm.unpitched ? ` (${c.rhythm.unpitched} unpitched)` : ""}; onsets ${r.onsets.hits}/${r.onsets.expected} +${r.onsets.extra}${r.onsets.medianAbsErrMs !== null ? ` ±${r.onsets.medianAbsErrMs} ms` : ""}${flagText(r)}`;
 };
 const roomCell = (r, k = "room") => {
   if (!r) return "no take";

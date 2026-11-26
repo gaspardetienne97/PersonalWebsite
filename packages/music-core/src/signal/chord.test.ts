@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vite-plus/test";
 import { midiToHz } from "../theory/notes";
 import { identifyChord } from "../theory/chords";
-import { explainPeaks, framesWindow, readChord, spectralPeaks } from "./chord";
+import {
+  analyseChord,
+  checkChord,
+  explainPeaks,
+  framesWindow,
+  readChord,
+  spectralPeaks,
+} from "./chord";
 import { CHORD_SAMPLE_RATE, chroma } from "./chroma";
 import { rng, synth, type Partial } from "./fixtures";
 
@@ -143,6 +150,55 @@ describe("readChord", () => {
       { noise: 0.0005 },
     );
     expect(readChord(buf, 48000).pcs).toEqual([2, 7, 11]);
+  });
+});
+
+describe("checkChord", () => {
+  const G = [2, 7, 11];
+  const check = (buf: Float32Array, target: number[]) => checkChord(analyseChord(buf, SR), target);
+
+  it("passes an open G whose strings sit 18 cents apart, which the blind read turns down", () => {
+    // Laptop mics put real strums here: further apart than the blind read allows, short of talking.
+    const off = [0.18, -0.18, 0.18, -0.18, 0.18, -0.18];
+    const buf = ring(OPEN_G.flatMap((m, i) => string(m + off[i])));
+    expect(readChord(buf, SR).pcs).not.toEqual(G);
+    expect(check(buf, G).accepted).toBe(true);
+    // Knowing the target is no licence to pass its rivals.
+    expect(check(buf, [2, 7, 10]).accepted).toBe(false); // G minor: no B flat
+    expect(check(buf, [4, 7, 11]).accepted).toBe(false); // E minor: no E
+    // A little further apart is not a chord at all.
+    const wide = ring(OPEN_G.flatMap((m, i) => string(m + off[i] * 1.12)));
+    expect(check(wide, G).accepted).toBe(false);
+  });
+
+  it("passes the open shapes as themselves and not as each other", () => {
+    const shapes = {
+      C: [OPEN_C, [0, 4, 7]],
+      Am: [OPEN_AM, [0, 4, 9]],
+      Em: [OPEN_EM, [4, 7, 11]],
+      D: [OPEN_D, [2, 6, 9]],
+    } as const;
+    for (const [name, [shape, pcs]] of Object.entries(shapes)) {
+      const buf = ring(shape.flatMap((m) => string(m)));
+      for (const [other, [, otherPcs]] of Object.entries(shapes))
+        expect(check(buf, [...otherPcs]).accepted, `${name} as ${other}`).toBe(name === other);
+      expect(check(buf, [...pcs]).best).toEqual([...pcs]);
+    }
+  });
+
+  it("fails a chord with a wrong note or a missing third", () => {
+    // Open C with the B string ringing open is C major 7, not C.
+    const cmaj7 = check(ring([48, 52, 55, 59, 64].flatMap((m) => string(m))), [0, 4, 7]);
+    expect(cmaj7).toMatchObject({ accepted: false, extra: [11] });
+    // A minor third in a G shape.
+    expect(check(ring([43, 46, 50, 55, 58, 67].flatMap((m) => string(m))), G).accepted).toBe(false);
+    // G and D only: the G's own fifth partial is not a B string.
+    expect(check(ring([43, 50, 55].flatMap((m) => string(m))), G).accepted).toBe(false);
+  });
+
+  it("fails silence and noise whatever the target", () => {
+    expect(check(new Float32Array(13230), G).accepted).toBe(false);
+    expect(check(synth(SR, 0.6, [], { noise: 0.05, seed: 2 }), G).accepted).toBe(false);
   });
 });
 

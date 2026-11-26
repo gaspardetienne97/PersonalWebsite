@@ -175,8 +175,12 @@ export function explainPeaks(
   centre = 0,
 ): ExplainedPeak[] {
   const pcOfHz = (hz: number) => ((Math.round(hzToMidi(hz) - centre) % 12) + 12) % 12;
-  const has = (hz: number, floor: number) => {
-    const tol = Math.max(hz * (2 ** (s.partialCents / 1200) - 1), s.partialHz);
+  // Is there a peak at `hz`, the `part`-th multiple of a fundamental the peak
+  // being explained is the `h`-th partial of? The Hz allowance is how well
+  // that peak is placed, scaled down to `hz` (k/h of it), so a low string's
+  // series is matched to the cent like any other.
+  const has = (hz: number, floor: number, part = 1, h = 1) => {
+    const tol = Math.max(hz * (2 ** (s.partialCents / 1200) - 1), (s.partialHz * part) / h);
     for (const p of peaks) {
       if (p.hz < hz - tol) continue;
       if (p.hz > hz + tol) break;
@@ -198,9 +202,9 @@ export function explainPeaks(
       const odd = h / (h & -h);
       const credit = odd === 3 ? s.credit3 : odd === 5 ? s.credit5 : odd === 7 ? s.credit7 : 1;
       const made =
-        has(f0, floor) ||
-        ((h === 5 || h === 7) && has(2 * f0, floor)) ||
-        (h === 3 && has(4 * f0, floor) && has(5 * f0, floor));
+        has(f0, floor, 1, h) ||
+        ((h === 5 || h === 7) && has(2 * f0, floor, 2, h)) ||
+        (h === 3 && has(4 * f0, floor, 4, h) && has(5 * f0, floor, 5, h));
       if (made) by[t] = Math.max(by[t], credit);
     }
     return { weight: p.amp ** s.gamma, own, by };
@@ -292,6 +296,45 @@ export interface ChordReading {
   quiet: boolean;
 }
 
+/** What a stretch of audio holds, before deciding what chord (if any) it is. */
+export interface ChordAnalysis {
+  /** Nothing stood clear of the level floor and the noise. */
+  quiet: boolean;
+  /** The tuned peaks, each with the pitch classes that could have made it. */
+  peaks: ExplainedPeak[];
+  spreadCents: number;
+  /** The smallest set of pitch classes that explains the peaks (see `coverPeaks`). */
+  cover: { pcs: number[]; explained: number; own: number[] };
+}
+
+export function analyseChord(
+  buf: Float32Array,
+  sampleRate: number,
+  s: ChordReadSettings = CHORD_READ,
+): ChordAnalysis {
+  const empty = { pcs: [], explained: 0, own: Array<number>(12).fill(0) };
+  const down = sampleRate > CHORD_SAMPLE_RATE;
+  const peaks = spectralPeaks(
+    down ? resample(buf, sampleRate, CHORD_SAMPLE_RATE) : buf,
+    down ? CHORD_SAMPLE_RATE : sampleRate,
+    s,
+  );
+  if (!peaks.length) return { quiet: true, peaks: [], spreadCents: 0, cover: empty };
+  const { centre, spreadCents } = sharedTuning(peaks, s);
+  // A peak a quarter tone from the others' tuning has no pitch class to give
+  // (a background tone, or a high partial that sits between the notes).
+  const tuned = peaks.filter((p) => {
+    const d = hzToMidi(p.hz) - centre;
+    return Math.abs(d - Math.round(d)) * 100 <= s.outlierCents;
+  });
+  if (!tuned.length) return { quiet: false, peaks: [], spreadCents, cover: empty };
+  const explained = explainPeaks(tuned, s, centre);
+  return { quiet: false, peaks: explained, spreadCents, cover: coverPeaks(explained, s) };
+}
+
+/** Chords hold at most one pair of neighbouring semitones (the 7 and 1 of a maj7). */
+const smeared = (pcs: number[]) => pcs.filter((p) => pcs.includes((p + 1) % 12)).length >= 2;
+
 /**
  * Read the pitch classes ringing in a stretch of audio, ideally the 300 to
  * 600 ms from a strum. Answers nothing (`pcs` empty) for noise, for a spectrum
@@ -305,33 +348,21 @@ export function readChord(
   settings: Partial<ChordReadSettings> = {},
 ): ChordReading {
   const s = { ...CHORD_READ, ...settings };
-  const none = { pcs: [], chroma: Array<number>(12).fill(0), explained: 0, spreadCents: 0 };
-  const down = sampleRate > CHORD_SAMPLE_RATE;
-  const peaks = spectralPeaks(
-    down ? resample(buf, sampleRate, CHORD_SAMPLE_RATE) : buf,
-    down ? CHORD_SAMPLE_RATE : sampleRate,
-    s,
-  );
-  if (!peaks.length) return { ...none, quiet: true };
-  const { centre, spreadCents } = sharedTuning(peaks, s);
-  // A peak a quarter tone from the others' tuning has no pitch class to give
-  // (a background tone, or a high partial that sits between the notes).
-  const tuned = peaks.filter((p) => {
-    const d = hzToMidi(p.hz) - centre;
-    return Math.abs(d - Math.round(d)) * 100 <= s.outlierCents;
-  });
-  if (!tuned.length) return { ...none, quiet: false };
-  const cover = coverPeaks(explainPeaks(tuned, s, centre), s);
+  return readAnalysis(analyseChord(buf, sampleRate, s), s);
+}
+
+/** `readChord` on audio already analysed (one FFT serves the read and a `checkChord`). */
+export function readAnalysis(a: ChordAnalysis, s: ChordReadSettings = CHORD_READ): ChordReading {
+  const { cover } = a;
   const max = Math.max(...cover.own);
-  // Chords hold at most one pair of neighbouring semitones (the 7 and 1 of a maj7).
-  const smeared = cover.pcs.filter((p) => cover.pcs.includes((p + 1) % 12)).length >= 2;
-  const chord = !smeared && cover.explained >= s.minExplained && spreadCents <= s.maxSpreadCents;
+  const chord =
+    !smeared(cover.pcs) && cover.explained >= s.minExplained && a.spreadCents <= s.maxSpreadCents;
   return {
-    pcs: chord ? [...cover.pcs].sort((a, b) => a - b) : [],
-    chroma: cover.own.map((v) => v / max),
+    pcs: chord ? [...cover.pcs].sort((x, y) => x - y) : [],
+    chroma: max > 0 ? cover.own.map((v) => v / max) : cover.own,
     explained: cover.explained,
-    spreadCents,
-    quiet: false,
+    spreadCents: a.spreadCents,
+    quiet: a.quiet,
   };
 }
 
@@ -363,4 +394,114 @@ export function framesWindow(frames: readonly TimedFrame[], from: number, ms: nu
     pos += f.frame.length;
   }
   return out;
+}
+
+export const CHORD_CHECK = {
+  /** Strings that ring a little apart still count when the target is known (the blind read allows 17; talking reaches 20 and more). */
+  maxSpreadCents: 19,
+  /** The target's tones must explain this share of the spectrum. */
+  minExplained: 0.6,
+  /** Each chord tone costs this share of the spectrum, so a tone must earn its place. */
+  toneCost: 0.1,
+  /** The target passes when no other chord fits better than this. */
+  margin: 0.04,
+  /**
+   * Each target tone but a perfect fifth needs peaks of its own worth this share
+   * of the spectrum: peaks no other target tone could have made as a partial.
+   * (B over a G chord is the G's fifth partial only when it sits on it to the
+   * cent; a B string is 14 cents away.)
+   */
+  minTone: 0.02,
+  /** A peak another target tone claims at this credit or more is that tone's partial. */
+  claimed: 0.5,
+};
+export type ChordCheckSettings = typeof CHORD_CHECK;
+
+/** Share of the peaks' weight that a set of pitch classes explains. */
+function explainedBy(peaks: ExplainedPeak[], pcs: readonly number[]) {
+  let total = 0;
+  let got = 0;
+  for (const e of peaks) {
+    total += e.weight;
+    let c = 0;
+    for (const t of pcs) if (e.by[t] > c) c = e.by[t];
+    got += c * e.weight;
+  }
+  return total ? got / total : 0;
+}
+
+/** Every chord shape in `CHORD_TEMPLATES` on every root, as pitch-class sets. */
+const ALL_CHORDS = [
+  ...new Set(
+    CHORD_TEMPLATES.flatMap((t) =>
+      [...Array(12).keys()].map((root) =>
+        [...new Set(t.intervals.map((i) => (root + i) % 12))].sort((a, b) => a - b).join(),
+      ),
+    ),
+  ),
+].map((k) => k.split(",").map(Number));
+
+export interface ChordCheck {
+  /** The audio is the target chord. */
+  accepted: boolean;
+  /** The chord that fits the audio best (pitch classes, ascending); empty when nothing was read. */
+  best: number[];
+  /** Target tones the best fit does without, and tones it adds. */
+  missing: number[];
+  extra: number[];
+  /** Share of the spectrum the target's tones explain. */
+  explained: number;
+  quiet: boolean;
+}
+
+/**
+ * Is this the chord the player was asked for? Knowing the target makes this a
+ * narrower question than `readChord`, so it can forgive what a mic loses:
+ * every known chord on every root is scored as the share of the spectrum it
+ * explains minus a cost per tone, and the target passes when it explains the
+ * spectrum and no other chord beats it by more than `margin`. So G passes
+ * over a weak B (G minor has no B flat to show, G5 is only a hair ahead), and
+ * fails when the B flat is there or when the shape rings a wrong string.
+ */
+export function checkChord(
+  analysis: ChordAnalysis,
+  target: readonly number[],
+  settings: Partial<ChordCheckSettings> = {},
+): ChordCheck {
+  const s = { ...CHORD_CHECK, ...settings };
+  const pcs = [...new Set(target)].sort((a, b) => a - b);
+  const { peaks } = analysis;
+  const score = (set: readonly number[]) => explainedBy(peaks, set) - s.toneCost * set.length;
+  const explained = explainedBy(peaks, pcs);
+  if (analysis.quiet || !peaks.length)
+    return { accepted: false, best: [], missing: pcs, extra: [], explained, quiet: analysis.quiet };
+  let best = pcs;
+  let top = score(pcs);
+  for (const c of ALL_CHORDS) {
+    const v = score(c);
+    if (v > top) [best, top] = [c, v];
+  }
+  let total = 0;
+  const own = Array<number>(12).fill(0);
+  for (const e of peaks) {
+    total += e.weight;
+    if (!pcs.some((u) => u !== e.own && e.by[u] >= s.claimed)) own[e.own] += e.weight;
+  }
+  const fifths = new Set(pcs.map((p) => (p + 7) % 12));
+  const shown = pcs.every(
+    (t) => own[t] >= s.minTone * total || (fifths.has(t) && pcs.includes((t + 5) % 12)),
+  );
+  const accepted =
+    analysis.spreadCents <= s.maxSpreadCents &&
+    explained >= s.minExplained &&
+    shown &&
+    score(pcs) >= top - s.margin;
+  return {
+    accepted,
+    best,
+    missing: pcs.filter((p) => !best.includes(p)),
+    extra: best.filter((p) => !pcs.includes(p)),
+    explained,
+    quiet: false,
+  };
 }

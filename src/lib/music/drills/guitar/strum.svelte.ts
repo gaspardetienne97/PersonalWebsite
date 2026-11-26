@@ -3,7 +3,12 @@
 // per strum onset (the 600 ms from the attack, hardware notes 4).
 // Monophonic pitch detection cannot hear a chord; the chord reader can hear
 // which pitch classes ring, not which string rang them.
-import { framesWindow, readChord } from "@repo/music-core/signal/chord";
+import {
+  analyseChord,
+  framesWindow,
+  readAnalysis,
+  type ChordAnalysis,
+} from "@repo/music-core/signal/chord";
 import { CHORD_WINDOW_MS } from "@repo/music-core/signal/chroma";
 import { input, mic, type MicFrame } from "#lib/music/runtime/index.ts";
 
@@ -13,6 +18,8 @@ export interface Heard {
   at: number;
   pcs: number[];
   chroma: number[];
+  /** The analysed window, to check against a known target (`checkChord`). */
+  analysis: ChordAnalysis;
 }
 
 const frameMs = (f: MicFrame) => (f.frame.length / f.sampleRate) * 1000;
@@ -61,11 +68,12 @@ export class ChordListener {
       (f) => f.at + frameMs(f) > from && f.at < from + CHORD_WINDOW_MS,
     );
     // The reader answers nothing for silence, room noise and hum (its own floor and noise test).
-    const r = readChord(
+    const analysis = analyseChord(
       framesWindow(frames, from, CHORD_WINDOW_MS),
       frames[0]?.sampleRate ?? 48000,
     );
-    return { at: from, pcs: r.pcs, chroma: r.chroma };
+    const r = readAnalysis(analysis);
+    return { at: from, pcs: r.pcs, chroma: r.chroma, analysis };
   }
 
   #frame(f: MicFrame) {
